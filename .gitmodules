@@ -1,0 +1,3 @@
+[submodule "submodules/penpot-fork"]
+	path = submodules/penpot-fork
+	url = git@github.com:appliedAI-Initiative/penpot-fork.git
