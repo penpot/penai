@@ -81,7 +81,7 @@ We have the following three documentation tests:
 
 2. doc8 (as part of ruff): test ReStructuredText format;
 
-3. sphinx spelling and test: test if there is any error/warning when generating front-end html documentation.
+3. sphinx: test if there is any error/warning when generating front-end html documentation.
 
 To check, in the main directory, run:
 

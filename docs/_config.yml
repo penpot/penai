@@ -97,7 +97,6 @@ sphinx:
     - sphinx.ext.autodoc
     - sphinx.ext.viewcode
     - sphinx_toolbox.more_autodoc.sourcelink
-    - sphinxcontrib.spelling
   local_extensions          :   # A list of local extensions to load by sphinx specified by "name: path" items
   recursive_update          : false # A boolean indicating whether to overwrite the Sphinx config (true) or recursively update (false)
   config                    :   # key-value pairs to directly over-ride the Sphinx configuration
@@ -118,15 +117,6 @@ sphinx:
       [ 'html', 'image/jpeg', 70 ],
       [ 'html', 'text/markdown', 80 ],
       [ 'html', 'text/plain', 90 ],
-      [ 'spelling', 'application/vnd.jupyter.widget-view+json', 10 ],
-      [ 'spelling', 'application/javascript', 20 ],
-      [ 'spelling', 'text/html', 30 ],
-      [ 'spelling', 'text/latex', 40 ],
-      [ 'spelling', 'image/svg+xml', 50 ],
-      [ 'spelling', 'image/png', 60 ],
-      [ 'spelling', 'image/jpeg', 70 ],
-      [ 'spelling', 'text/markdown', 80 ],
-      [ 'spelling', 'text/plain', 90 ],
     ]
     mathjax_path: https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
     mathjax3_config:
