@@ -8,11 +8,9 @@ packages = [{ include = "penai", from = "src" }]
 version = "0.1.0"
 description = ""
 authors = ["appliedAI <m.panchenko@appliedai.de>"]
-license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/penpot/penai"
 classifiers = [
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.11",
 ]
 exclude = ["test/*", "examples/*", "docs/*"]
