@@ -1,0 +1,10 @@
+{
+    "cited": {
+        "01_tutorials/00_example": [
+            "TURING.1950"
+        ],
+        "02_notebooks/00_example": [
+            "PlotlyMaps"
+        ]
+    }
+}

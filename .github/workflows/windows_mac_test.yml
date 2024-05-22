@@ -1,0 +1,40 @@
+name: Tests on Windows and MacOS
+
+on: [push, pull_request]
+
+jobs:
+  cpu-extra:
+    runs-on: ${{ matrix.os }}
+    if: "!contains(github.event.head_commit.message, 'ci skip')"
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        python-version: [3.11]
+    steps:
+      - name: Cancel previous run
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      # use poetry and cache installed packages, see https://github.com/marketplace/actions/python-poetry-action
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2
+      - name: Setup a local virtual environment (if no poetry.toml file)
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+      - uses: actions/cache@v3
+        name: Define a cache for the virtual environment based on the dependencies lock file
+        with:
+          path: ./.venv
+          key: venv-${{ hashFiles('poetry.lock') }}
+      - name: Install the project dependencies
+        # ugly as hell, but well...
+        # see https://github.com/python-poetry/poetry/issues/7611
+        run: poetry install --with dev || poetry install --with dev || poetry install --with dev
+      - name: Test with pytest
+        run: poetry run poe test-subset
