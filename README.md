@@ -1,8 +1,20 @@
 # penai
 
-Welcome to the penai library!
+Welcome to the penai project.
 
+## Getting Started
 
-## Contributing
-Please open new issues for bugs, feature requests and extensions. See more details about the structure and
-workflow in the [contributing page](docs/04_contributing/04_contributing.rst).
+Clone the repository and run 
+
+```shell
+git submodule update --init --recursive
+```
+
+to also pull the git submodules.
+
+You can install the dependencies with
+
+```shell
+poetry install --with dev
+```
+
