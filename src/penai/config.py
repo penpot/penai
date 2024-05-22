@@ -4,8 +4,10 @@ is a good place to keep access keys and other secrets.
 """
 
 import os
+from typing import cast
 
 from accsr.config import ConfigProviderBase, DefaultDataConfiguration
+from openai import OpenAI
 
 file_dir = os.path.dirname(__file__) if "__file__" in locals() else os.getcwd()
 
@@ -13,7 +15,12 @@ top_level_directory: str = os.path.abspath(os.path.join(file_dir, os.pardir, os.
 
 
 class __Configuration(DefaultDataConfiguration):
-    pass
+    @property
+    def openai_api_key(self) -> str:
+        return cast(str, self._get_non_empty_entry("openai_api_key"))
+
+    def get_openai_client(self, timeout: int = 100):
+        return OpenAI(api_key=self.openai_api_key, timeout=timeout)
 
 
 class ConfigProvider(ConfigProviderBase[__Configuration]):

@@ -6,5 +6,6 @@
   "visualizations": "./data/visualizations",
   "artifacts": "./data/artifacts",
   "temp": "./temp",
-  "data": "./data"
+  "data": "./data",
+  "openai_api_key": "env:OPENAI_API_KEY" 
 }
