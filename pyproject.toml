@@ -101,6 +101,7 @@ ignore = [
     "RET505",
     "D106", # undocumented public nested class
     "D205", # blank line after summary (prevents summary-only docstrings, which makes no sense)
+    "PLW0603", # using global statement
 ]
 unfixable = [
 

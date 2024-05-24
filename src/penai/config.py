@@ -1,6 +1,6 @@
-"""Contains configuration and remote storage utils. 
+"""Contains configuration and remote storage utils.
 In its current, default form, configuration will be read from `config.json` and
-the git-ignored file `config_local.json` (you have to create it yourself if you need it) and merged. 
+the git-ignored file `config_local.json` (you have to create it yourself if you need it) and merged.
 The `config_local.json` is a good place to keep access keys and other secrets.
 """
 
@@ -49,6 +49,7 @@ __remote_storage_instance = None
 
 
 def default_remote_storage() -> RemoteStorage:
+    """Returns the default remote storage instance. It is created lazily."""
     global __remote_storage_instance
     if __remote_storage_instance is None:
         __remote_storage_instance = RemoteStorage(get_config().remote_storage)
@@ -62,6 +63,7 @@ def pull_from_remote(
     exclude_regex: Pattern | str | None = None,
     dryrun: bool = False,
 ) -> TransactionSummary:
+    """Pulls from the remote storage using the default storage config."""
     return default_remote_storage().pull(
         remote_path=remote_path,
         local_base_dir=top_level_directory,
@@ -79,6 +81,7 @@ def push_to_remote(
     exclude_regex: Pattern | str | None = None,
     dryrun: bool = False,
 ) -> TransactionSummary:
+    """Pushes to the remote storage using the default storage config."""
     return default_remote_storage().push(
         path=local_path,
         local_path_prefix=top_level_directory,
