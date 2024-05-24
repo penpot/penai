@@ -20,13 +20,13 @@ tests = ["hypothesis", "pytest"]
 
 [[package]]
 name = "accsr"
-version = "0.4.6"
+version = "0.4.7"
 description = "Utils for accessing data from anywhere"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "accsr-0.4.6-py3-none-any.whl", hash = "sha256:7de4ca0a89924ddfa27c67b4b36561f4638c1fffddace883927bcb876d787e3f"},
-    {file = "accsr-0.4.6.tar.gz", hash = "sha256:59d27b3e9ccdb26712381adc8ffe4228f2518661b3ecf4446af9c3e1d7989db5"},
+    {file = "accsr-0.4.7-py3-none-any.whl", hash = "sha256:19ecda322b1c825e6447b9b17b63de2fe0fc15c11ae037180feb02b2feba692c"},
+    {file = "accsr-0.4.7.tar.gz", hash = "sha256:55c2068948cd4113646eec5cfcbffe102699ea388590a5481bb9eeaf2b6275b8"},
 ]
 
 [package.dependencies]
@@ -4330,4 +4330,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "572ae689a18fd2be9a30dcf8128b9fce57a4acc385bc1ad1174cde27d96c4d0e"
+content-hash = "5a1cde8c76be18a13a1e9fb5f5a6a5b67f4770d91d038dcb2fc82d7c53194684"
