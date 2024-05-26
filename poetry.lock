@@ -21,13 +21,10 @@ tests = ["hypothesis", "pytest"]
 [[package]]
 name = "accsr"
 version = "0.4.7"
-version = "0.4.7"
 description = "Utils for accessing data from anywhere"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "accsr-0.4.7-py3-none-any.whl", hash = "sha256:19ecda322b1c825e6447b9b17b63de2fe0fc15c11ae037180feb02b2feba692c"},
-    {file = "accsr-0.4.7.tar.gz", hash = "sha256:55c2068948cd4113646eec5cfcbffe102699ea388590a5481bb9eeaf2b6275b8"},
     {file = "accsr-0.4.7-py3-none-any.whl", hash = "sha256:19ecda322b1c825e6447b9b17b63de2fe0fc15c11ae037180feb02b2feba692c"},
     {file = "accsr-0.4.7.tar.gz", hash = "sha256:55c2068948cd4113646eec5cfcbffe102699ea388590a5481bb9eeaf2b6275b8"},
 ]
@@ -3565,6 +3562,24 @@ files = [
 ]
 
 [[package]]
+name = "selenium"
+version = "4.21.0"
+description = ""
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "selenium-4.21.0-py3-none-any.whl", hash = "sha256:4770ffe5a5264e609de7dc914be6b89987512040d5a8efb2abb181330d097993"},
+    {file = "selenium-4.21.0.tar.gz", hash = "sha256:650dbfa5159895ff00ad16e5ddb6ceecb86b90c7ed2012b3f041f64e6e4904fe"},
+]
+
+[package.dependencies]
+certifi = ">=2021.10.8"
+trio = ">=0.17,<1.0"
+trio-websocket = ">=0.9,<1.0"
+typing_extensions = ">=4.9.0"
+urllib3 = {version = ">=1.26,<3", extras = ["socks"]}
+
+[[package]]
 name = "send2trash"
 version = "1.8.3"
 description = "Send file to trash natively under Mac OS X, Windows and Linux"
@@ -4592,4 +4607,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "3d5e8527bc8c1498f0964bccaf32f1e4a08c8270a45d230aaca441bf73aeafb5"
+content-hash = "1b2f9e635892259782c8cfc942a2c0dfbad12c52636ed470fa6f61f16334bdf5"
