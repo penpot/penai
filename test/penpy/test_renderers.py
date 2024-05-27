@@ -1,5 +1,5 @@
 import numpy as np
-from penpy.render import ChromeSVGRenderer
+from penai.render import ChromeSVGRenderer
 from PIL import Image
 
 

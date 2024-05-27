@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Self, TypedDict, Unpack
 
-from penpy.types import PathLike
+from penai.types import PathLike
 from PIL import Image
 
 
