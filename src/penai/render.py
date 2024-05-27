@@ -28,7 +28,7 @@ class BaseSVGRenderer(abc.ABC):
         pass
 
 
-class ChromeSVGRendererParams(TypedDict):
+class ChromeSVGRendererParams(TypedDict, total=False):
     wait_time: float | None
 
 
