@@ -2,10 +2,11 @@ import abc
 import atexit
 import io
 import time
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Generator, Self, TypedDict, Unpack
+from typing import Self, TypedDict, Unpack
 
 from penpy.types import PathLike
 from PIL import Image
