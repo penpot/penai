@@ -26,9 +26,16 @@ class __Configuration(DefaultDataConfiguration):
         return RemoteStorageConfig(**storage_config)
 
     def data_basedir(
-        self, stage: DataStage = "raw", relative: bool = False, check_existence: bool = False
+        self,
+        stage: DataStage = "raw",
+        relative: bool = False,
+        check_existence: bool = False,
     ) -> str:
         result = self._data_basedir(stage)
+        return self._adjusted_path(result, relative=relative, check_existence=check_existence)
+
+    def penpot_designs_basedir(self, relative: bool = False, check_existence: bool = False) -> str:
+        result = self.datafile_path("designs", stage="raw")
         return self._adjusted_path(result, relative=relative, check_existence=check_existence)
 
     @property
