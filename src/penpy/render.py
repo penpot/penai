@@ -2,6 +2,7 @@ import abc
 import atexit
 import io
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -31,7 +32,7 @@ class ChromeSVGRenderer(BaseSVGRenderer):
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
-        
+
         # The screenshot size might deviate from the actual SVG size on high-dpi devices with a device scale factor != 1.0
         chrome_options.add_argument("--force-device-scale-factor=1.0")
         chrome_options.add_argument("--high-dpi-support=1.0")
@@ -40,12 +41,27 @@ class ChromeSVGRenderer(BaseSVGRenderer):
             service=ChromeService(ChromeDriverManager().install()),
             options=chrome_options,
         )
-        
+
         self.by = By
 
         self.wait_time = wait_time
 
-        atexit.register(self.driver.quit)
+        atexit.register(self.teardown)
+
+    @classmethod
+    @contextmanager
+    def create_renderer(cls, *args, **kwargs):
+        """create_renderer() is the recommended way to instantiate a ChromeSVGRenderer in ensure proper teardown."""
+        renderer = None
+        try:
+            renderer = cls(*args, **kwargs)
+            yield renderer
+        finally:
+            if renderer is not None:
+                renderer.teardown()
+
+    def teardown(self):
+        self.driver.quit()
 
     def _render_svg(self, svg_path: str):
         self.driver.get(svg_path)
@@ -55,28 +71,28 @@ class ChromeSVGRenderer(BaseSVGRenderer):
 
         if self.wait_time:
             time.sleep(self.wait_time)
-        
+
         # Determine the size of the SVG element and set the window size accordingly
         svg_el = self.driver.find_element(self.by.TAG_NAME, "svg")
         size = svg_el.size
-        
+
         print(size)
-        
-        self.driver.set_window_size(size['width'], size['height'])
-        
+
+        self.driver.set_window_size(size["width"], size["height"])
+
         print(self.driver.get_window_size())
-        
+
         buffer = io.BytesIO(self.driver.get_screenshot_as_png())
         buffer.seek(0)
-        
-        svg = Image.open(buffer)
 
-        return svg
+        return Image.open(buffer)
 
     def render(self, svg: str | Path, width=None, height=None):
         if width or height:
-            raise NotImplementedError("Specifying width or height is currently not supported by ChromeSVGRenderer")
-        
+            raise NotImplementedError(
+                "Specifying width or height is currently not supported by ChromeSVGRenderer",
+            )
+
         if isinstance(svg, Path):
             path = Path(svg).absolute()
 
