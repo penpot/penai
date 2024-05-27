@@ -8,8 +8,13 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Self, TypedDict, Unpack
 
-from penpy.types import PathLike
+from penai.types import PathLike
 from PIL import Image
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 class BaseSVGRenderer(abc.ABC):
@@ -23,23 +28,12 @@ class BaseSVGRenderer(abc.ABC):
         pass
 
 
-class ChromeSVGRendererParams(TypedDict):
+class ChromeSVGRendererParams(TypedDict, total=False):
     wait_time: float | None
 
 
 class ChromeSVGRenderer(BaseSVGRenderer):
     def __init__(self, wait_time: float | None = None):
-        try:
-            from selenium import webdriver
-            from selenium.webdriver.chrome.options import Options
-            from selenium.webdriver.chrome.service import Service as ChromeService
-            from selenium.webdriver.common.by import By
-            from webdriver_manager.chrome import ChromeDriverManager
-        except ImportError as e:
-            raise ImportError(
-                "Please install selenium and webdriver_manager to use ChromeRasterizer",
-            ) from e
-
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
@@ -51,10 +45,20 @@ class ChromeSVGRenderer(BaseSVGRenderer):
         # Allow CORS for file://
         chrome_options.add_argument("--allow-file-access-from-files")
 
-        self.driver = webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager().install()),
-            options=chrome_options,
-        )
+        try:
+            self.driver = webdriver.Chrome(
+                service=ChromeService(ChromeDriverManager().install()),
+                options=chrome_options,
+            )
+        except Exception as e:
+            raise Exception(
+                "Failed to start Chrome. "
+                "Make sure you have Chrome installed and the chromedriver executable in your PATH. "
+                "On Ubuntu, you can install the required packages e.g., by following the instructions in "
+                "https://skolo.online/documents/webscrapping/#pre-requisites. "
+                "You can also directly download and install chrome and chromedriver from "
+                "https://googlechromelabs.github.io/chrome-for-testing/#stable",
+            ) from e
 
         self.by = By
 
