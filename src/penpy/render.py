@@ -48,6 +48,9 @@ class ChromeSVGRenderer(BaseSVGRenderer):
         chrome_options.add_argument("--force-device-scale-factor=1.0")
         chrome_options.add_argument("--high-dpi-support=1.0")
 
+        # Allow CORS for file://
+        chrome_options.add_argument("--allow-file-access-from-files")
+
         self.driver = webdriver.Chrome(
             service=ChromeService(ChromeDriverManager().install()),
             options=chrome_options,
