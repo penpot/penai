@@ -9,8 +9,8 @@
   "data": "./data",
   "openai_api_key": "env:OPENAI_API_KEY",
   "remote_storage_config": {
-    "key": null,
-    "secret": null,
+    "key": "env:GOOGLE_STORAGE_KEY",
+    "secret": "env:GOOGLE_STORAGE_SECRET",
     "bucket": "penpot",
     "base_path": "",
     "provider": "google_storage"
