@@ -1,7 +1,8 @@
 from typing import Any
-from uuid import UUID
 
 from pydantic import BaseModel, RootModel
+
+from penai.types import ValidUUID
 
 
 class PenpotPageIndexItemSchema(BaseModel):
@@ -14,9 +15,9 @@ class PenpotFileDetailsSchema(BaseModel):
     hasDeletedComponents: bool
     hasComponents: bool
     name: str
-    pagesIndex: dict[UUID, PenpotPageIndexItemSchema]
+    pagesIndex: dict[ValidUUID, PenpotPageIndexItemSchema]
     exportType: str
-    pages: list[UUID]
+    pages: list[ValidUUID]
     hasMedia: bool
     shared: bool
     version: int
@@ -25,10 +26,10 @@ class PenpotFileDetailsSchema(BaseModel):
 
 
 class PenpotFilesSchema(RootModel):
-    root: dict[UUID, PenpotFileDetailsSchema]
+    root: dict[ValidUUID, PenpotFileDetailsSchema]
 
 
 class PenpotProjectManifestSchema(BaseModel):
-    teamId: UUID
-    fileId: UUID
+    teamId: ValidUUID
+    fileId: ValidUUID
     files: PenpotFilesSchema
