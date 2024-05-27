@@ -1,6 +1,7 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Self
+from uuid import UUID
 
 from lxml import etree
 
@@ -95,4 +96,4 @@ class PenpotFile:
 
 @dataclass
 class PenpotProject:
-    files: dict[str, PenpotFile] = field(default_factory=dict)
+    files: dict[str | UUID, PenpotFile] = field(default_factory=dict)
