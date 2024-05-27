@@ -14,7 +14,9 @@ from PIL import Image
 
 class BaseSVGRenderer(abc.ABC):
     @abc.abstractmethod
-    def render(self, svg: str | PathLike, width: int | None = None, height: int | None = None) -> Image.Image:
+    def render(
+        self, svg: str | PathLike, width: int | None = None, height: int | None = None
+    ) -> Image.Image:
         pass
 
 
@@ -56,7 +58,9 @@ class ChromeSVGRenderer(BaseSVGRenderer):
 
     @classmethod
     @contextmanager
-    def create_renderer(cls, **kwargs: Unpack[ChromeSVGRendererParams]) -> Generator[Self, None, None]:
+    def create_renderer(
+        cls, **kwargs: Unpack[ChromeSVGRendererParams]
+    ) -> Generator[Self, None, None]:
         """create_renderer() is the recommended way to instantiate a ChromeSVGRenderer in ensure proper teardown."""
         renderer = None
         try:
@@ -89,7 +93,9 @@ class ChromeSVGRenderer(BaseSVGRenderer):
 
         return Image.open(buffer)
 
-    def render(self, svg: str | PathLike, width: int | None = None, height: int | None = None) -> Image.Image:
+    def render(
+        self, svg: str | PathLike, width: int | None = None, height: int | None = None
+    ) -> Image.Image:
         if width or height:
             raise NotImplementedError(
                 "Specifying width or height is currently not supported by ChromeSVGRenderer",
