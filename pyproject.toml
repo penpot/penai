@@ -119,6 +119,7 @@ ignore = [
     "B008",   # do not perform function calls in argument defaults. we do this sometimes
     "B011",   # assert false. we don't use python -O
     "B028",   # we don't need explicit stacklevel for warnings
+    "B019",   # using @cache is fine
     "D100",
     "D101",
     "D102",
