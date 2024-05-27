@@ -6,7 +6,7 @@ The `config_local.json` is a good place to keep access keys and other secrets.
 
 import os
 from re import Pattern
-from typing import cast
+from typing import Literal, cast
 
 from accsr.config import ConfigProviderBase, DefaultDataConfiguration
 from accsr.remote_storage import RemoteStorage, RemoteStorageConfig, TransactionSummary
@@ -16,12 +16,20 @@ file_dir = os.path.dirname(__file__) if "__file__" in locals() else os.getcwd()
 
 top_level_directory: str = os.path.abspath(os.path.join(file_dir, os.pardir, os.pardir))
 
+DataStage = Literal["raw", "processed", "cleaned", "ground_truth"]
+
 
 class __Configuration(DefaultDataConfiguration):
     @property
     def remote_storage(self) -> RemoteStorageConfig:
         storage_config = cast(dict, self._get_non_empty_entry("remote_storage_config"))
         return RemoteStorageConfig(**storage_config)
+
+    def data_basedir(
+        self, stage: DataStage = "raw", relative: bool = False, check_existence: bool = False
+    ) -> str:
+        result = self._data_basedir(stage)
+        return self._adjusted_path(result, relative=relative, check_existence=check_existence)
 
     @property
     def openai_api_key(self) -> str:
