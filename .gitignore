@@ -136,3 +136,9 @@ dmypy.json
 # reports
 pylint.html
 .pylint.d
+
+# local data
+data/
+
+# mac stuff
+.DS_Store
