@@ -3,6 +3,7 @@ import os
 from enum import Enum
 
 from penai.config import get_config, pull_from_remote
+from penai.loading import load_from_directory
 
 log = logging.getLogger(__name__)
 
@@ -29,6 +30,9 @@ class SavedPenpotDesign(Enum):
             log.info(f"Pulling data for project {self.get_project_name()} to {result}")
             pull_from_remote(result)
         return result
+
+    def load(self):
+        return load_from_directory(self.get_path(pull=True))
 
     @classmethod
     def pull_all(cls) -> None:
