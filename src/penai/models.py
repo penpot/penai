@@ -85,6 +85,8 @@ class PenpotComponentDict(dict[str, PenpotComponent]):
 
 @dataclass
 class PenpotFile:
+    id: str
+    name: str
     pages: dict[str, PenpotPage] = field(default_factory=dict)
     components: PenpotComponentDict = field(default_factory=PenpotComponentDict)
     # TODO: Implement when needed

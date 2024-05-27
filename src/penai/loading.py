@@ -39,7 +39,7 @@ def load_from_directory(directory: PathLike) -> PenpotProject:
 
 def load_file(file: PenpotFileDetailsSchema, file_root: Path) -> PenpotFile:
     """Load a Penpot file."""
-    penpot_file = PenpotFile()
+    penpot_file = PenpotFile(id=file_root.stem, name=file.name)
 
     for page_id in file.pages:
         page_info = file.pagesIndex[page_id]
