@@ -10,6 +10,11 @@ from typing import Self, TypedDict, Unpack
 
 from penai.types import PathLike
 from PIL import Image
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 class BaseSVGRenderer(abc.ABC):
@@ -29,17 +34,6 @@ class ChromeSVGRendererParams(TypedDict):
 
 class ChromeSVGRenderer(BaseSVGRenderer):
     def __init__(self, wait_time: float | None = None):
-        try:
-            from selenium import webdriver
-            from selenium.webdriver.chrome.options import Options
-            from selenium.webdriver.chrome.service import Service as ChromeService
-            from selenium.webdriver.common.by import By
-            from webdriver_manager.chrome import ChromeDriverManager
-        except ImportError as e:
-            raise ImportError(
-                "Please install selenium and webdriver_manager to use ChromeRasterizer",
-            ) from e
-
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
