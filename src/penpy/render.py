@@ -5,6 +5,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import Generator, Self, TypedDict, Unpack
 
 from penpy.types import PathLike
 from PIL import Image
@@ -12,8 +13,12 @@ from PIL import Image
 
 class BaseSVGRenderer(abc.ABC):
     @abc.abstractmethod
-    def render(self, svg: str | PathLike, width=None, height=None):
+    def render(self, svg: str | PathLike, width: int | None = None, height: int | None = None) -> Image.Image:
         pass
+
+
+class ChromeSVGRendererParams(TypedDict):
+    wait_time: float | None
 
 
 class ChromeSVGRenderer(BaseSVGRenderer):
@@ -50,20 +55,20 @@ class ChromeSVGRenderer(BaseSVGRenderer):
 
     @classmethod
     @contextmanager
-    def create_renderer(cls, *args, **kwargs):
+    def create_renderer(cls, **kwargs: Unpack[ChromeSVGRendererParams]) -> Generator[Self, None, None]:
         """create_renderer() is the recommended way to instantiate a ChromeSVGRenderer in ensure proper teardown."""
         renderer = None
         try:
-            renderer = cls(*args, **kwargs)
+            renderer = cls(**kwargs)
             yield renderer
         finally:
             if renderer is not None:
                 renderer.teardown()
 
-    def teardown(self):
+    def teardown(self) -> None:
         self.driver.quit()
 
-    def _render_svg(self, svg_path: str):
+    def _render_svg(self, svg_path: str) -> Image.Image:
         self.driver.get(svg_path)
 
         # TODO: Wait until content is displayed instead of a fixed time
@@ -76,18 +81,14 @@ class ChromeSVGRenderer(BaseSVGRenderer):
         svg_el = self.driver.find_element(self.by.TAG_NAME, "svg")
         size = svg_el.size
 
-        print(size)
-
         self.driver.set_window_size(size["width"], size["height"])
-
-        print(self.driver.get_window_size())
 
         buffer = io.BytesIO(self.driver.get_screenshot_as_png())
         buffer.seek(0)
 
         return Image.open(buffer)
 
-    def render(self, svg: str | Path, width=None, height=None):
+    def render(self, svg: str | PathLike, width: int | None = None, height: int | None = None) -> Image.Image:
         if width or height:
             raise NotImplementedError(
                 "Specifying width or height is currently not supported by ChromeSVGRenderer",
