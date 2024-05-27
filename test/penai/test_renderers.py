@@ -1,17 +1,16 @@
 from pathlib import Path
+
 import numpy as np
-from penai.render import BaseSVGRenderer, ChromeSVGRenderer
 from PIL import Image
+
+from penai.render import BaseSVGRenderer, ChromeSVGRenderer
 
 
 def _test_chrome_svg_renderer(
-    renderer: BaseSVGRenderer, example_svg_path: Path, example_png: Path
+    renderer: BaseSVGRenderer, example_svg_path: Path, example_png: Path,
 ) -> None:
     ref_png = Image.open(example_png)
     cmp_png = renderer.render(example_svg_path)
-
-    ref_png.save("ref.png")
-    cmp_png.save("cmp.png")
 
     assert ref_png.size == cmp_png.size
 

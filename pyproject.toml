@@ -83,6 +83,7 @@ ruff = "\\.jupyter_cache|jupyter_execute"
 mypy = "\\.jupyter_cache|jupyter_execute"
 
 [tool.ruff]
+src = ["src"]
 select = [
     "ASYNC",
     "B",

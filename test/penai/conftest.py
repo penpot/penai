@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from penai.config import top_level_directory
-from penai.types import PathLike
 import pytest
 from pytest import MonkeyPatch
 
+from penai.config import top_level_directory
+from penai.types import PathLike
 
 
 @pytest.fixture(autouse=True)
