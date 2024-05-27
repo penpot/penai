@@ -7,5 +7,12 @@
   "artifacts": "./data/artifacts",
   "temp": "./temp",
   "data": "./data",
-  "openai_api_key": "env:OPENAI_API_KEY" 
+  "openai_api_key": "env:OPENAI_API_KEY",
+  "remote_storage_config": {
+    "key": null,
+    "secret": null,
+    "bucket": "penpot",
+    "base_path": "",
+    "provider": "google_storage"
+  }
 }
