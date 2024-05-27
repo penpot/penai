@@ -98,3 +98,19 @@ class PenpotFile:
 @dataclass
 class PenpotProject:
     files: dict[str, PenpotFile] = field(default_factory=dict)
+
+    def __str__(self):
+        lines = []
+        lines += ["Files: (name, id)"]
+
+        for file in self.files.values():
+            lines += [f"- {file.name} ({file.id})"]
+            lines += ["  Pages: (name, id)"]
+            for page in file.pages.values():
+                lines += [f"  - {page.name} ({page.id})"]
+
+            lines += ["  Components: (name, id)"]
+            for component in file.components.values():
+                lines += [f"  - {component.name} ({component.id})"]
+
+        return "\n".join(lines)
