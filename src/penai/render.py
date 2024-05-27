@@ -8,13 +8,14 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Self, TypedDict, Unpack
 
-from penai.types import PathLike
 from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
+
+from penai.types import PathLike
 
 
 class BaseSVGRenderer(abc.ABC):
@@ -72,7 +73,7 @@ class ChromeSVGRenderer(BaseSVGRenderer):
         cls,
         **kwargs: Unpack[ChromeSVGRendererParams],
     ) -> Generator[Self, None, None]:
-        """create_renderer() is the recommended way to instantiate a ChromeSVGRenderer in ensure proper teardown."""
+        """`with create_renderer()` is the recommended way to instantiate this class to ensure proper teardown."""
         renderer = None
         try:
             renderer = cls(**kwargs)
@@ -102,21 +103,28 @@ class ChromeSVGRenderer(BaseSVGRenderer):
         buffer = io.BytesIO(self.driver.get_screenshot_as_png())
         buffer.seek(0)
 
-        return Image.open(buffer)
+        return Image.open(buffer).convert("RGB")
 
     def render(
         self,
-        svg: str | PathLike,
+        svg: str | Path,
         width: int | None = None,
         height: int | None = None,
     ) -> Image.Image:
+        """Render an SVG file or string to an image.
+
+        :param svg: The SVG file or string to render. If an instance of `Path` is passed, the file is read and rendered.
+            Otherwise, the input is treated as an SVG string.
+        :param width: The width of the rendered image. Currently not supported.
+        :param height: The height of the rendered image. Currently not supported.
+        """
         if width or height:
             raise NotImplementedError(
                 "Specifying width or height is currently not supported by ChromeSVGRenderer",
             )
 
         if isinstance(svg, Path):
-            path = Path(svg).absolute()
+            path = svg.absolute()
 
             if not path.exists():
                 raise FileNotFoundError(f"{path} does not exist")
