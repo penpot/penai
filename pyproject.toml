@@ -48,6 +48,7 @@ sphinx-jupyterbook-latex = "^1.0.0"
 sphinx-togglebutton = "^0.3.2"
 sphinx-toolbox = "^3.5.0"
 sphinxcontrib-bibtex = "*"
+cryptography = "^42.0.7"
 
 [tool.mypy]
 allow_redefinition = true
