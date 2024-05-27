@@ -10,9 +10,7 @@ description = ""
 authors = ["appliedAI <m.panchenko@appliedai.de>"]
 readme = "README.md"
 homepage = "https://github.com/penpot/penai"
-classifiers = [
-    "Programming Language :: Python :: 3.11",
-]
+classifiers = ["Programming Language :: Python :: 3.11"]
 exclude = ["test/*", "examples/*", "docs/*"]
 
 [tool.poetry.dependencies]
@@ -86,30 +84,66 @@ mypy = "\\.jupyter_cache|jupyter_execute"
 
 [tool.ruff]
 select = [
-    "ASYNC", "B", "C4", "C90", "COM", "D", "DTZ", "E", "F", "FLY", "G", "I", "ISC", "PIE", "PLC", "PLE", "PLW", "RET", "RUF", "RSE", "SIM", "TID", "UP", "W", "YTT",
+    "ASYNC",
+    "B",
+    "C4",
+    "C90",
+    "COM",
+    "D",
+    "DTZ",
+    "E",
+    "F",
+    "FLY",
+    "G",
+    "I",
+    "ISC",
+    "PIE",
+    "PLC",
+    "PLE",
+    "PLW",
+    "RET",
+    "RUF",
+    "RSE",
+    "SIM",
+    "TID",
+    "UP",
+    "W",
+    "YTT",
 ]
 ignore = [
-    "E501", # line too long. black does a good enough job
-    "E741", # variable names like "l". this isn't a huge problem
-    "B008", # do not perform function calls in argument defaults. we do this sometimes
-    "B011", # assert false. we don't use python -O
-    "B028", # we don't need explicit stacklevel for warnings
-    "D100", "D101", "D102", "D104", "D105", "D107", "D203", "D213", "D401", "D402", # docstring stuff
+    "E501",   # line too long. black does a good enough job
+    "E741",   # variable names like "l". this isn't a huge problem
+    "B008",   # do not perform function calls in argument defaults. we do this sometimes
+    "B011",   # assert false. we don't use python -O
+    "B028",   # we don't need explicit stacklevel for warnings
+    "D100",
+    "D101",
+    "D102",
+    "D104",
+    "D105",
+    "D107",
+    "D203",
+    "D213",
+    "D401",
+    "D402",   # docstring stuff
     "DTZ005", # we don't need that
     # remaining rules from https://github.com/psf/black/blob/main/.flake8 (except W503)
     # this is a simplified version of config, making vscode plugin happy
-    "E402", "E501", "E701", "E731", "C408", "E203",
+    "E402",
+    "E501",
+    "E701",
+    "E731",
+    "C408",
+    "E203",
     # Logging statement uses f-string warning
     "G004",
     # Unnecessary `elif` after `return` statement
     "RET505",
-    "D106", # undocumented public nested class
-    "D205", # blank line after summary (prevents summary-only docstrings, which makes no sense)
+    "D106",    # undocumented public nested class
+    "D205",    # blank line after summary (prevents summary-only docstrings, which makes no sense)
     "PLW0603", # using global statement
 ]
-unfixable = [
-
-]
+unfixable = []
 extend-fixable = [
     "F401", # unused import
     "B905", # bugbear
@@ -131,9 +165,9 @@ max-complexity = 20
 move-optionals-to-bottom = true
 
 [tool.poe.env]
-PYDEVD_DISABLE_FILE_VALIDATION="1"
+PYDEVD_DISABLE_FILE_VALIDATION = "1"
 # keep relevant parts in sync with pre-commit
-[tool.poe.tasks]  # https://github.com/nat-n/poethepoet
+[tool.poe.tasks] # https://github.com/nat-n/poethepoet
 test = "pytest test --cov=penai --cov-report=xml --cov-report=term-missing --durations=0 -v --color=yes"
 # Adjust to a smaller set of tests if appropriate
 test-subset = "pytest test --color=yes"
@@ -147,7 +181,13 @@ lint = ["_black_check", "_ruff_check", "_ruff_check_nb"]
 _poetry_install_sort_plugin = "poetry self add poetry-plugin-sort"
 _poetry_sort = "poetry sort"
 clean-nbs = "python docs/nbstripout.py"
-format = ["_ruff_format", "_black_format", "_ruff_format_nb", "_poetry_install_sort_plugin", "_poetry_sort"]
+format = [
+    "_ruff_format",
+    "_black_format",
+    "_ruff_format_nb",
+    "_poetry_install_sort_plugin",
+    "_poetry_sort",
+]
 _autogen_rst = "python docs/autogen_rst.py"
 _sphinx_build = "sphinx-build -W -b html docs docs/_build"
 _jb_generate_toc = "python docs/create_toc.py"
@@ -155,6 +195,7 @@ _jb_generate_config = "jupyter-book config sphinx docs/"
 doc-clean = "rm -rf docs/_build"
 doc-generate-files = ["_autogen_rst", "_jb_generate_toc", "_jb_generate_config"]
 doc-build = ["doc-generate-files", "_sphinx_build"]
+full-ci = ["lint", "type-check", "test", "doc-build"]
 _mypy = "mypy src"
 _mypy_nb = "nbqa mypy docs"
 type-check = ["_mypy", "_mypy_nb"]
