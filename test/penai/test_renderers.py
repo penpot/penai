@@ -25,14 +25,16 @@ def _test_chrome_svg_renderer(
     assert ((ref_data - cmp_data) ** 2).mean() < 1e-3
 
 
-def test_chrome_svg_renderer(example_svg_path: Path, example_png: Path) -> None:
-    renderer = ChromeSVGRenderer()
+class TestRendering:
+    @staticmethod
+    def test_chrome_svg_renderer(example_svg_path: Path, example_png: Path) -> None:
+        renderer = ChromeSVGRenderer()
 
-    _test_chrome_svg_renderer(renderer, example_svg_path, example_png)
-
-    renderer.teardown()
-
-
-def test_chrome_svg_renderer_context_manager(example_svg_path: Path, example_png: Path) -> None:
-    with ChromeSVGRenderer.create_renderer() as renderer:
         _test_chrome_svg_renderer(renderer, example_svg_path, example_png)
+
+        renderer.teardown()
+
+    @staticmethod
+    def test_chrome_svg_renderer_context_manager(example_svg_path: Path, example_png: Path) -> None:
+        with ChromeSVGRenderer.create_renderer() as renderer:
+            _test_chrome_svg_renderer(renderer, example_svg_path, example_png)

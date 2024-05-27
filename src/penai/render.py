@@ -42,10 +42,20 @@ class ChromeSVGRenderer(BaseSVGRenderer):
         chrome_options.add_argument("--force-device-scale-factor=1.0")
         chrome_options.add_argument("--high-dpi-support=1.0")
 
-        self.driver = webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager().install()),
-            options=chrome_options,
-        )
+        try:
+            self.driver = webdriver.Chrome(
+                service=ChromeService(ChromeDriverManager().install()),
+                options=chrome_options,
+            )
+        except Exception as e:
+            raise Exception(
+                "Failed to start Chrome. "
+                "Make sure you have Chrome installed and the chromedriver executable in your PATH. "
+                "On Ubuntu, you can install the required packages e.g., by following the instructions in "
+                "https://skolo.online/documents/webscrapping/#pre-requisites. "
+                "You can also directly download and install chrome and chromedriver from "
+                "https://googlechromelabs.github.io/chrome-for-testing/#stable",
+            ) from e
 
         self.by = By
 
