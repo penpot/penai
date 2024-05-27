@@ -2,16 +2,17 @@ import json
 from pathlib import Path
 
 from lxml import etree
+
 from penai.svg import SVG
 from penai.types import PathLike
 
 
-def read_json(path: PathLike):
+def read_json(path: PathLike) -> dict:
     """Read a JSON file from the given path."""
     return json.loads(Path(path).read_text())
 
 
-def strip_penpot_from_tree(node: etree.Element):
+def strip_penpot_from_tree(node: etree.Element) -> None:
     """Strip all Penpot-specific nodes from a given SVG DOM.
 
     Useful for debugging, reverse engineering or testing purposes.
@@ -25,7 +26,7 @@ def strip_penpot_from_tree(node: etree.Element):
             strip_penpot_from_tree(child)
 
 
-def strip_penpot_from_svg(svg: SVG):
+def strip_penpot_from_svg(svg: SVG) -> None:
     """Strip all Penpot-specific nodes from a given SVG object.
 
     Useful for debugging, reverse engineering or testing purposes.

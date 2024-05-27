@@ -1,11 +1,13 @@
 from copy import deepcopy
+from typing import Self
 
 from lxml import etree
+
 from penai.types import PathLike
 
 
 class SVG:
-    """This is just a simple wrapper around the lxml.etree.ElementTree class for now.
+    """A simple wrapper around the lxml.etree.ElementTree class for now.
 
     In the long-term (lol never), we might extend this a full-fledged SVG implementation.
     """
@@ -14,7 +16,12 @@ class SVG:
         self.dom = dom
 
     @classmethod
-    def from_root_element(cls, element: etree.Element, namespace_map=None, svg_attribs: dict[str, str] | None = None):
+    def from_root_element(
+        cls,
+        element: etree.Element,
+        namespace_map: dict | None = None,
+        svg_attribs: dict[str, str] | None = None,
+    ) -> Self:
         namespace_map = namespace_map or {}
 
         namespace_map = {None: "http://www.w3.org/2000/svg", **namespace_map}
@@ -36,11 +43,11 @@ class SVG:
         return cls(etree.ElementTree(root))
 
     @classmethod
-    def from_file(cls, path: PathLike):
+    def from_file(cls, path: PathLike) -> Self:
         return cls(etree.parse(path))
 
-    def to_file(self, path: PathLike):
+    def to_file(self, path: PathLike) -> None:
         self.dom.write(path, pretty_print=True)
 
-    def to_string(self, pretty: bool = True):
+    def to_string(self, pretty: bool = True) -> str:
         return etree.tostring(self.dom, pretty_print=pretty).decode()

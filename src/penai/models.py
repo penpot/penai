@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Self
 
 from lxml import etree
+
 from penai.svg import SVG
 
 
@@ -37,18 +38,15 @@ class PenpotPage(PenpotComposition):
 
 @dataclass
 class Dimensions:
-    width: float
-    height: float
+    width: int
+    height: int
 
-    def __init__(self, width: float, height: float):
-        if width < 0 or height < 0:
+    def __post_init__(self) -> None:
+        if self.width < 0 or self.height < 0:
             raise ValueError("Width and height must be non-negative")
 
-        self.width = width
-        self.height = height
-
     @classmethod
-    def from_bounding_box(cls, left, top, right, bottom):
+    def from_bounding_box(cls, left: int, top: int, right: int, bottom: int) -> Self:
         return cls(
             width=right - left,
             height=bottom - top,

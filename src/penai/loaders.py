@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 from penai import utils
@@ -20,7 +19,7 @@ class BasePenpotProjectLoader:
 
 
 class PenpotFilesystemLoader:
-    def load_page(self, page_id: str, pagen_name: str, file_root: Path):
+    def load_page(self, page_id: str, pagen_name: str, file_root: Path) -> PenpotPage:
         page_path = (file_root / str(page_id)).with_suffix(".svg")
         container = PenpotContainer(svg=SVG.from_file(page_path))
         return PenpotPage(
@@ -40,21 +39,26 @@ class PenpotFilesystemLoader:
         xpath_nsmap[""] = xpath_nsmap.pop(None)
 
         component_symbols = components_svg.dom.findall(
-            "./defs/symbol", namespaces=xpath_nsmap,
+            "./defs/symbol",
+            namespaces=xpath_nsmap,
         )
 
         components = []
 
         for symbol in component_symbols:
-            view_box = symbol.get('viewBox')
+            view_box = symbol.get("viewBox")
             dimensions = Dimensions.from_bounding_box(*map(float, view_box.split()))
-            svg = SVG.from_root_element(symbol, namespace_map=nsmap, svg_attribs=dict(
-                viewBox=view_box,
-            ))
+            svg = SVG.from_root_element(
+                symbol,
+                namespace_map=nsmap,
+                svg_attribs=dict(
+                    viewBox=view_box,
+                ),
+            )
 
             component = PenpotComponent(
                 id=symbol.get("id"),
-                name=symbol.find('./title', namespaces=xpath_nsmap).text,
+                name=symbol.find("./title", namespaces=xpath_nsmap).text,
                 container=PenpotContainer(svg=svg),
                 dimensions=dimensions,
             )
@@ -63,7 +67,7 @@ class PenpotFilesystemLoader:
 
         return components
 
-    def load_file(self, file: PenpotFileDetailsSchema, file_root: Path):
+    def load_file(self, file: PenpotFileDetailsSchema, file_root: Path) -> PenpotFile:
         penpot_file = PenpotFile()
 
         for page_id in file.pages:
@@ -75,7 +79,7 @@ class PenpotFilesystemLoader:
                 penpot_file.components[component.id] = component
         return penpot_file
 
-    def load_from_directory(self, directory: PathLike):
+    def load_from_directory(self, directory: PathLike) -> PenpotProject:
         directory = Path(directory)
 
         manifest = PenpotProjectManifestSchema.model_validate(
@@ -90,7 +94,8 @@ class PenpotFilesystemLoader:
             assert file_directory.exists() and file_directory.is_dir()
 
             penpot_project.files[file_id] = self.load_file(
-                file, directory / str(file_id),
+                file,
+                directory / str(file_id),
             )
 
         return penpot_project
