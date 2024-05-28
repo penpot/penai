@@ -10,7 +10,7 @@ def _test_chrome_svg_renderer(
     renderer: BaseSVGRenderer, example_svg_path: Path, example_png: Path,
 ) -> None:
     ref_png = Image.open(example_png)
-    cmp_png = renderer.render(example_svg_path)
+    cmp_png = renderer.render_svg_file(example_svg_path)
 
     assert ref_png.size == cmp_png.size
 

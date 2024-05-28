@@ -30,9 +30,6 @@ class SavedPenpotProject(Enum):
             pull_from_remote(result)
         return result
 
-    def load(self):
-        return load_from_directory(self.get_path(pull=True))
-
     @classmethod
     def pull_all(cls) -> None:
         for design in cls:

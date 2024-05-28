@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 from typing import Self
+from uuid import UUID
 
 from lxml import etree
 
@@ -168,13 +169,15 @@ class PenpotFile:
     name: str
     pages: dict[str | UUID, PenpotPage]
     components: PenpotComponentDict
+
     # TODO: Implement when needed
     # colors: list[PenpotColor]
     # mediaItems: list[PenpotMediaItem]
     # typography: list[PenpotTypography]
 
     @classmethod
-    def from_schema_and_dir(cls, schema: PenpotFileDetailsSchema, file_dir: Path) -> Self:
+    def from_schema_and_dir(cls, schema: PenpotFileDetailsSchema, file_dir: PathLike) -> Self:
+        file_dir = Path(file_dir)
         if not file_dir.is_dir():
             raise ValueError(f"{file_dir=} is not a valid directory.")
 
@@ -188,14 +191,14 @@ class PenpotFile:
         if schema.hasComponents:
             components_svg = PenpotComponentsSVG.from_penpot_file_dir(file_dir)
             components = components_svg.get_penpot_component_dict()
-        return cls(pages=pages, components=components)
+        return cls(id=file_dir.stem, name=schema.name, pages=pages, components=components)
 
 
 @dataclass
 class PenpotProject:
     files: dict[str, PenpotFile] = field(default_factory=dict)
 
-    def __str__(self):
+    def __str__(self) -> str:
         lines = []
         lines += ["Files: (name, id)"]
 

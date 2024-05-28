@@ -21,7 +21,7 @@ from penai.types import PathLike
 class BaseSVGRenderer(abc.ABC):
     """Base class for SVG renderers.
 
-    We distinguish between the representation of SVGs given by their content and as a file, 
+    We distinguish between the representation of SVGs given by their content and as a file,
     since SVG engines could inherently work with either representation.
     """
 
