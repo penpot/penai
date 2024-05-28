@@ -10,22 +10,27 @@ from penai.types import PathLike
 
 class BetterElement(etree.ElementBase):
     @cached_property
-    def query_compatible_nsmap(self):
+    def query_compatible_nsmap(self) -> dict[str, str]:
         nsmap = dict(self.nsmap)
         nsmap[""] = nsmap.pop(None)
         return nsmap
 
-    def find(self, path, namespaces=None) -> Any:
+    def find(self, path: str, namespaces: dict[str, str] | None = None) -> list[etree._Element]:
         return super().find(path, namespaces=namespaces or self.query_compatible_nsmap)
 
-    def findall(self, path, namespaces=None) -> Any:
+    def findall(self, path: str, namespaces: dict[str, str] | None = None) -> list[etree._Element]:
         return super().findall(path, namespaces=namespaces or self.query_compatible_nsmap)
 
-    def xpath(self, path, namespaces=None, **kwargs) -> Any:
+    def xpath(
+        self,
+        path: str,
+        namespaces: dict[str, str] | None = None,
+        **kwargs: dict[str, Any],
+    ) -> list[etree._Element]:
         return super().xpath(path, namespaces=namespaces or self.query_compatible_nsmap, **kwargs)
 
     @cached_property
-    def localname(self):
+    def localname(self) -> str:
         return etree.QName(self).localname
 
 
@@ -72,7 +77,7 @@ class SVG:
         return cls(etree.ElementTree(root))
 
     @staticmethod
-    def get_parser():
+    def get_parser() -> etree.XMLParser:
         parser_lookup = etree.ElementDefaultClassLookup(element=BetterElement)
         parser = etree.XMLParser()
         parser.set_element_class_lookup(parser_lookup)
@@ -88,13 +93,20 @@ class SVG:
         parser = cls.get_parser()
         return cls(etree.ElementTree(etree.fromstring(string, parser)))
 
-    def inline_images(self, elem: etree.ElementBase | None = None):
+    def strip_penpot_tags(self) -> None:
+        """Strip all Penpot-specific nodes from the SVG tree.
+
+        Useful for debugging, reverse engineering or testing purposes.
+        """
+        utils.strip_penpot_from_tree(self.dom.getroot())
+
+    def inline_images(self, elem: etree.ElementBase | None = None) -> None:
         # TODO: We currently don't make use of any concurrent fetching or caching
         # which could drastically speed up image inlining.
         if elem is None:
             elem = self.dom.getroot()
 
-        if not elem.prefix and elem.localname == 'image':
+        if not elem.prefix and elem.localname == "image":
             attribs = elem.attrib
 
             # According to https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/xlink:href
@@ -102,15 +114,15 @@ class SVG:
             # Penpot also doesn't seem to make use of xlinks.
             # uri = attribs.get(f'{{{nsmap["xlink"]}}}href')
 
-            uri = attribs.get('href')
+            uri = attribs.get("href")
 
             if uri and utils.validate_uri(uri):
                 data_uri = utils.url_to_data_uri(uri)
 
-                if attribs.get('href'):
-                    del attribs['href']
+                if attribs.get("href"):
+                    del attribs["href"]
 
-                attribs['href'] = data_uri
+                attribs["href"] = data_uri
 
         for child in elem:
             self.inline_images(child)

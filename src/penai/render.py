@@ -2,12 +2,12 @@ import abc
 import atexit
 import io
 import time
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Self, TypedDict, Unpack
+from typing import ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
 
 import resvg_py
 from PIL import Image
@@ -29,6 +29,8 @@ class BaseSVGRenderer(abc.ABC):
     since SVG engines could inherently work with either representation.
     """
 
+    SUPPORTS_ALPHA: bool
+
     @abc.abstractmethod
     def render_svg(
         self,
@@ -48,9 +50,15 @@ class BaseSVGRenderer(abc.ABC):
         pass
 
 
-def _size_arguments_not_supported(fn):
+Param = ParamSpec("Param")
+RetType = TypeVar("RetType")
+
+
+def _size_arguments_not_supported(
+    fn: Callable[Param, RetType],
+) -> Callable[Param, RetType]:
     @wraps(fn)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Param.args, **kwargs: Param.kwargs) -> RetType:
         if kwargs.get("width") or kwargs.get("height"):
             raise NotImplementedError(
                 "Specifying width or height is currently not supported by this renderer",
@@ -66,6 +74,8 @@ class ChromeSVGRendererParams(TypedDict, total=False):
 
 
 class ChromeSVGRenderer(BaseSVGRenderer):
+    SUPPORTS_ALPHA = False
+
     def __init__(self, wait_time: float | None = None):
         chrome_options = Options()
         chrome_options.add_argument("--headless")
@@ -177,6 +187,8 @@ class ChromeSVGRenderer(BaseSVGRenderer):
 
 
 class ResvgRenderer(BaseSVGRenderer):
+    SUPPORTS_ALPHA = True
+
     def __init__(self, inline_linked_images: bool = True):
         self.inline_linked_images = inline_linked_images
 
@@ -192,7 +204,11 @@ class ResvgRenderer(BaseSVGRenderer):
             svg.inline_images()
             svg_string = svg.to_string()
 
-        return utils.image_from_bytes(bytearray(resvg_py.svg_to_bytes(svg_string=svg_string)))
+        # resvg_py.svg_to_bytes seem to be have a wrong type hint as itr
+        # returns a list of ints while it's annotated to return list[bytes]
+        return utils.image_from_bytes(
+            bytes(cast(list[int], resvg_py.svg_to_bytes(svg_string=svg_string))),
+        )
 
     @_size_arguments_not_supported
     def render_svg_file(

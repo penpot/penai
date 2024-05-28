@@ -53,6 +53,7 @@ sphinx-jupyterbook-latex = "^1.0.0"
 sphinx-togglebutton = "^0.3.2"
 sphinx-toolbox = "^3.5.0"
 sphinxcontrib-bibtex = "*"
+types-requests = "^2.32.0.20240523"
 
 [tool.mypy]
 allow_redefinition = true
@@ -149,6 +150,7 @@ ignore = [
     "D106",    # undocumented public nested class
     "D205",    # blank line after summary (prevents summary-only docstrings, which makes no sense)
     "PLW0603", # using global statement
+    "B018",    # strip useless expressions in notebooks. These "useless expressions" often serve as a way to display output
 ]
 unfixable = []
 extend-fixable = [
