@@ -198,7 +198,7 @@ class PenpotFile:
 class PenpotProject:
     files: dict[str, PenpotFile] = field(default_factory=dict)
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         lines = []
         lines += ["Files: (name, id)"]
 
@@ -218,7 +218,7 @@ class PenpotProject:
     def from_directory(cls, project_dir: PathLike) -> Self:
         project_dir = Path(project_dir)
 
-        manifest = PenpotProjectManifestSchema(**read_json(project_dir / "manifest.json"))
+        manifest = PenpotProjectManifestSchema.from_project_dir(project_dir)
         files = {}
 
         for file_id, file_schema in manifest.files.root.items():
