@@ -3,13 +3,12 @@ import os
 from enum import Enum
 
 from penai.config import get_config, pull_from_remote
-from penai.loading import load_from_directory
+from penai.models import PenpotProject
 
 log = logging.getLogger(__name__)
 
 
-# Turn above list into an Enum
-class SavedPenpotDesign(Enum):
+class SavedPenpotProject(Enum):
     AVATAAARS = "Avataaars by Pablo Stanley"
     BLACK_AND_WHITE_MOBILE_TEMPLATES = "Black & White Mobile Templates"
     COMMUNITY_CARDS_GRID_THEME = "Community - Cards grid theme"
@@ -31,10 +30,11 @@ class SavedPenpotDesign(Enum):
             pull_from_remote(result)
         return result
 
-    def load(self):
-        return load_from_directory(self.get_path(pull=True))
-
     @classmethod
     def pull_all(cls) -> None:
         for design in cls:
             design.get_path(pull=True)
+
+    def load(self, pull: bool = False) -> PenpotProject:
+        project_path = self.get_path(pull=pull)
+        return PenpotProject.from_directory(project_path)

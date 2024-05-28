@@ -51,10 +51,10 @@ def make_rst(src_root, rst_root, clean=False, overwrite=False, package_prefix=""
     Does not delete any existing rst files. Thus, rst files for packages or modules that have been removed or renamed
     should be deleted by hand.
 
-    This method should be executed from the project's top-level directory
+    This method should be executed from the project's top-level project_dir
 
-    :param src_root: path to library base directory, typically "src/<library_name>"
-    :param clean: whether to completely clean the target directory beforehand, removing any existing .rst files
+    :param src_root: path to library base project_dir, typically "src/<library_name>"
+    :param clean: whether to completely clean the target project_dir beforehand, removing any existing .rst files
     :param overwrite: whether to overwrite existing rst files. This should be used with caution as it will delete
         all manual changes to documentation files
     :package_prefix: a prefix to prepend to each module (for the case where the src_root is not the base package),
