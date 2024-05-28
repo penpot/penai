@@ -56,15 +56,8 @@ def load_components(file_root: Path) -> list[PenpotComponent]:
     components_path = (file_root / "components").with_suffix(".svg")
     components_svg = SVG.from_file(components_path)
 
-    # Yes, lxml's find/xpath is not compatible with its own datatypes.
-    nsmap = components_svg.dom.getroot().nsmap
-
-    xpath_nsmap = dict(nsmap)
-    xpath_nsmap[""] = xpath_nsmap.pop(None)
-
     component_symbols = components_svg.dom.findall(
         "./defs/symbol",
-        namespaces=xpath_nsmap,
     )
 
     components = []
@@ -74,7 +67,6 @@ def load_components(file_root: Path) -> list[PenpotComponent]:
         dimensions = Dimensions.from_bounding_box(*map(float, view_box.split()))
         svg = SVG.from_root_element(
             symbol,
-            namespace_map=nsmap,
             svg_attribs=dict(
                 viewBox=view_box,
             ),
@@ -82,7 +74,7 @@ def load_components(file_root: Path) -> list[PenpotComponent]:
 
         component = PenpotComponent(
             id=symbol.get("id"),
-            name=symbol.find("./title", namespaces=xpath_nsmap).text,
+            name=symbol.find("./title").text,
             container=PenpotContainer(svg=svg),
             dimensions=dimensions,
         )

@@ -4,10 +4,12 @@ import io
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
+from functools import wraps
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Self, TypedDict, Unpack
 
+import resvg_py
 from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -15,6 +17,8 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
+from penai import utils
+from penai.svg import SVG
 from penai.types import PathLike
 
 
@@ -42,6 +46,19 @@ class BaseSVGRenderer(abc.ABC):
         height: int | None = None,
     ) -> Image.Image:
         pass
+
+
+def _size_arguments_not_supported(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if kwargs.get("width") or kwargs.get("height"):
+            raise NotImplementedError(
+                "Specifying width or height is currently not supported by this renderer",
+            )
+
+        return fn(*args, **kwargs)
+
+    return wrapper
 
 
 class ChromeSVGRendererParams(TypedDict, total=False):
@@ -120,6 +137,7 @@ class ChromeSVGRenderer(BaseSVGRenderer):
 
         return Image.open(buffer).convert("RGB")
 
+    @_size_arguments_not_supported
     def render_svg(
         self,
         svg_string: str,
@@ -132,15 +150,11 @@ class ChromeSVGRenderer(BaseSVGRenderer):
         :param width: The width of the rendered image. Currently not supported.
         :param height: The height of the rendered image. Currently not supported.
         """
-        if width or height:
-            raise NotImplementedError(
-                "Specifying width or height is currently not supported by ChromeSVGRenderer",
-            )
-
         with NamedTemporaryFile(prefix="penpy_", suffix=".svg", mode="w") as file:
             file.write(svg_string)
             return self._render_svg(Path(file.name).as_uri())
 
+    @_size_arguments_not_supported
     def render_svg_file(
         self,
         svg_path: PathLike,
@@ -153,11 +167,6 @@ class ChromeSVGRenderer(BaseSVGRenderer):
         :param width: The width of the rendered image. Currently not supported.
         :param height: The height of the rendered image. Currently not supported.
         """
-        if width or height:
-            raise NotImplementedError(
-                "Specifying width or height is currently not supported by ChromeSVGRenderer",
-            )
-
         svg_path = Path(svg_path)
         path = svg_path.absolute()
 
@@ -165,3 +174,32 @@ class ChromeSVGRenderer(BaseSVGRenderer):
             raise FileNotFoundError(f"{path} does not exist")
 
         return self._render_svg(path.as_uri())
+
+
+class ResvgRenderer(BaseSVGRenderer):
+    def __init__(self, inline_linked_images: bool = True):
+        self.inline_linked_images = inline_linked_images
+
+    @_size_arguments_not_supported
+    def render_svg(
+        self,
+        svg_string: str,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> Image.Image:
+        if self.inline_linked_images:
+            svg = SVG.from_string(svg_string)
+            svg.inline_images()
+            svg_string = svg.to_string()
+
+        return utils.image_from_bytes(bytearray(resvg_py.svg_to_bytes(svg_string=svg_string)))
+
+    @_size_arguments_not_supported
+    def render_svg_file(
+        self,
+        svg_path: PathLike,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> Image.Image:
+        svg_string = Path(svg_path).read_text()
+        return self.render_svg(svg_string)

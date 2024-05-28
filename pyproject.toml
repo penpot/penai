@@ -25,6 +25,7 @@ pillow = "^10.3.0"
 plotly = "^5.19.0"
 selenium = "^4.21.0"
 webdriver-manager = "^4.0.1"
+resvg-py = "^0.1.5"
 
 [tool.poetry.group.dev]
 optional = true
