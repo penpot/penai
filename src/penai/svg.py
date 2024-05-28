@@ -45,6 +45,12 @@ class SVG:
         namespace_map: dict | None = None,
         svg_attribs: dict[str, str] | None = None,
     ) -> Self:
+        """Create an SVG object from a given root element.
+
+        :param element: The root element of the SVG document.
+        :param nsmap: A dictionary mapping namespace prefixes to URIs.
+        :param svg_attribs: A dictionary of attributes to add to the `attrib` field.
+        """
         if not isinstance(element, BetterElement):
             raise TypeError(f"Expected an BetterElement, got {type(element)}")
 
