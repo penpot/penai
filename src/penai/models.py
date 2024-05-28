@@ -99,7 +99,7 @@ class PenpotComponent(PenpotComposition):
         svg_root.append(
             etree.Element("use", {"href": f"#{self.id}"}),
         )
-        svg_root.attrib['viewBox'] = self.dimensions.to_view_box()
+        svg_root.attrib["viewBox"] = self.dimensions.to_view_box_string()
         return svg
 
 
@@ -141,7 +141,7 @@ class PenpotComponentsSVG(SVG):
 
         for symbol in component_symbols:
             view_box = symbol.get("viewBox")
-            dimensions = Dimensions.from_viewbox_string(view_box)
+            dimensions = Dimensions.from_view_box_string(view_box)
             svg = SVG.from_root_element(
                 symbol,
                 nsmap=nsmap,
