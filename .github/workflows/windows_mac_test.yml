@@ -37,4 +37,7 @@ jobs:
         # see https://github.com/python-poetry/poetry/issues/7611
         run: poetry install --with dev || poetry install --with dev || poetry install --with dev
       - name: Test with pytest
+        env:
+          GOOGLE_STORAGE_KEY: ${{ secrets.GOOGLE_STORAGE_KEY }}
+          GOOGLE_STORAGE_SECRET: ${{ secrets.GOOGLE_STORAGE_SECRET }}
         run: poetry run poe test-subset

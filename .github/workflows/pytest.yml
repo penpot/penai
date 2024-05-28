@@ -35,6 +35,9 @@ jobs:
         run: |
           poetry install --with dev
       - name: Test with pytest
+        env:
+          GOOGLE_STORAGE_KEY: ${{ secrets.GOOGLE_STORAGE_KEY }}
+          GOOGLE_STORAGE_SECRET: ${{ secrets.GOOGLE_STORAGE_SECRET }}
         run: poetry run poe test
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1

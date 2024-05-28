@@ -19,12 +19,19 @@ class SVG:
     def from_root_element(
         cls,
         element: etree.Element,
-        namespace_map: dict | None = None,
+        nsmap: dict | None = None,
         svg_attribs: dict[str, str] | None = None,
     ) -> Self:
-        namespace_map = namespace_map or {}
+        """Create an SVG object from a given root element.
 
-        namespace_map = {None: "http://www.w3.org/2000/svg", **namespace_map}
+        :param element: The root element of the SVG document.
+        :param nsmap: A dictionary mapping namespace prefixes to URIs.
+        :param svg_attribs: A dictionary of attributes to add to the `attrib` field.
+        """
+        nsmap = nsmap or {}
+
+        # Add the default SVG namespace to the nsmap if it's not already there.
+        nsmap = {None: "http://www.w3.org/2000/svg", **nsmap}
 
         # As recommended in https://lxml.de/tutorial.html, create a deep copy of the element.
         element = deepcopy(element)
@@ -32,7 +39,7 @@ class SVG:
         localname = etree.QName(element).localname
 
         if localname != "svg":
-            root = etree.Element("svg", nsmap=namespace_map)
+            root = etree.Element("svg", nsmap=nsmap)
             root.append(element)
         else:
             root = element
