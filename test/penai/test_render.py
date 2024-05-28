@@ -23,7 +23,9 @@ def _test_svg_renderer(
     ref_data = np.array(ref_png) / 255.0
     cmp_data = np.array(cmp_png) / 255.0
 
-    if ((ref_data - cmp_data) ** 2).mean() > 5e-3:
+    diff = ((ref_data - cmp_data) ** 2).mean()
+
+    if diff > 5e-3:
         with tempfile.TemporaryDirectory(delete=False) as tmp_dir:
             tmp_dir_path = Path(tmp_dir)
             ref_path = tmp_dir_path / "ref.png"
