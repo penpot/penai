@@ -167,7 +167,7 @@ class PenpotComponentsSVG(SVG):
 class PenpotFile:
     id: str
     name: str
-    pages: dict[str | UUID, PenpotPage]
+    pages: dict[str, PenpotPage]
     components: PenpotComponentDict
 
     # TODO: Implement when needed
