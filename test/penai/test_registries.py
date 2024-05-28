@@ -14,5 +14,5 @@ class TestPenpotProjectRegistry:
     @staticmethod
     @pytest.mark.parametrize("project", projects_to_test)
     def test_can_be_loaded(project: SavedPenpotProject) -> None:
-        loaded_project = project.load()
+        loaded_project = project.load(pull=True)
         assert len(loaded_project.files) > 0
