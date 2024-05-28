@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 from typing import Self
-from uuid import UUID
 
 from lxml import etree
 
@@ -165,9 +164,10 @@ class PenpotComponentsSVG(SVG):
 
 @dataclass
 class PenpotFile:
+    id: str
+    name: str
     pages: dict[str | UUID, PenpotPage]
     components: PenpotComponentDict
-
     # TODO: Implement when needed
     # colors: list[PenpotColor]
     # mediaItems: list[PenpotMediaItem]
@@ -193,7 +193,23 @@ class PenpotFile:
 
 @dataclass
 class PenpotProject:
-    files: dict[str | UUID, PenpotFile]
+    files: dict[str, PenpotFile] = field(default_factory=dict)
+
+    def __str__(self):
+        lines = []
+        lines += ["Files: (name, id)"]
+
+        for file in self.files.values():
+            lines += [f"- {file.name} ({file.id})"]
+            lines += ["  Pages: (name, id)"]
+            for page in file.pages.values():
+                lines += [f"  - {page.name} ({page.id})"]
+
+            lines += ["  Components: (name, id)"]
+            for component in file.components.values():
+                lines += [f"  - {component.name} ({component.id})"]
+
+        return "\n".join(lines)
 
     @classmethod
     def from_directory(cls, project_dir: PathLike) -> Self:

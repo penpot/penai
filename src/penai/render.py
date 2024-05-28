@@ -19,10 +19,25 @@ from penai.types import PathLike
 
 
 class BaseSVGRenderer(abc.ABC):
+    """Base class for SVG renderers.
+
+    We distinguish between the representation of SVGs given by their content and as a file, 
+    since SVG engines could inherently work with either representation.
+    """
+
     @abc.abstractmethod
-    def render(
+    def render_svg(
         self,
-        svg: str | PathLike,
+        svg_string: str,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> Image.Image:
+        pass
+
+    @abc.abstractmethod
+    def render_svg_file(
+        self,
+        svg_path: PathLike,
         width: int | None = None,
         height: int | None = None,
     ) -> Image.Image:
@@ -105,16 +120,15 @@ class ChromeSVGRenderer(BaseSVGRenderer):
 
         return Image.open(buffer).convert("RGB")
 
-    def render(
+    def render_svg(
         self,
-        svg: str | Path,
+        svg_string: str,
         width: int | None = None,
         height: int | None = None,
     ) -> Image.Image:
-        """Render an SVG file or string to an image.
+        """Render the content of an SVG file to an image.
 
-        :param svg: The SVG file or string to render. If an instance of `Path` is passed, the file is read and rendered.
-            Otherwise, the input is treated as an SVG string.
+        :param svg: The content of the SVG file to render.
         :param width: The width of the rendered image. Currently not supported.
         :param height: The height of the rendered image. Currently not supported.
         """
@@ -123,15 +137,31 @@ class ChromeSVGRenderer(BaseSVGRenderer):
                 "Specifying width or height is currently not supported by ChromeSVGRenderer",
             )
 
-        if isinstance(svg, Path):
-            path = svg.absolute()
+        with NamedTemporaryFile(prefix="penpy_", suffix=".svg", mode="w") as file:
+            file.write(svg_string)
+            return self._render_svg(Path(file.name).as_uri())
 
-            if not path.exists():
-                raise FileNotFoundError(f"{path} does not exist")
+    def render_svg_file(
+        self,
+        svg_path: PathLike,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> Image.Image:
+        """Render an SVG file to an image.
 
-            return self._render_svg(path.as_uri())
-        else:
-            with NamedTemporaryFile(prefix="penpy_", suffix=".svg", mode="w") as file:
-                file.write(svg)
+        :param svg_path: Path to the SVG file to render.
+        :param width: The width of the rendered image. Currently not supported.
+        :param height: The height of the rendered image. Currently not supported.
+        """
+        if width or height:
+            raise NotImplementedError(
+                "Specifying width or height is currently not supported by ChromeSVGRenderer",
+            )
 
-                return self._render_svg(Path(file.name).as_uri())
+        svg_path = Path(svg_path)
+        path = svg_path.absolute()
+
+        if not path.exists():
+            raise FileNotFoundError(f"{path} does not exist")
+
+        return self._render_svg(path.as_uri())

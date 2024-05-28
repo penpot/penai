@@ -1,12 +1,16 @@
 import os
 from pathlib import Path
+from typing import Annotated
+from uuid import UUID
 
-
-# TODO: sphinx is too dumb to render modules without at least one function
-#  and I couldn't figure out how to suppress the specific warning
-#  Remove once the module is less empty
-def dummy() -> None:
-    """Dummy function to make sphinx happy."""
-
+from pydantic import AfterValidator
 
 PathLike = str | Path | os.PathLike[str]
+
+def _validate_uuid(value: str) -> str:
+    try:
+        return str(UUID(value))
+    except ValueError as e:
+        raise ValueError("Invalid UUID") from e
+
+ValidUUID = Annotated[str, AfterValidator(_validate_uuid)]
