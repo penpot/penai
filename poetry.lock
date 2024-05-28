@@ -2821,6 +2821,16 @@ tomli = ">=1.2.2"
 poetry-plugin = ["poetry (>=1.0,<2.0)"]
 
 [[package]]
+name = "pptree"
+version = "3.1"
+description = "Pretty print trees"
+optional = false
+python-versions = "*"
+files = [
+    {file = "pptree-3.1.tar.gz", hash = "sha256:4dd0ba2f58000cbd29d68a5b64bac29bcb5a663642f79404877c0059668a69f6"},
+]
+
+[[package]]
 name = "pre-commit"
 version = "3.7.1"
 description = "A framework for managing and maintaining multi-language pre-commit hooks."
@@ -4798,4 +4808,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "e42c4858c42023672ff23a520efb9816d4fd91f7600befb5a92c9f57c6a97dd2"
+content-hash = "695a243b5a795fadf3082aef2ac475d07044aa24e05a7a4ae6b87cc1a2866f34"

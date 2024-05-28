@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any, Self
 
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel
 
 from penai.types import PathLike, ValidUUID
 from penai.utils import read_json
@@ -27,14 +27,11 @@ class PenpotFileDetailsSchema(BaseModel):
     hasColors: bool
 
 
-class PenpotFilesSchema(RootModel):
-    root: dict[ValidUUID, PenpotFileDetailsSchema]
-
-
 class PenpotProjectManifestSchema(BaseModel):
     teamId: ValidUUID
     fileId: ValidUUID
-    files: PenpotFilesSchema
+    """The main/default file id. The `files` dict will always contain at least this key"""
+    files: dict[ValidUUID, PenpotFileDetailsSchema]
 
     @classmethod
     def from_project_dir(cls, project_dir: PathLike) -> Self:

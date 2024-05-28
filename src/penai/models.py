@@ -10,7 +10,6 @@ from lxml import etree
 from penai.schemas import PenpotFileDetailsSchema, PenpotProjectManifestSchema
 from penai.svg import SVG
 from penai.types import PathLike
-from penai.utils import read_json
 
 
 @dataclass
@@ -28,6 +27,10 @@ class PenpotContainer:
     # For the sake of simplicity, we will just represent it by its plain SVG object.
     # objects: list[PenpotShape] = field(default_factory=list)
     svg: SVG
+
+    @classmethod
+    def from_file(cls, path: PathLike) -> Self:
+        return cls(svg=SVG.from_file(path))
 
 
 @dataclass
@@ -53,12 +56,7 @@ class PenpotPage(PenpotComposition):
     @classmethod
     def from_dir(cls, page_id: str | UUID, name: str, file_root: Path) -> Self:
         page_path = (file_root / str(page_id)).with_suffix(".svg")
-        container = PenpotContainer(svg=SVG.from_file(page_path))
-        return cls(
-            id=str(page_id),
-            name=name,
-            container=container,
-        )
+        return cls.from_file(page_path, name)
 
 
 @dataclass
@@ -99,6 +97,11 @@ class PenpotComponent(PenpotComposition):
 
 
 class PenpotComponentDict(dict[str, PenpotComponent]):
+    """A dict mapping component ids to PenpotComponent objects.
+
+    Provides some utility methods for retrieving components by name.
+    """
+
     def get_component_names(self) -> list[str]:
         return [component.name for component in self.values()]
 
@@ -196,9 +199,13 @@ class PenpotFile:
 
 @dataclass
 class PenpotProject:
-    files: dict[str, PenpotFile] = field(default_factory=dict)
+    main_file_id: str
+    files: dict[str, PenpotFile]
 
-    def __repr__(self) -> str:
+    def get_main_file(self) -> PenpotFile:
+        return self.files[self.main_file_id]
+
+    def __str__(self) -> str:
         lines = []
         lines += ["Files: (name, id)"]
 
@@ -221,10 +228,10 @@ class PenpotProject:
         manifest = PenpotProjectManifestSchema.from_project_dir(project_dir)
         files = {}
 
-        for file_id, file_schema in manifest.files.root.items():
+        for file_id, file_schema in manifest.files.items():
             files[file_id] = PenpotFile.from_schema_and_dir(
                 file_schema,
                 project_dir / str(file_id),
             )
 
-        return cls(files=files)
+        return cls(files=files, main_file_id=manifest.fileId)
