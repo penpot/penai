@@ -43,7 +43,7 @@ def _test_svg_renderer(
         )
 
 
-class TestChromeSVGRenderers:
+class TestSVGRenderers:
     @pytest.mark.parametrize("renderer", [ChromeSVGRenderer(), ResvgRenderer()])
     def test_rendering_works(
         self,

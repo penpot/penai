@@ -1,8 +1,7 @@
 from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
-from functools import cached_property
-from typing import TYPE_CHECKING, Any, Self, overload
+from typing import TYPE_CHECKING, Any, Self
 
 from lxml import etree
 from pptree import print_tree
@@ -10,6 +9,7 @@ from pptree import print_tree
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys
 from penai.utils.svg import strip_penpot_from_tree, url_to_data_uri, validate_uri
+from penai.xml import BetterElement
 
 _CustomElementBaseAnnotationClass: Any = object
 if TYPE_CHECKING:
@@ -23,67 +23,8 @@ if TYPE_CHECKING:
     _CustomElementBaseAnnotationClass = XMLElement
 
 
-class BetterElement(etree.ElementBase):
-    @cached_property
-    def query_compatible_nsmap(self) -> dict[str, str]:
-        nsmap = dict(self.nsmap)
-        nsmap[""] = nsmap.pop(None)
-        return nsmap
-
-    def find(self, path: str, namespaces: dict[str, str] | None = None) -> list[etree._Element]:
-        return super().find(path, namespaces=namespaces or self.query_compatible_nsmap)
-
-    def findall(self, path: str, namespaces: dict[str, str] | None = None) -> list[etree._Element]:
-        return super().findall(path, namespaces=namespaces or self.query_compatible_nsmap)
-
-    def xpath(
-        self,
-        path: str,
-        namespaces: dict[str, str] | None = None,
-        **kwargs: dict[str, Any],
-    ) -> list[etree._Element]:
-        return super().xpath(path, namespaces=namespaces or self.query_compatible_nsmap, **kwargs)
-
-    @overload
-    def get_namespaced_key(self, key: str) -> str:
-        ...
-
-    @overload
-    def get_namespaced_key(self, namespace: str, key: str) -> str:
-        ...
-
-    # Note: Is there a better way to handle the overload here?
-    def get_namespaced_key(self, arg1: str, arg2: str | None = None) -> str:  # type: ignore[misc]
-        """Returns a XML key (tag or attribute name) with the correct namespace.
-
-        The key is returned without prefix if no namespace is provided or
-        no namespace map is attached.
-
-        Otherwise the key is returned in the format {namespace}key or a exception
-        is raised if the namespace can't be found in the namespace map.
-        """
-        if arg2 is None:
-            key = arg1
-            namespace = None
-        else:
-            namespace, key = arg1, arg2
-
-        if not self.nsmap and namespace is None:
-            return key
-
-        if not (namespace_uri := self.nsmap.get(namespace)):
-            raise ValueError(
-                f"No namespace with name {namespace}. Known namespaces are {list(self.nsmap)}",
-            )
-        return f"{{{namespace_uri}}}{key}"
-
-    @cached_property
-    def localname(self) -> str:
-        return etree.QName(self).localname
-
-
 class SVG:
-    """A simple wrapper around the `ElementTree` class for now.
+    """A simple wrapper around an `ElementTree` that is based on `BetterElement` as nodes in the tree.
 
     In the long-term (lol never), we might extend this a full-fledged SVG implementation.
     """
@@ -95,7 +36,7 @@ class SVG:
     def from_root_element(
         cls,
         element: BetterElement,
-        namespace_map: dict | None = None,
+        nsmap: dict | None = None,
         svg_attribs: dict[str, str] | None = None,
     ) -> Self:
         """Create an SVG object from a given root element.
@@ -107,14 +48,14 @@ class SVG:
         if not isinstance(element, BetterElement):
             raise TypeError(f"Expected an BetterElement, got {type(element)}")
 
-        namespace_map = namespace_map or dict(element.nsmap)
-        namespace_map = {None: "http://www.w3.org/2000/svg", **namespace_map}
+        nsmap = nsmap or dict(element.nsmap)
+        nsmap = {None: "http://www.w3.org/2000/svg", **nsmap}
 
         # As recommended in https://lxml.de/tutorial.html, create a deep copy of the element.
         element = deepcopy(element)
 
         if element.localname != "svg":
-            root = BetterElement("svg", nsmap=namespace_map)
+            root = BetterElement("svg", nsmap=nsmap)
             root.append(element)
         else:
             root = element
@@ -124,22 +65,13 @@ class SVG:
 
         return cls(etree.ElementTree(root))
 
-    @staticmethod
-    def get_parser() -> etree.XMLParser:
-        parser_lookup = etree.ElementDefaultClassLookup(element=BetterElement)
-        parser = etree.XMLParser()
-        parser.set_element_class_lookup(parser_lookup)
-        return parser
-
     @classmethod
     def from_file(cls, path: PathLike) -> Self:
-        parser = cls.get_parser()
-        return cls(etree.parse(path, parser))
+        return cls(dom=BetterElement.parse_file(path))
 
     @classmethod
     def from_string(cls, string: str) -> Self:
-        parser = cls.get_parser()
-        return cls(etree.ElementTree(etree.fromstring(string, parser)))
+        return cls(dom=BetterElement.parse_string(string))
 
     def strip_penpot_tags(self) -> None:
         """Strip all Penpot-specific nodes from the SVG tree.
