@@ -10,6 +10,7 @@ from tempfile import NamedTemporaryFile
 from typing import ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
 
 import resvg_py
+from overrides import override
 from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -47,6 +48,10 @@ class BaseSVGRenderer(abc.ABC):
         width: int | None = None,
         height: int | None = None,
     ) -> Image.Image:
+        pass
+
+    # meant to be overridden if necessary
+    def teardown(self) -> None:  # noqa: B027
         pass
 
 
@@ -124,6 +129,7 @@ class ChromeSVGRenderer(BaseSVGRenderer):
             if renderer is not None:
                 renderer.teardown()
 
+    @override
     def teardown(self) -> None:
         self.driver.quit()
 

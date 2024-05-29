@@ -38,3 +38,7 @@ def example_png_path(resources_path: Path) -> Path:
 @pytest.fixture(scope="session")
 def page_example_svg_path(resources_path: Path) -> Path:
     return resources_path / "page_example.svg"
+
+
+def log_dir() -> Path:
+    return existing_path("test/log")

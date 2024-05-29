@@ -9,6 +9,7 @@ from pptree import print_tree
 
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys
+from penai.utils.svg import strip_penpot_from_tree, url_to_data_uri, validate_uri
 
 _CustomElementBaseAnnotationClass: Any = object
 if TYPE_CHECKING:
@@ -112,7 +113,7 @@ class SVG:
 
         Useful for debugging, reverse engineering or testing purposes.
         """
-        utils.strip_penpot_from_tree(self.dom.getroot())
+        strip_penpot_from_tree(self.dom.getroot())
 
     def inline_images(self, elem: etree.ElementBase | None = None) -> None:
         # TODO: We currently don't make use of any concurrent fetching or caching
@@ -130,8 +131,8 @@ class SVG:
 
             uri = attribs.get("href")
 
-            if uri and utils.validate_uri(uri):
-                data_uri = utils.url_to_data_uri(uri)
+            if uri and validate_uri(uri):
+                data_uri = url_to_data_uri(uri)
 
                 if attribs.get("href"):
                     del attribs["href"]
