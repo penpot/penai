@@ -8,7 +8,7 @@ from pptree import print_tree
 
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys
-from penai.utils.svg import strip_penpot_from_tree, url_to_data_uri, validate_uri
+from penai.utils.svg import trim_namespace_from_tree, url_to_data_uri, validate_uri
 from penai.xml import BetterElement
 
 _CustomElementBaseAnnotationClass: Any = object
@@ -78,7 +78,7 @@ class SVG:
 
         Useful for debugging, reverse engineering or testing purposes.
         """
-        strip_penpot_from_tree(self.dom.getroot())
+        trim_namespace_from_tree(self.dom.getroot(), "penpot")
 
     def inline_images(self, elem: etree.ElementBase | None = None) -> None:
         # TODO: We currently don't make use of any concurrent fetching or caching

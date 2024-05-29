@@ -8,18 +8,18 @@ from lxml import etree
 from PIL import Image
 
 
-def strip_penpot_from_tree(node: etree.Element) -> None:
-    """Strip all Penpot-specific nodes from a given SVG DOM.
+def trim_namespace_from_tree(node: etree.Element, namespace: str) -> None:
+    """Strip all elements belonging to a specific namespace from an XML tree.
 
     Useful for debugging, reverse engineering or testing purposes.
     """
     children = list(node)
 
     for child in children:
-        if child.prefix and child.prefix == "penpot":
+        if child.prefix and child.prefix == namespace:
             node.remove(child)
         else:
-            strip_penpot_from_tree(child)
+            trim_namespace_from_tree(child, namespace)
 
 
 def image_from_bytes(image_bytes: bytes | bytearray) -> Image.Image:
