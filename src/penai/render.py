@@ -18,9 +18,9 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
-from penai import utils
 from penai.svg import SVG
 from penai.types import PathLike
+from penai.utils.svg import image_from_bytes
 
 
 class BaseSVGRenderer(abc.ABC):
@@ -215,7 +215,7 @@ class ResvgRenderer(BaseSVGRenderer):
 
         # resvg_py.svg_to_bytes seem to be have a wrong type hint as itr
         # returns a list of ints while it's annotated to return list[bytes]
-        return utils.image_from_bytes(
+        return image_from_bytes(
             bytes(cast(list[int], resvg_py.svg_to_bytes(svg_string=svg_string))),
         )
 
