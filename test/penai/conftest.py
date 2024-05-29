@@ -11,6 +11,7 @@ from penai.types import PathLike
 def from_top_level_dir(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.chdir(top_level_directory)
 
+
 def existing_path(path: PathLike) -> Path:
     path = Path(path)
     if not path.is_absolute():
@@ -32,3 +33,8 @@ def example_svg_path(resources_path: Path) -> Path:
 @pytest.fixture(scope="session")
 def example_png(resources_path: Path) -> Path:
     return resources_path / "example.png"
+
+
+@pytest.fixture(scope="session")
+def log_dir() -> Path:
+    return existing_path("test/log")

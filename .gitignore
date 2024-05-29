@@ -2,6 +2,7 @@
 .idea
 config_local.json
 temp
+test/log
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
