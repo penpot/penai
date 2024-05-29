@@ -76,23 +76,28 @@ class Dimensions:
         )
 
     @classmethod
-    def from_viewbox_string(cls, view_box: str) -> Self:
+    def from_view_box_string(cls, view_box: str) -> Self:
         return cls.from_bbox(*map(float, view_box.split()))
+
+    def to_view_box_string(self) -> str:
+        return f"0 0 {self.width} {self.height}"
 
 
 @dataclass
 class PenpotComponent(PenpotComposition):
     dimensions: Dimensions
 
-    def get_svg(self) -> SVG:
+    def to_svg(self) -> SVG:
         # This function should eventually build an SVG from the component's
         # shape hierarchy. Since we currently represent a component by its raw
         # unprocessed SVG, we just copy the SVG DOM and place a component reference
         # to make it visible.
         svg = deepcopy(self.container.svg)
-        svg.dom.getroot().append(
+        svg_root = svg.dom.getroot()
+        svg_root.append(
             etree.Element("use", {"href": f"#{self.id}"}),
         )
+        svg_root.attrib["viewBox"] = self.dimensions.to_view_box_string()
         return svg
 
 
@@ -130,7 +135,7 @@ class PenpotComponentsSVG(SVG):
 
         for symbol in component_symbols:
             view_box = symbol.get("viewBox")
-            dimensions = Dimensions.from_viewbox_string(view_box)
+            dimensions = Dimensions.from_view_box_string(view_box)
             svg = SVG.from_root_element(
                 symbol,
                 svg_attribs=dict(
