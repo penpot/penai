@@ -280,6 +280,10 @@ def find_all_penpot_shapes(
     return penpot_shape_elements, depth_to_shape_el, shape_el_to_depth
 
 
+class PenpotComponentSVG(SVG):
+    """Representing a Penpot component, usually loaded from elements in a file named `component.svg`."""
+
+
 class PenpotPageSVG(SVG):
     def __init__(self, dom: etree.ElementTree):
         super().__init__(dom)

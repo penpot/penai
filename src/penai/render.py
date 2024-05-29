@@ -128,7 +128,7 @@ class ChromeSVGRenderer(BaseSVGRenderer):
     ) -> Image.Image:
         """Render the content of an SVG file to an image.
 
-        :param svg: The content of the SVG file to render.
+        :param svg_string: The content of the SVG file to render.
         :param width: The width of the rendered image. Currently not supported.
         :param height: The height of the rendered image. Currently not supported.
         """
