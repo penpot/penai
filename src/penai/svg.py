@@ -136,6 +136,7 @@ def _el_is_penpot_shape(el: etree.ElementBase) -> bool:
 
 
 def _el_is_group(el: etree.ElementBase) -> bool:
+    # NOTE: in princple, the tag could also be extracted from a namespace or from etree.Qname
     return el.tag == "{http://www.w3.org/2000/svg}g"
 
 
