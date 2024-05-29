@@ -1,15 +1,6 @@
-import json
-from pathlib import Path
-
 from lxml import etree
 
 from penai.svg import SVG
-from penai.types import PathLike
-
-
-def read_json(path: PathLike) -> dict:
-    """Read a JSON file from the given path."""
-    return json.loads(Path(path).read_text())
 
 
 def strip_penpot_from_tree(node: etree.Element) -> None:

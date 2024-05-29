@@ -26,14 +26,14 @@ def _test_chrome_svg_renderer(
 
 class TestRendering:
     @staticmethod
-    def test_chrome_svg_renderer(example_svg_path: Path, example_png: Path) -> None:
+    def test_chrome_svg_renderer(example_svg_path: Path, example_png_path: Path) -> None:
         renderer = ChromeSVGRenderer()
 
-        _test_chrome_svg_renderer(renderer, example_svg_path, example_png)
+        _test_chrome_svg_renderer(renderer, example_svg_path, example_png_path)
 
         renderer.teardown()
 
     @staticmethod
-    def test_chrome_svg_renderer_context_manager(example_svg_path: Path, example_png: Path) -> None:
+    def test_chrome_svg_renderer_context_manager(example_svg_path: Path, example_png_path: Path) -> None:
         with ChromeSVGRenderer.create_renderer() as renderer:
-            _test_chrome_svg_renderer(renderer, example_svg_path, example_png)
+            _test_chrome_svg_renderer(renderer, example_svg_path, example_png_path)
