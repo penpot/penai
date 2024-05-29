@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -38,3 +39,11 @@ def example_png_path(resources_path: Path) -> Path:
 @pytest.fixture(scope="session")
 def page_example_svg_path(resources_path: Path) -> Path:
     return resources_path / "page_example.svg"
+
+
+@pytest.fixture(scope="session")
+def log_dir() -> Path:
+    log_dir_root = existing_path("test/log")
+    session_log_dir = log_dir_root / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    session_log_dir.mkdir(parents=True)
+    return session_log_dir

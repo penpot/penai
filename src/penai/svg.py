@@ -8,6 +8,8 @@ from pptree import print_tree
 
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys
+from penai.utils.svg import strip_penpot_from_tree, url_to_data_uri, validate_uri
+from penai.xml import BetterElement
 
 _CustomElementBaseAnnotationClass: Any = object
 if TYPE_CHECKING:
@@ -22,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class SVG:
-    """A simple wrapper around the `ElementTree` class for now.
+    """A simple wrapper around an `ElementTree` that is based on `BetterElement` as nodes in the tree.
 
     In the long-term (lol never), we might extend this a full-fledged SVG implementation.
     """
@@ -33,7 +35,7 @@ class SVG:
     @classmethod
     def from_root_element(
         cls,
-        element: etree.ElementBase,
+        element: BetterElement,
         nsmap: dict | None = None,
         svg_attribs: dict[str, str] | None = None,
     ) -> Self:
@@ -43,18 +45,17 @@ class SVG:
         :param nsmap: A dictionary mapping namespace prefixes to URIs.
         :param svg_attribs: A dictionary of attributes to add to the `attrib` field.
         """
-        nsmap = nsmap or {}
+        if not isinstance(element, BetterElement):
+            raise TypeError(f"Expected an BetterElement, got {type(element)}")
 
-        # Add the default SVG namespace to the nsmap if it's not already there.
+        nsmap = nsmap or dict(element.nsmap)
         nsmap = {None: "http://www.w3.org/2000/svg", **nsmap}
 
         # As recommended in https://lxml.de/tutorial.html, create a deep copy of the element.
         element = deepcopy(element)
 
-        localname = etree.QName(element).localname
-
-        if localname != "svg":
-            root = etree.Element("svg", nsmap=nsmap)
+        if element.localname != "svg":
+            root = BetterElement("svg", nsmap=nsmap)
             root.append(element)
         else:
             root = element
@@ -66,7 +67,45 @@ class SVG:
 
     @classmethod
     def from_file(cls, path: PathLike) -> Self:
-        return cls(etree.parse(path))
+        return cls(dom=BetterElement.parse_file(path))
+
+    @classmethod
+    def from_string(cls, string: str) -> Self:
+        return cls(dom=BetterElement.parse_string(string))
+
+    def strip_penpot_tags(self) -> None:
+        """Strip all Penpot-specific nodes from the SVG tree.
+
+        Useful for debugging, reverse engineering or testing purposes.
+        """
+        strip_penpot_from_tree(self.dom.getroot())
+
+    def inline_images(self, elem: etree.ElementBase | None = None) -> None:
+        # TODO: We currently don't make use of any concurrent fetching or caching
+        # which could drastically speed up the inlining process.
+        if elem is None:
+            elem = self.dom.getroot()
+
+        if not elem.prefix and elem.localname == "image":
+            attribs = elem.attrib
+
+            # According to https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/xlink:href
+            # xlink:href is deprecated, so we will inly check the `href` attribute here.
+            # Penpot also doesn't seem to make use of xlinks.
+            # uri = attribs.get(f'{{{nsmap["xlink"]}}}href')
+
+            uri = attribs.get("href")
+
+            if uri and validate_uri(uri):
+                data_uri = url_to_data_uri(uri)
+
+                if attribs.get("href"):
+                    del attribs["href"]
+
+                attribs["href"] = data_uri
+
+        for child in elem:
+            self.inline_images(child)
 
     def to_file(self, path: PathLike) -> None:
         self.dom.write(path, pretty_print=True)
@@ -86,20 +125,6 @@ def get_node_depth(el: etree.ElementBase, root: etree.ElementBase | None = None)
         depth += 1
         el = el.getparent()
     return depth
-
-
-def _get_penpot_svg_key(
-    key: str,
-    nsmap_prefix: str | None = "{https://penpot.app/xmlns}",
-    nsmap: dict | None = None,
-) -> str:
-    if nsmap_prefix is not None and nsmap is not None:
-        raise ValueError(f"Exactly one of {nsmap_prefix=} and {nsmap=} should be provided")
-    if nsmap is not None:
-        nsmap_prefix = "{" + nsmap["penpot"] + "}"
-    if nsmap_prefix is None:
-        raise ValueError(f"Exactly one of {nsmap_prefix=} and {nsmap=} should be provided")
-    return nsmap_prefix + key
 
 
 class PenpotShapeAttr(Enum):
@@ -132,12 +157,11 @@ class PenpotShapeAttr(Enum):
 
 
 def _el_is_penpot_shape(el: etree.ElementBase) -> bool:
-    return el.tag == _get_penpot_svg_key("shape")
+    return el.prefix == "penpot" and el.localname == "shape"
 
 
 def _el_is_group(el: etree.ElementBase) -> bool:
-    # NOTE: in princple, the tag could also be extracted from a namespace or from etree.Qname
-    return el.tag == "{http://www.w3.org/2000/svg}g"
+    return el.tag == el.get_namespaced_key("g")
 
 
 _PenpotShapeDictEntry = dict["PenpotShapeElement", "_PenpotShapeDictEntry"]
@@ -190,7 +214,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
 
     def get_penpot_attr(self, key: str | PenpotShapeAttr) -> str:
         key = key.value if isinstance(key, PenpotShapeAttr) else key
-        return self.attrib[_get_penpot_svg_key(key)]
+        return self.attrib[self.get_namespaced_key("penpot", key)]
 
     @property
     def name(self) -> str:
