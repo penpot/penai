@@ -2,7 +2,7 @@ from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from lxml import etree
 from pptree import print_tree
@@ -43,6 +43,39 @@ class BetterElement(etree.ElementBase):
         **kwargs: dict[str, Any],
     ) -> list[etree._Element]:
         return super().xpath(path, namespaces=namespaces or self.query_compatible_nsmap, **kwargs)
+
+    @overload
+    def get_namespaced_key(self, key: str) -> str:
+        ...
+
+    @overload
+    def get_namespaced_key(self, namespace: str, key: str) -> str:
+        ...
+
+    # Note: Is there a better way to handle the overload here?
+    def get_namespaced_key(self, arg1: str, arg2: str | None = None) -> str:  # type: ignore[misc]
+        """Returns a XML key (tag or attribute name) with the correct namespace.
+
+        The key is returned without prefix if no namespace is provided or
+        no namespace map is attached.
+
+        Otherwise the key is returned in the format {namespace}key or a exception
+        is raised if the namespace can't be found in the namespace map.
+        """
+        if arg2 is None:
+            key = arg1
+            namespace = None
+        else:
+            namespace, key = arg1, arg2
+
+        if not self.nsmap and namespace is None:
+            return key
+
+        if not (namespace_uri := self.nsmap.get(namespace)):
+            raise ValueError(
+                f"No namespace with name {namespace}. Known namespaces are {list(self.nsmap)}",
+            )
+        return f"{{{namespace_uri}}}{key}"
 
     @cached_property
     def localname(self) -> str:
@@ -117,7 +150,7 @@ class SVG:
 
     def inline_images(self, elem: etree.ElementBase | None = None) -> None:
         # TODO: We currently don't make use of any concurrent fetching or caching
-        # which could drastically speed up image inlining.
+        # which could drastically speed up the inlining process.
         if elem is None:
             elem = self.dom.getroot()
 
@@ -162,20 +195,6 @@ def get_node_depth(el: etree.ElementBase, root: etree.ElementBase | None = None)
     return depth
 
 
-def _get_penpot_svg_key(
-    key: str,
-    nsmap_prefix: str | None = "{https://penpot.app/xmlns}",
-    nsmap: dict | None = None,
-) -> str:
-    if nsmap_prefix is not None and nsmap is not None:
-        raise ValueError(f"Exactly one of {nsmap_prefix=} and {nsmap=} should be provided")
-    if nsmap is not None:
-        nsmap_prefix = "{" + nsmap["penpot"] + "}"
-    if nsmap_prefix is None:
-        raise ValueError(f"Exactly one of {nsmap_prefix=} and {nsmap=} should be provided")
-    return nsmap_prefix + key
-
-
 class PenpotShapeAttr(Enum):
     NAME = "name"
     TYPE = "type"
@@ -206,12 +225,11 @@ class PenpotShapeAttr(Enum):
 
 
 def _el_is_penpot_shape(el: etree.ElementBase) -> bool:
-    return el.tag == _get_penpot_svg_key("shape")
+    return el.prefix == "penpot" and el.localname == "shape"
 
 
 def _el_is_group(el: etree.ElementBase) -> bool:
-    # NOTE: in princple, the tag could also be extracted from a namespace or from etree.Qname
-    return el.tag == "{http://www.w3.org/2000/svg}g"
+    return el.tag == el.get_namespaced_key("g")
 
 
 _PenpotShapeDictEntry = dict["PenpotShapeElement", "_PenpotShapeDictEntry"]
@@ -264,7 +282,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
 
     def get_penpot_attr(self, key: str | PenpotShapeAttr) -> str:
         key = key.value if isinstance(key, PenpotShapeAttr) else key
-        return self.attrib[_get_penpot_svg_key(key)]
+        return self.attrib[self.get_namespaced_key("penpot", key)]
 
     @property
     def name(self) -> str:
