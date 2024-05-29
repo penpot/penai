@@ -14,7 +14,7 @@ classifiers = ["Programming Language :: Python :: 3.11"]
 exclude = ["test/*", "examples/*", "docs/*"]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.11, <3.12"
 accsr = "^0.4.7"
 cryptography = "^42.0.7"
 jsonargparse = "^4.29.0"
@@ -24,6 +24,8 @@ pandas = "^2.2.1"
 pillow = "^10.3.0"
 plotly = "^5.19.0"
 pptree = "^3.1"
+requests = "^2.32.2"
+resvg-py = "^0.1.5"
 selenium = "^4.21.0"
 webdriver-manager = "^4.0.1"
 
@@ -53,6 +55,7 @@ sphinx-jupyterbook-latex = "^1.0.0"
 sphinx-togglebutton = "^0.3.2"
 sphinx-toolbox = "^3.5.0"
 sphinxcontrib-bibtex = "*"
+types-requests = "^2.32.0.20240523"
 
 [tool.mypy]
 allow_redefinition = true
@@ -149,6 +152,7 @@ ignore = [
     "D106",    # undocumented public nested class
     "D205",    # blank line after summary (prevents summary-only docstrings, which makes no sense)
     "PLW0603", # using global statement
+    "B018",    # strip useless expressions in notebooks. These "useless expressions" often serve as a way to display output
 ]
 unfixable = []
 extend-fixable = [
