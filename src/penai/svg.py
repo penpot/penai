@@ -170,7 +170,7 @@ _PenpotShapeDictEntry = dict["PenpotShapeElement", "_PenpotShapeDictEntry"]
 
 
 class PenpotShapeTypeCategory(Enum):
-    # Container shapes can contain other shaped
+    # Container shapes can contain other shapes
     CONTAINER = "container"
 
     # Primitive shapes directly correspond to rendered elements and cannot have children
