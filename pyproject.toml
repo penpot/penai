@@ -14,7 +14,7 @@ classifiers = ["Programming Language :: Python :: 3.11"]
 exclude = ["test/*", "examples/*", "docs/*"]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.11, <3.12"
 accsr = "^0.4.7"
 cryptography = "^42.0.7"
 jsonargparse = "^4.29.0"
