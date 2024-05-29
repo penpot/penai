@@ -304,6 +304,10 @@ def find_all_penpot_shapes(
     return penpot_shape_elements, depth_to_shape_el, shape_el_to_depth
 
 
+class PenpotComponentSVG(SVG):
+    """Representing a Penpot component, usually loaded from elements in a file named `component.svg`."""
+
+
 class PenpotPageSVG(SVG):
     def __init__(self, dom: etree.ElementTree):
         super().__init__(dom)
@@ -311,7 +315,10 @@ class PenpotPageSVG(SVG):
         shape_els, depth_to_shape_el, shape_el_to_depth = find_all_penpot_shapes(dom)
         self._depth_to_shape_el = depth_to_shape_el
         self._shape_el_to_depth = shape_el_to_depth
-        self._max_shape_depth = max(depth_to_shape_el.keys())
+        if depth_to_shape_el:
+            self._max_shape_depth = max(depth_to_shape_el.keys())
+        else:
+            self._max_shape_depth = 0
         self.penpot_shape_elements = shape_els
 
     @property

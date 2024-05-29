@@ -2,13 +2,13 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
-from typing import Self
+from typing import Generic, Self, TypeVar
 from uuid import UUID
 
 from lxml import etree
 
 from penai.schemas import PenpotFileDetailsSchema, PenpotProjectManifestSchema
-from penai.svg import SVG
+from penai.svg import SVG, PenpotComponentSVG, PenpotPageSVG
 from penai.types import PathLike
 
 
@@ -21,36 +21,25 @@ class PenpotShape:
     parent: Self | None = None
 
 
-@dataclass
-class PenpotContainer:
-    # TODO: A Penpot container is a composition of objects, i.e. shapes.
-    # For the sake of simplicity, we will just represent it by its plain SVG object.
-    # objects: list[PenpotShape] = field(default_factory=list)
-    svg: SVG
-
-    @classmethod
-    def from_file(cls, path: PathLike) -> Self:
-        return cls(svg=SVG.from_file(path))
+TSVG = TypeVar("TSVG", bound=SVG)
 
 
 @dataclass
-class PenpotComposition:
-    container: PenpotContainer
+class PenpotComposition(Generic[TSVG]):
+    svg: TSVG
     id: str
     name: str
 
 
 @dataclass
-class PenpotPage(PenpotComposition):
+class PenpotPage(PenpotComposition[PenpotPageSVG]):
     @classmethod
     def from_file(cls, path: PathLike, name: str) -> Self:
         path = Path(path)
-        container = PenpotContainer(svg=SVG.from_file(path))
-        page_id = path.stem
         return cls(
-            id=page_id,
+            id=path.stem,
             name=name,
-            container=container,
+            svg=PenpotPageSVG.from_file(path),
         )
 
     @classmethod
@@ -84,7 +73,7 @@ class Dimensions:
 
 
 @dataclass
-class PenpotComponent(PenpotComposition):
+class PenpotComponent(PenpotComposition[PenpotComponentSVG]):
     dimensions: Dimensions
 
     def to_svg(self) -> SVG:
@@ -92,7 +81,7 @@ class PenpotComponent(PenpotComposition):
         # shape hierarchy. Since we currently represent a component by its raw
         # unprocessed SVG, we just copy the SVG DOM and place a component reference
         # to make it visible.
-        svg = deepcopy(self.container.svg)
+        svg = deepcopy(self.svg)
         svg_root = svg.dom.getroot()
         svg_root.append(
             etree.Element("use", {"href": f"#{self.id}"}),
@@ -136,7 +125,7 @@ class PenpotComponentsSVG(SVG):
         for symbol in component_symbols:
             view_box = symbol.get("viewBox")
             dimensions = Dimensions.from_view_box_string(view_box)
-            svg = SVG.from_root_element(
+            svg = PenpotComponentSVG.from_root_element(
                 symbol,
                 svg_attribs=dict(
                     viewBox=view_box,
@@ -146,7 +135,7 @@ class PenpotComponentsSVG(SVG):
             component = PenpotComponent(
                 id=symbol.get("id"),
                 name=symbol.find("./title").text,
-                container=PenpotContainer(svg=svg),
+                svg=svg,
                 dimensions=dimensions,
             )
 
