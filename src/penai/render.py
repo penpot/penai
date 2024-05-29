@@ -127,7 +127,7 @@ class ChromeSVGRenderer(BaseSVGRenderer):
     def teardown(self) -> None:
         self.driver.quit()
 
-    def _render_svg(self, svg_path: str) -> Image.Image:
+    def _load_svg(self, svg_path: str) -> None:
         self.driver.get(svg_path)
 
         # TODO: Wait until content is displayed instead of a fixed time
@@ -141,6 +141,9 @@ class ChromeSVGRenderer(BaseSVGRenderer):
         size = svg_el.size
 
         self.driver.set_window_size(size["width"], size["height"])
+
+    def _render_svg(self, svg_path: str) -> Image.Image:
+        self._load_svg(svg_path)
 
         buffer = io.BytesIO(self.driver.get_screenshot_as_png())
         buffer.seek(0)
