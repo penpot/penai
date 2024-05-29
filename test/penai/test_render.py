@@ -35,7 +35,7 @@ def _test_svg_renderer(
             cmp_png.save(cmp_path)
 
             raise AssertionError(
-                f"Images do not match. Saved to  and {cmp_path} respectively for visual inspection.",
+                f"Images do not match. Saved reference and generated image to {ref_png} and {cmp_path} respectively for visual inspection.",
             )
 
 

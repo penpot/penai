@@ -1,20 +1,11 @@
 import base64
 import io
-import json
-from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
 import requests
 from lxml import etree
 from PIL import Image
-
-from penai.types import PathLike
-
-
-def read_json(path: PathLike) -> dict:
-    """Read a JSON file from the given path."""
-    return json.loads(Path(path).read_text())
 
 
 def strip_penpot_from_tree(node: etree.Element) -> None:
