@@ -198,6 +198,8 @@ class BoundingBox:
             width=dom_rect["width"],
             height=dom_rect["height"],
         )
+
+
 class PenpotShapeTypeCategory(Enum):
     # Container shapes can contain other shapes
     CONTAINER = "container"
