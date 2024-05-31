@@ -47,6 +47,9 @@ jobs:
       - name: Types
         run: poetry run poe type-check
       - name: Docs
+        env:
+          GOOGLE_STORAGE_KEY: ${{ secrets.GOOGLE_STORAGE_KEY }}
+          GOOGLE_STORAGE_SECRET: ${{ secrets.GOOGLE_STORAGE_SECRET }}
         run: poetry run poe doc-build
 #      - name: Upload artifact
 #        uses: actions/upload-pages-artifact@v2
