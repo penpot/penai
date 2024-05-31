@@ -7,10 +7,16 @@ from typing import TYPE_CHECKING, Any, Self
 
 from lxml import etree
 from pptree import print_tree
+from selenium.webdriver.remote.webdriver import WebDriver
 
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys
-from penai.utils.svg import trim_namespace_from_tree, url_to_data_uri, validate_uri
+from penai.utils.svg import (
+    temp_file_for_content,
+    trim_namespace_from_tree,
+    url_to_data_uri,
+    validate_uri,
+)
 from penai.xml import BetterElement
 
 _CustomElementBaseAnnotationClass: Any = object
@@ -169,6 +175,31 @@ def _el_is_group(el: etree.ElementBase) -> bool:
 _PenpotShapeDictEntry = dict["PenpotShapeElement", "_PenpotShapeDictEntry"]
 
 
+@dataclass
+class BoundingBox:
+    x: float
+    y: float
+    width: float
+    height: float
+
+    def __post_init__(self) -> None:
+        if self.width < 0 or self.height < 0:
+            raise ValueError("Width and height must be non-negative")
+
+    @classmethod
+    def from_dom_rect(cls, dom_rect: dict[str, Any]) -> Self:
+        """Create a BoundingBox object from a DOMRect object.
+
+        See See https://developer.mozilla.org/en-US/docs/Web/API/DOMRect.
+        """
+        return cls(
+            x=dom_rect["x"],
+            y=dom_rect["y"],
+            width=dom_rect["width"],
+            height=dom_rect["height"],
+        )
+
+
 class PenpotShapeTypeCategory(Enum):
     # Container shapes can contain other shapes
     CONTAINER = "container"
@@ -237,6 +268,8 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         # NOTE: may be too slow at init, then make lazy or remove
         self._child_shapes: list[PenpotShapeElement] = []
 
+        self._bounding_box: BoundingBox | None = None
+
     def __getattr__(self, item: str) -> Any:
         return getattr(self._lxml_element, item)
 
@@ -247,6 +280,12 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         if not isinstance(other, PenpotShapeElement):
             return False
         return self._lxml_element == other._lxml_element
+
+    @property
+    def shape_id(self) -> str:
+        # The penpot shape element itself doesn't even contain its own id.
+        # We actually have to ask its parent very kindly.
+        return self.get_containing_g_element().get("id")
 
     @property
     def depth_in_svg(self) -> int:
@@ -282,6 +321,13 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     @property
     def is_primitive_type(self) -> bool:
         return self._shape_type.value.category == PenpotShapeTypeCategory.PRIMITIVE
+
+    @property
+    def bounding_box(self) -> BoundingBox | None:
+        return self._bounding_box
+
+    def set_bounding_box(self, bbox: BoundingBox) -> None:
+        self._bounding_box = bbox
 
     def get_parent_shape(self) -> Self | None:
         g_containing_par_shape_candidate = self.get_containing_g_element().getparent()
@@ -380,6 +426,11 @@ class PenpotPageSVG(SVG):
             self._max_shape_depth = 0
         self.penpot_shape_elements = shape_els
 
+        # We need the bounding box of the root element as well as the per-shape bounding boxes might
+        # deviate between renderers or configurations, e.g. due to dpi differences.
+        # This information can be used to align them.
+        self.bounding_box: BoundingBox | None = None
+
     @property
     def max_shape_depth(self) -> int:
         return self._max_shape_depth
@@ -390,3 +441,31 @@ class PenpotPageSVG(SVG):
     def pprint_hierarchy(self) -> None:
         for shape in self.get_shape_elements_at_depth(0):
             shape.pprint_hierarchy()
+
+    def derive_bounding_boxes(self, web_driver: WebDriver) -> None:
+        svg_string = etree.tostring(self.dom).decode()
+
+        # Perhaps not valid html but yolo
+        html_string = "<body>" + svg_string + "</body>"
+
+        with temp_file_for_content(html_string, extension=".html") as path:
+            web_driver.get(path.absolute().as_uri())
+
+            for shape in self.penpot_shape_elements:
+                shape_id = shape.shape_id
+
+                bbox = web_driver.execute_script(
+                    f"return document.getElementById('{shape_id}').getBoundingClientRect();",
+                )
+
+                assert (
+                    bbox is not None
+                ), f"Couldn't derive bounding box for shape with id {shape_id}"
+
+                shape.set_bounding_box(BoundingBox.from_dom_rect(bbox))
+
+            self.bounding_box = BoundingBox.from_dom_rect(
+                web_driver.execute_script(
+                    'return document.querySelector("svg").getBoundingClientRect()',
+                ),
+            )
