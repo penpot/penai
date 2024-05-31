@@ -1,10 +1,9 @@
 from pathlib import Path
 
 import numpy as np
-import pytest
 from PIL import Image
 
-from penai.render import BaseSVGRenderer, ChromeSVGRenderer, ResvgRenderer
+from penai.render import BaseSVGRenderer, ResvgRenderer, WebDriverSVGRenderer
 
 
 def _test_svg_renderer(
@@ -44,24 +43,24 @@ def _test_svg_renderer(
 
 
 class TestSVGRenderers:
-    @pytest.mark.parametrize("renderer", [ChromeSVGRenderer(), ResvgRenderer()])
-    def test_rendering_works(
+    def test_resvg_renderer(
         self,
-        renderer: BaseSVGRenderer,
         example_svg_path: Path,
         example_png_path: Path,
         log_dir: Path,
     ) -> None:
+
+        renderer = ResvgRenderer()
 
         _test_svg_renderer(renderer, example_svg_path, example_png_path, log_dir)
 
         renderer.teardown()
 
-    def test_chrome_svg_renderer_context_manager(
+    def test_chrome_web_driver_svg_renderer(
         self,
         example_svg_path: Path,
         example_png_path: Path,
         log_dir: Path,
     ) -> None:
-        with ChromeSVGRenderer.create_renderer() as renderer:
+        with WebDriverSVGRenderer.create_chrome_renderer() as renderer:
             _test_svg_renderer(renderer, example_svg_path, example_png_path, log_dir)

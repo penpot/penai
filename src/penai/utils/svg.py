@@ -1,5 +1,9 @@
 import base64
 import io
+from collections.abc import Generator
+from contextlib import contextmanager
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
 from urllib.parse import urlparse
 
@@ -8,18 +12,18 @@ from lxml import etree
 from PIL import Image
 
 
-def strip_penpot_from_tree(node: etree.Element) -> None:
-    """Strip all Penpot-specific nodes from a given SVG DOM.
+def trim_namespace_from_tree(node: etree.Element, namespace: str) -> None:
+    """Strip all elements belonging to a specific namespace from an XML tree.
 
     Useful for debugging, reverse engineering or testing purposes.
     """
     children = list(node)
 
     for child in children:
-        if child.prefix and child.prefix == "penpot":
+        if child.prefix and child.prefix == namespace:
             node.remove(child)
         else:
-            strip_penpot_from_tree(child)
+            trim_namespace_from_tree(child, namespace)
 
 
 def image_from_bytes(image_bytes: bytes | bytearray) -> Image.Image:
@@ -47,3 +51,25 @@ def validate_uri(x: Any) -> bool:
         return all([result.scheme, result.netloc])
     except AttributeError:
         return False
+
+
+@contextmanager
+def temp_file_for_content(content: str | bytes, extension: str) -> Generator[Path, Any, Any]:
+    """Create a temporary file for a given file content."""
+    if extension and not extension.startswith("."):
+        raise ValueError("Extension should start with a dot")
+
+    if isinstance(content, str):
+        mode = "w"
+    else:
+        assert isinstance(content, bytes)
+        mode = "wb"
+
+    with NamedTemporaryFile(prefix="penai_", suffix=extension, mode=mode) as file:
+        file.write(content)
+
+        # Technically we should probably close the file at this point as we're done with writing to it
+        # but NamedTemporaryFile() will apparently trigger a file deletion
+        # file.close()
+
+        yield Path(file.name)

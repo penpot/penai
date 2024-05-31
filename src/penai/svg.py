@@ -1,15 +1,22 @@
 from collections import defaultdict
 from copy import deepcopy
+from dataclasses import dataclass
 from enum import Enum
 from functools import cache
 from typing import TYPE_CHECKING, Any, Self
 
 from lxml import etree
 from pptree import print_tree
+from selenium.webdriver.remote.webdriver import WebDriver
 
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys
-from penai.utils.svg import strip_penpot_from_tree, url_to_data_uri, validate_uri
+from penai.utils.svg import (
+    temp_file_for_content,
+    trim_namespace_from_tree,
+    url_to_data_uri,
+    validate_uri,
+)
 from penai.xml import BetterElement
 
 _CustomElementBaseAnnotationClass: Any = object
@@ -79,7 +86,7 @@ class SVG:
 
         Useful for debugging, reverse engineering or testing purposes.
         """
-        strip_penpot_from_tree(self.dom.getroot())
+        trim_namespace_from_tree(self.dom.getroot(), "penpot")
 
     def inline_images(self, elem: etree.ElementBase | None = None) -> None:
         # TODO: We currently don't make use of any concurrent fetching or caching
@@ -168,6 +175,75 @@ def _el_is_group(el: etree.ElementBase) -> bool:
 _PenpotShapeDictEntry = dict["PenpotShapeElement", "_PenpotShapeDictEntry"]
 
 
+@dataclass
+class BoundingBox:
+    x: float
+    y: float
+    width: float
+    height: float
+
+    def __post_init__(self) -> None:
+        if self.width < 0 or self.height < 0:
+            raise ValueError("Width and height must be non-negative")
+
+    @classmethod
+    def from_dom_rect(cls, dom_rect: dict[str, Any]) -> Self:
+        """Create a BoundingBox object from a DOMRect object.
+
+        See See https://developer.mozilla.org/en-US/docs/Web/API/DOMRect.
+        """
+        return cls(
+            x=dom_rect["x"],
+            y=dom_rect["y"],
+            width=dom_rect["width"],
+            height=dom_rect["height"],
+        )
+
+
+class PenpotShapeTypeCategory(Enum):
+    # Container shapes can contain other shapes
+    CONTAINER = "container"
+
+    # Primitive shapes directly correspond to rendered elements and cannot have children
+    PRIMITIVE = "primitive"
+
+
+@dataclass
+class PenpotShapeTypeDescription:
+    category: PenpotShapeTypeCategory
+    literal: str
+
+
+class PenpotShapeType(Enum):
+    # Group types
+    GROUP = PenpotShapeTypeDescription(PenpotShapeTypeCategory.CONTAINER, "group")
+    FRAME = PenpotShapeTypeDescription(PenpotShapeTypeCategory.CONTAINER, "frame")
+    BOOL = PenpotShapeTypeDescription(PenpotShapeTypeCategory.CONTAINER, "bool")
+
+    # Primitives
+    CIRCLE = PenpotShapeTypeDescription(PenpotShapeTypeCategory.PRIMITIVE, "circle")
+    IMAGE = PenpotShapeTypeDescription(PenpotShapeTypeCategory.PRIMITIVE, "image")
+    PATH = PenpotShapeTypeDescription(PenpotShapeTypeCategory.PRIMITIVE, "path")
+    RECT = PenpotShapeTypeDescription(PenpotShapeTypeCategory.PRIMITIVE, "rect")
+    TEXT = PenpotShapeTypeDescription(PenpotShapeTypeCategory.PRIMITIVE, "text")
+
+    @classmethod
+    @cache
+    def get_literal_type_to_shape_type_mapping(cls) -> dict[str, Self]:
+        return {member.value.literal: member for member in cls}
+
+    @classmethod
+    def get_by_type_literal(cls, type_str: str) -> Self:
+        mapping = cls.get_literal_type_to_shape_type_mapping()
+
+        if type_str not in mapping:
+            raise ValueError(
+                f"Unknown Penpot shape type literal: {type_str}. Valid options are: {', '.join(mapping)}.",
+            )
+
+        return mapping[type_str]
+
+
 class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     """An object corresponding to a <penpot:shape> element in a Penpot SVG file.
 
@@ -184,8 +260,15 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         self._depth_in_svg = get_node_depth(lxml_element)
         self._depth_in_shapes = len(self.get_all_parent_shapes())
 
+        # This can serve as an implicit sanity check whether we currently cover all shape types
+        self._shape_type = PenpotShapeType.get_by_type_literal(
+            self.get_penpot_attr(PenpotShapeAttr.TYPE),
+        )
+
         # NOTE: may be too slow at init, then make lazy or remove
         self._child_shapes: list[PenpotShapeElement] = []
+
+        self._bounding_box: BoundingBox | None = None
 
     def __getattr__(self, item: str) -> Any:
         return getattr(self._lxml_element, item)
@@ -201,6 +284,12 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     def to_svg(self) -> SVG:
         svg_root = self._lxml_element.getroottree().getroot()
         return SVG.from_root_element(self.get_containing_g_element(), svg_attribs=svg_root.attrib)
+
+    @property
+    def shape_id(self) -> str:
+        # The penpot shape element itself doesn't even contain its own id.
+        # We actually have to ask its parent very kindly.
+        return self.get_containing_g_element().get("id")
 
     @property
     def depth_in_svg(self) -> int:
@@ -226,8 +315,23 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         return self.get_penpot_attr(PenpotShapeAttr.NAME)
 
     @property
-    def type(self) -> str:
-        return self.get_penpot_attr(PenpotShapeAttr.TYPE)
+    def type(self) -> PenpotShapeType:
+        return self._shape_type
+
+    @property
+    def is_container_type(self) -> bool:
+        return self._shape_type.value.category == PenpotShapeTypeCategory.CONTAINER
+
+    @property
+    def is_primitive_type(self) -> bool:
+        return self._shape_type.value.category == PenpotShapeTypeCategory.PRIMITIVE
+
+    @property
+    def bounding_box(self) -> BoundingBox | None:
+        return self._bounding_box
+
+    def set_bounding_box(self, bbox: BoundingBox) -> None:
+        self._bounding_box = bbox
 
     def get_parent_shape(self) -> Self | None:
         g_containing_par_shape_candidate = self.get_containing_g_element().getparent()
@@ -326,6 +430,11 @@ class PenpotPageSVG(SVG):
             self._max_shape_depth = 0
         self.penpot_shape_elements = shape_els
 
+        # We need the bounding box of the root element as well as the per-shape bounding boxes might
+        # deviate between renderers or configurations, e.g. due to dpi differences.
+        # This information can be used to align them.
+        self.bounding_box: BoundingBox | None = None
+
     @cache
     def get_shape_by_name(self, name: str) -> PenpotShapeElement:
         matched_shapes = [shape for shape in self.penpot_shape_elements if shape.name == name]
@@ -348,3 +457,31 @@ class PenpotPageSVG(SVG):
     def pprint_hierarchy(self, horizontal: bool = True) -> None:
         for shape in self.get_shape_elements_at_depth(0):
             shape.pprint_hierarchy(horizontal=horizontal)
+
+    def derive_bounding_boxes(self, web_driver: WebDriver) -> None:
+        svg_string = etree.tostring(self.dom).decode()
+
+        # Perhaps not valid html but yolo
+        html_string = "<body>" + svg_string + "</body>"
+
+        with temp_file_for_content(html_string, extension=".html") as path:
+            web_driver.get(path.absolute().as_uri())
+
+            for shape in self.penpot_shape_elements:
+                shape_id = shape.shape_id
+
+                bbox = web_driver.execute_script(
+                    f"return document.getElementById('{shape_id}').getBoundingClientRect();",
+                )
+
+                assert (
+                    bbox is not None
+                ), f"Couldn't derive bounding box for shape with id {shape_id}"
+
+                shape.set_bounding_box(BoundingBox.from_dom_rect(bbox))
+
+            self.bounding_box = BoundingBox.from_dom_rect(
+                web_driver.execute_script(
+                    'return document.querySelector("svg").getBoundingClientRect()',
+                ),
+            )
