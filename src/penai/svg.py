@@ -2,7 +2,7 @@ from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Self, TypedDict
+from typing import TYPE_CHECKING, Any, Self
 
 from lxml import etree
 from pptree import print_tree
@@ -174,18 +174,6 @@ def _el_is_group(el: etree.ElementBase) -> bool:
 _PenpotShapeDictEntry = dict["PenpotShapeElement", "_PenpotShapeDictEntry"]
 
 
-class PartialDOMRect(TypedDict):
-    """Partially covers the fields of a DOMRect object.
-
-    See https://developer.mozilla.org/en-US/docs/Web/API/DOMRect
-    """
-
-    x: float
-    y: float
-    width: float
-    height: float
-
-
 @dataclass
 class BoundingBox:
     x: float
@@ -198,7 +186,11 @@ class BoundingBox:
             raise ValueError("Width and height must be non-negative")
 
     @classmethod
-    def from_dom_rect(cls, dom_rect: PartialDOMRect) -> Self:
+    def from_dom_rect(cls, dom_rect: dict[str, Any]) -> Self:
+        """Create a BoundingBox object from a DOMRect object.
+
+        See See https://developer.mozilla.org/en-US/docs/Web/API/DOMRect.
+        """
         return cls(
             x=dom_rect["x"],
             y=dom_rect["y"],
@@ -376,6 +368,9 @@ class PenpotPageSVG(SVG):
             self._max_shape_depth = 0
         self.penpot_shape_elements = shape_els
 
+        # We need the bounding box of the root element as well as the per-shape bounding boxes might
+        # deviate between renderers or configurations, e.g. due to dpi differences.
+        # This information can be used to align them.
         self.bounding_box: BoundingBox | None = None
 
     @property
