@@ -1,11 +1,15 @@
+from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 from pytest import MonkeyPatch
+from selenium.webdriver.remote.webdriver import WebDriver
 
 from penai.config import top_level_directory
 from penai.types import PathLike
+from penai.utils.web_drivers import create_chrome_web_driver
 
 
 @pytest.fixture(autouse=True)
@@ -47,3 +51,9 @@ def log_dir() -> Path:
     session_log_dir = log_dir_root / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     session_log_dir.mkdir(parents=True)
     return session_log_dir
+
+
+@pytest.fixture(scope="session")
+def chrom_web_driver() -> Generator[WebDriver, Any, Any]:
+    with create_chrome_web_driver() as driver:
+        yield driver
