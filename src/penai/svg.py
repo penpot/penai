@@ -1,6 +1,8 @@
 from collections import defaultdict
 from copy import deepcopy
+from dataclasses import dataclass
 from enum import Enum
+from functools import cache
 from typing import TYPE_CHECKING, Any, Self
 
 from lxml import etree
@@ -167,6 +169,50 @@ def _el_is_group(el: etree.ElementBase) -> bool:
 _PenpotShapeDictEntry = dict["PenpotShapeElement", "_PenpotShapeDictEntry"]
 
 
+class PenpotShapeTypeCategory(Enum):
+    # Container shapes can contain other shapes
+    CONTAINER = "container"
+
+    # Primitive shapes directly correspond to rendered elements and cannot have children
+    PRIMITIVE = "primitive"
+
+
+@dataclass
+class PenpotShapeTypeDescription:
+    category: PenpotShapeTypeCategory
+    literal: str
+
+
+class PenpotShapeType(Enum):
+    # Group types
+    GROUP = PenpotShapeTypeDescription(PenpotShapeTypeCategory.CONTAINER, "group")
+    FRAME = PenpotShapeTypeDescription(PenpotShapeTypeCategory.CONTAINER, "frame")
+    BOOL = PenpotShapeTypeDescription(PenpotShapeTypeCategory.CONTAINER, "bool")
+
+    # Primitives
+    CIRCLE = PenpotShapeTypeDescription(PenpotShapeTypeCategory.PRIMITIVE, "circle")
+    IMAGE = PenpotShapeTypeDescription(PenpotShapeTypeCategory.PRIMITIVE, "image")
+    PATH = PenpotShapeTypeDescription(PenpotShapeTypeCategory.PRIMITIVE, "path")
+    RECT = PenpotShapeTypeDescription(PenpotShapeTypeCategory.PRIMITIVE, "rect")
+    TEXT = PenpotShapeTypeDescription(PenpotShapeTypeCategory.PRIMITIVE, "text")
+
+    @classmethod
+    @cache
+    def get_literal_type_to_shape_type_mapping(cls) -> dict[str, Self]:
+        return {member.value.literal: member for member in cls}
+
+    @classmethod
+    def get_by_type_literal(cls, type_str: str) -> Self:
+        mapping = cls.get_literal_type_to_shape_type_mapping()
+
+        if type_str not in mapping:
+            raise ValueError(
+                f"Unknown Penpot shape type literal: {type_str}. Valid options are: {', '.join(mapping)}.",
+            )
+
+        return mapping[type_str]
+
+
 class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     """An object corresponding to a <penpot:shape> element in a Penpot SVG file.
 
@@ -182,6 +228,11 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         self._lxml_element = lxml_element
         self._depth_in_svg = get_node_depth(lxml_element)
         self._depth_in_shapes = len(self.get_all_parent_shapes())
+
+        # This can serve as an implicit sanity check whether we currently cover all shape types
+        self._shape_type = PenpotShapeType.get_by_type_literal(
+            self.get_penpot_attr(PenpotShapeAttr.TYPE),
+        )
 
         # NOTE: may be too slow at init, then make lazy or remove
         self._child_shapes: list[PenpotShapeElement] = []
@@ -221,8 +272,16 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         return self.get_penpot_attr(PenpotShapeAttr.NAME)
 
     @property
-    def type(self) -> str:
-        return self.get_penpot_attr(PenpotShapeAttr.TYPE)
+    def type(self) -> PenpotShapeType:
+        return self._shape_type
+
+    @property
+    def is_container_type(self) -> bool:
+        return self._shape_type.value.category == PenpotShapeTypeCategory.CONTAINER
+
+    @property
+    def is_primitive_type(self) -> bool:
+        return self._shape_type.value.category == PenpotShapeTypeCategory.PRIMITIVE
 
     def get_parent_shape(self) -> Self | None:
         g_containing_par_shape_candidate = self.get_containing_g_element().getparent()
