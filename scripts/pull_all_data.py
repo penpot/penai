@@ -1,4 +1,4 @@
-from jsonargparse import ActionYesNo, CLI
+from jsonargparse import CLI
 
 from penai.config import DataStage, get_config, pull_from_remote
 from penai.utils.argparse import HandleFlagsArgumentParser
