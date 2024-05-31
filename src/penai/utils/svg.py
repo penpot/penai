@@ -1,5 +1,9 @@
 import base64
 import io
+from collections.abc import Generator
+from contextlib import contextmanager
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
 from urllib.parse import urlparse
 
@@ -47,3 +51,25 @@ def validate_uri(x: Any) -> bool:
         return all([result.scheme, result.netloc])
     except AttributeError:
         return False
+
+
+@contextmanager
+def temp_file_for_content(content: str | bytes, extension: str) -> Generator[Path, Any, Any]:
+    """Create a temporary file for a given file content."""
+    if extension and not extension.startswith("."):
+        raise ValueError("Extension should start with a dot")
+
+    if isinstance(content, str):
+        mode = "w"
+    else:
+        assert isinstance(content, bytes)
+        mode = "wb"
+
+    with NamedTemporaryFile(prefix="penai_", suffix=extension, mode=mode) as file:
+        file.write(content)
+
+        # Technically we should probably close the file at this point as we're done with writing to it
+        # but NamedTemporaryFile() will apparently trigger a file deletion
+        # file.close()
+
+        yield Path(file.name)
