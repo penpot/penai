@@ -47,7 +47,7 @@ class TestPenpotPageSVG:
         for shape in shapes:
             assert shape.bounding_box is None
 
-        penpot_page_svg.derive_bounding_boxes(chrom_web_driver)
+        penpot_page_svg.retrieve_and_set_view_boxes_for_shape_elements(chrom_web_driver)
 
         for shape in shapes:
             bbox = shape.bounding_box

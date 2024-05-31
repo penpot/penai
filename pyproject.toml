@@ -28,6 +28,7 @@ pptree = "^3.1"
 requests = "^2.32.2"
 resvg-py = "^0.1.5"
 selenium = "^4.21.0"
+tqdm = "^4.66.4"
 webdriver-manager = "^4.0.1"
 
 [tool.poetry.group.dev]
@@ -91,6 +92,7 @@ mypy = "\\.jupyter_cache|jupyter_execute"
 
 [tool.ruff]
 src = ["src"]
+unsafe-fixes = true
 target-version = "py311"
 [tool.ruff.lint]
 select = [

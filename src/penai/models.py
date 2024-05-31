@@ -57,6 +57,7 @@ class Dimensions:
         if self.width < 0 or self.height < 0:
             raise ValueError("Width and height must be non-negative")
 
+    # TODO: end the toxic non-relationship with BoundingBox
     @classmethod
     def from_bbox(cls, left: float, top: float, right: float, bottom: float) -> Self:
         return cls(
