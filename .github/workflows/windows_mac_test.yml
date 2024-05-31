@@ -1,6 +1,8 @@
 name: Tests on Windows and MacOS
 
-on: [push, pull_request]
+# Trigger manually
+on:
+  workflow_dispatch:
 
 jobs:
   cpu-extra:
