@@ -120,3 +120,13 @@ class BetterElement(CustomElement):
     @cached_property
     def localname(self) -> str:
         return etree.QName(self).localname
+
+    @classmethod
+    def create(
+        cls,
+        tag: str,
+        nsmap: dict | None = None,
+        attrib: dict[str, str] | None = None,
+        **extra: str,
+    ) -> Self:
+        return cls.get_parser().makeelement(tag, attrib=attrib, nsmap=nsmap, **extra)

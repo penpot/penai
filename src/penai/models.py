@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
-from functools import cache
+from functools import cache, cached_property
 from pathlib import Path
 from typing import Generic, Self, TypeVar
 from uuid import UUID
@@ -155,12 +155,31 @@ class PenpotFile:
     id: str
     name: str
     pages: dict[str, PenpotPage]
+    """Maps page ids to PenpotPage objects.
+    A page is in one to one correspondence to an svg file, and the page id is
+    the filename without the '.svg' extension."""
     components: PenpotComponentDict
 
     # TODO: Implement when needed
     # colors: list[PenpotColor]
     # mediaItems: list[PenpotMediaItem]
     # typography: list[PenpotTypography]
+
+    @cached_property
+    def page_names(self) -> list[str]:
+        return list(self._name2page.keys())
+
+    @cached_property
+    def _name2page(self) -> dict[str, PenpotPage]:
+        return {page.name: page for page in self.pages.values()}
+
+    def get_page_by_name(self, name: str) -> PenpotPage:
+        try:
+            return self._name2page[name]
+        except KeyError as e:
+            raise KeyError(
+                f"No page with '{name=}' found in file '{self.name}'. Valid page names are: {self.page_names}",
+            ) from e
 
     @classmethod
     def from_schema_and_dir(cls, schema: PenpotFileDetailsSchema, file_dir: PathLike) -> Self:

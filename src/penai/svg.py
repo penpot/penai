@@ -1,6 +1,7 @@
 from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
+from functools import cache
 from typing import TYPE_CHECKING, Any, Self
 
 from lxml import etree
@@ -55,7 +56,7 @@ class SVG:
         element = deepcopy(element)
 
         if element.localname != "svg":
-            root = BetterElement("svg", nsmap=nsmap)
+            root = BetterElement.create(tag="svg", nsmap=nsmap)
             root.append(element)
         else:
             root = element
@@ -197,6 +198,10 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             return False
         return self._lxml_element == other._lxml_element
 
+    def to_svg(self) -> SVG:
+        svg_root = self._lxml_element.getroottree().getroot()
+        return SVG.from_root_element(self.get_containing_g_element(), svg_attribs=svg_root.attrib)
+
     @property
     def depth_in_svg(self) -> int:
         return self._depth_in_svg
@@ -240,7 +245,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             return []
         return [parent_shape, *parent_shape.get_all_parent_shapes()]
 
-    def get_containing_g_element(self) -> etree.ElementBase:
+    def get_containing_g_element(self) -> BetterElement:
         """Get the parent <g> element to which this shape corresponds; child shapes will be children of it.
 
         See docstring of the class for more info on the relation between <g> and <penpot:shape> tags.
@@ -272,8 +277,8 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         hierarchy_dict = self.get_hierarchy_dict()
         return apply_func_to_nested_keys(hierarchy_dict, lambda k: k.name)
 
-    def pprint_hierarchy(self) -> None:
-        print_tree(self, childattr="child_shapes", nameattr="name")
+    def pprint_hierarchy(self, horizontal: bool = True) -> None:
+        print_tree(self, childattr="child_shapes", nameattr="name", horizontal=horizontal)
 
 
 def find_all_penpot_shapes(
@@ -321,6 +326,18 @@ class PenpotPageSVG(SVG):
             self._max_shape_depth = 0
         self.penpot_shape_elements = shape_els
 
+    @cache
+    def get_shape_by_name(self, name: str) -> PenpotShapeElement:
+        matched_shapes = [shape for shape in self.penpot_shape_elements if shape.name == name]
+        if len(matched_shapes) == 0:
+            raise KeyError(f"No shape with '{name=}' found")
+        if len(matched_shapes) > 1:
+            raise RuntimeError(
+                f"Multiple shapes {len(matched_shapes)=} with '{name=}' found. "
+                "This should not happen and could be caused by an implementation error or by a malformed SVG file.",
+            )
+        return matched_shapes[0]
+
     @property
     def max_shape_depth(self) -> int:
         return self._max_shape_depth
@@ -328,6 +345,6 @@ class PenpotPageSVG(SVG):
     def get_shape_elements_at_depth(self, depth: int) -> list[PenpotShapeElement]:
         return self._depth_to_shape_el.get(depth, [])
 
-    def pprint_hierarchy(self) -> None:
+    def pprint_hierarchy(self, horizontal: bool = True) -> None:
         for shape in self.get_shape_elements_at_depth(0):
-            shape.pprint_hierarchy()
+            shape.pprint_hierarchy(horizontal=horizontal)
