@@ -93,7 +93,7 @@ class SVG:
 
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
             retrieved_bbox_dom_rect = driver.execute_script(
-                'return document.querySelector("svg").getBoundingClientRect()',
+                'return document.querySelector("svg").getBBox()',
             )
 
         if retrieved_bbox_dom_rect is None:
@@ -344,6 +344,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             view_box = self.get_default_view_box()
         if view_box is not None:
             svg_root_attribs["viewBox"] = view_box.to_view_box_string()
+        svg_root_attribs["preserveAspectRatio"] = "xMinYMin meet"
         return SVG.from_root_element(self.get_containing_g_element(), svg_attribs=svg_root_attribs)
 
     def set_default_view_box(
@@ -573,12 +574,12 @@ class PenpotPageSVG(SVG):
             if self._bounding_box is None:
                 self._bounding_box = BoundingBox.from_dom_rect(
                     driver.execute_script(
-                        'return document.querySelector("svg").getBoundingClientRect()',
+                        'return document.querySelector("svg").getBBox()',
                     ),
                 )
             for shape_el in tqdm(selected_shape_elements, desc="Setting view boxes"):
                 view_box_dom_rect = driver.execute_script(
-                    f"return document.getElementById('{shape_el.shape_id}').getBoundingClientRect();",
+                    f"return document.getElementById('{shape_el.shape_id}').getBBox();",
                 )
                 shape_bbox = BoundingBox.from_dom_rect(view_box_dom_rect)
-                shape_el.set_default_view_box(shape_bbox)
+                shape_el.set_default_view_box(bbox=shape_bbox)

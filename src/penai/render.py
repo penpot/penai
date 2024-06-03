@@ -5,13 +5,13 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
-from typing import ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
+from typing import ParamSpec, Self, TypeVar, TypedDict, Unpack, cast
 
 import resvg_py
 from PIL import Image
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from penai.svg import SVG, BoundingBox
+from penai.svg import BoundingBox, SVG
 from penai.types import PathLike
 from penai.utils.svg import image_from_bytes, temp_file_for_content
 from penai.utils.web_drivers import create_chrome_web_driver
@@ -27,12 +27,16 @@ class BaseSVGRenderer(abc.ABC):
     SUPPORTS_ALPHA: bool
 
     @abc.abstractmethod
-    def render_svg(
+    def render_svg_string(
         self,
         svg_string: str,
         width: int | None = None,
         height: int | None = None,
     ) -> Image.Image:
+        pass
+
+    @abc.abstractmethod
+    def render_svg(self, svg: SVG) -> Image.Image:
         pass
 
     @abc.abstractmethod
@@ -125,7 +129,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         return Image.open(buffer).convert("RGB")
 
     @_size_arguments_not_supported
-    def render_svg(
+    def render_svg_string(
         self,
         svg_string: str,
         width: int | None = None,
@@ -147,6 +151,11 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         with temp_file_for_content(content, extension=".html") as path:
             return self._render_svg(path.absolute().as_uri())
 
+    def render_svg(self, svg: SVG) -> Image.Image:
+        view_box = svg.get_view_box()
+        self.web_driver.set_window_size(view_box.width, view_box.height)
+        return self.render_svg_string(svg.to_string())
+
     @_size_arguments_not_supported
     def render_svg_file(
         self,
@@ -160,7 +169,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         :param width: The width of the rendered image. Currently not supported.
         :param height: The height of the rendered image. Currently not supported.
         """
-        return self.render_svg(Path(svg_path).read_text())
+        return self.render_svg_string(Path(svg_path).read_text())
 
 
 class ResvgRenderer(BaseSVGRenderer):
@@ -170,7 +179,7 @@ class ResvgRenderer(BaseSVGRenderer):
         self.inline_linked_images = inline_linked_images
 
     @_size_arguments_not_supported
-    def render_svg(
+    def render_svg_string(
         self,
         svg_string: str,
         width: int | None = None,
@@ -195,4 +204,9 @@ class ResvgRenderer(BaseSVGRenderer):
         height: int | None = None,
     ) -> Image.Image:
         svg_string = Path(svg_path).read_text()
-        return self.render_svg(svg_string)
+        return self.render_svg_string(svg_string)
+
+    def render_svg(self, svg: SVG) -> Image.Image:
+        # TODO: take care of image size if needed
+        return self.render_svg_string(svg.to_string())
+
