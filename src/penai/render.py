@@ -5,13 +5,13 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
-from typing import ParamSpec, Self, TypeVar, TypedDict, Unpack, cast
+from typing import ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
 
 import resvg_py
 from PIL import Image
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from penai.svg import BoundingBox, SVG
+from penai.svg import SVG, BoundingBox
 from penai.types import PathLike
 from penai.utils.svg import image_from_bytes, temp_file_for_content
 from penai.utils.web_drivers import create_chrome_web_driver
@@ -209,4 +209,3 @@ class ResvgRenderer(BaseSVGRenderer):
     def render_svg(self, svg: SVG) -> Image.Image:
         # TODO: take care of image size if needed
         return self.render_svg_string(svg.to_string())
-

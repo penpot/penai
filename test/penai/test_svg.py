@@ -41,16 +41,11 @@ class TestPenpotPageSVG:
         penpot_page_svg: PenpotPageSVG,
         chrom_web_driver: WebDriver,
     ) -> None:
+        penpot_page_svg.retrieve_and_set_view_boxes_for_shape_elements(chrom_web_driver)
         shapes = penpot_page_svg.penpot_shape_elements
 
-        # Should be None before deriving
         for shape in shapes:
-            assert shape.bounding_box is None
-
-        penpot_page_svg.retrieve_and_set_view_boxes_for_shape_elements(chrom_web_driver)
-
-        for shape in shapes:
-            bbox = shape.bounding_box
+            bbox = shape.get_default_view_box()
 
             assert bbox is not None
 

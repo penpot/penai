@@ -515,11 +515,6 @@ class PenpotPageSVG(SVG):
             self._max_shape_depth = 0
         self.penpot_shape_elements = shape_els
 
-        # We need the bounding box of the root element as well as the per-shape bounding boxes might
-        # deviate between renderers or configurations, e.g. due to dpi differences.
-        # This information can be used to align them.
-        self._bounding_box: BoundingBox | None = None
-
     @cache
     def get_shape_by_name(self, name: str) -> PenpotShapeElement:
         matched_shapes = [shape for shape in self.penpot_shape_elements if shape.name == name]
@@ -571,12 +566,6 @@ class PenpotPageSVG(SVG):
                 )
 
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
-            if self._bounding_box is None:
-                self._bounding_box = BoundingBox.from_dom_rect(
-                    driver.execute_script(
-                        'return document.querySelector("svg").getBBox()',
-                    ),
-                )
             for shape_el in tqdm(selected_shape_elements, desc="Setting view boxes"):
                 view_box_dom_rect = driver.execute_script(
                     f"return document.getElementById('{shape_el.shape_id}').getBBox();",
