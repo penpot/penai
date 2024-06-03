@@ -25,6 +25,8 @@ pillow = "^10.3.0"
 plotly = "^5.19.0"
 selenium = "^4.21.0"
 webdriver-manager = "^4.0.1"
+requests = "^2.32.3"
+types-requests = "^2.32.0.20240602"
 
 [tool.poetry.group.dev]
 optional = true
