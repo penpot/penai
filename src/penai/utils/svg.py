@@ -65,11 +65,9 @@ def temp_file_for_content(content: str | bytes, extension: str) -> Generator[Pat
         assert isinstance(content, bytes)
         mode = "wb"
 
-    with NamedTemporaryFile(prefix="penai_", suffix=extension, mode=mode) as file:
+    with NamedTemporaryFile(prefix="penai_", suffix=extension, mode=mode, delete=False) as file:
         file.write(content)
+        path = Path(file.name)
+        yield path
 
-        # Technically we should probably close the file at this point as we're done with writing to it
-        # but NamedTemporaryFile() will apparently trigger a file deletion
-        # file.close()
-
-        yield Path(file.name)
+    path.unlink()
