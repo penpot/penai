@@ -1,3 +1,4 @@
+import re
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
@@ -55,6 +56,12 @@ class BoundingBox:
         return f"{self.x} {self.y} {self.width} {self.height}"
 
     def __post_init__(self) -> None:
+        for field_name in ("x", "y", "width", "height"):
+            if not isinstance(getattr(self, field_name), int | float):
+                raise TypeError(
+                    f"Expected a number for {field_name}, got {type(getattr(self, field_name))}",
+                )
+
         if self.width < 0 or self.height < 0:
             raise ValueError("Width and height must be non-negative")
 
@@ -70,6 +77,11 @@ class BoundingBox:
             width=dom_rect["width"],
             height=dom_rect["height"],
         )
+
+    @classmethod
+    def from_clip_rect(cls, clip_rect_el: Element) -> Self:
+        """Create a BoundingBox object from a clipPath rect SVG element."""
+        return cls(*[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")])
 
 
 class SVG:
@@ -363,10 +375,52 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             )
         self._default_view_box = self.to_svg(view_box=None).retrieve_default_view_box(web_driver)
 
+    def get_clip_rect(self) -> BoundingBox | None:
+        """Objects (maybe only groups?) in SVG can have a `clip-path` attribute that sets the clip mask.
+
+        For Penpot shape, this attribute will typically be set on the main group element of the shape
+        and reference a <clipPath> element that contains a <rect>-element, defining the clip mask, defined
+        in the <defs>-section of that shape.
+
+        This method retrieves the bounding box of the clip mask rect if it exists.
+
+        Note, that for now we only support simple clip masks that are defined by a <rect> element and will
+        throw an error if no such element can be found.
+        """
+        parent_group = self.get_containing_g_element()
+        if (child_group := parent_group.find("g")) is not None and (
+            clip_path := child_group.get("clip-path")
+        ) is not None:
+            if (clip_path_match := re.match(r"url\(#(.*)\)", clip_path)) is not None:
+                clip_path_id = clip_path_match.group(1)
+            else:
+                raise AssertionError(
+                    f"Expected clip-path to be in the format 'url(#id)', but got '{clip_path}'",
+                )
+
+            # Note: <clipPath> defines the clip _mask_ which can be a rect in the simplest case but potentially
+            # also more complex compositions.
+            # For the sake of sanity, we assume that the clip-path is a simple rect for now and will throw an error
+            # if a <rect>-element can't be found within the <clipPath>.
+            clip_rect = self.get_containing_g_element().find(
+                f'.//clipPath[@id="{clip_path_id}"]/rect',
+            )
+
+            assert clip_rect is not None, (
+                f"Expected to find <clipPath> with containing <rect> element with id {clip_path_id} as it was "
+                "referenced in the element's main group element, but didn't, which is, you know, like unexpected."
+            )
+            return BoundingBox.from_clip_rect(clip_rect)
+        return None
+
     def get_default_view_box(
         self,
         web_driver: Union[WebDriver, "RegisteredWebDriver"] | None = None,
     ) -> BoundingBox:
+        # Frames will typically have a clip-path that defines the clip mask.
+        if self.type is PenpotShapeType.FRAME and (clip_rect := self.get_clip_rect()) is not None:
+            return clip_rect
+
         if self._default_view_box is not None:
             return self._default_view_box
 
