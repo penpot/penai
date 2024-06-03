@@ -40,7 +40,15 @@ class __Configuration(DefaultDataConfiguration):
 
     @property
     def openai_api_key(self) -> str:
-        return cast(str, self._get_non_empty_entry("openai_api_key"))
+        return cast(str, self._get_non_empty_entry(["api_keys", "openai"]))
+
+    @property
+    def anthropic_api_key(self) -> str:
+        return cast(str, self._get_non_empty_entry(["api_keys", "anthropic"]))
+
+    @property
+    def gemini_api_key(self) -> str:
+        return cast(str, self._get_non_empty_entry(["api_keys", "gemini"]))
 
     def get_openai_client(self, timeout: int = 100) -> OpenAI:
         return OpenAI(api_key=self.openai_api_key, timeout=timeout)

@@ -2,15 +2,14 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
-from typing import Self
+from typing import Generic, Self, TypeVar
 from uuid import UUID
 
 from lxml import etree
 
 from penai.schemas import PenpotFileDetailsSchema, PenpotProjectManifestSchema
-from penai.svg import SVG
+from penai.svg import SVG, PenpotComponentSVG, PenpotPageSVG
 from penai.types import PathLike
-from penai.utils import read_json
 
 
 @dataclass
@@ -22,43 +21,31 @@ class PenpotShape:
     parent: Self | None = None
 
 
-@dataclass
-class PenpotContainer:
-    # TODO: A Penpot container is a composition of objects, i.e. shapes.
-    # For the sake of simplicity, we will just represent it by its plain SVG object.
-    # objects: list[PenpotShape] = field(default_factory=list)
-    svg: SVG
+TSVG = TypeVar("TSVG", bound=SVG)
 
 
 @dataclass
-class PenpotComposition:
-    container: PenpotContainer
+class PenpotComposition(Generic[TSVG]):
+    svg: TSVG
     id: str
     name: str
 
 
 @dataclass
-class PenpotPage(PenpotComposition):
+class PenpotPage(PenpotComposition[PenpotPageSVG]):
     @classmethod
     def from_file(cls, path: PathLike, name: str) -> Self:
         path = Path(path)
-        container = PenpotContainer(svg=SVG.from_file(path))
-        page_id = path.stem
         return cls(
-            id=page_id,
+            id=path.stem,
             name=name,
-            container=container,
+            svg=PenpotPageSVG.from_file(path),
         )
 
     @classmethod
     def from_dir(cls, page_id: str | UUID, name: str, file_root: Path) -> Self:
         page_path = (file_root / str(page_id)).with_suffix(".svg")
-        container = PenpotContainer(svg=SVG.from_file(page_path))
-        return cls(
-            id=str(page_id),
-            name=name,
-            container=container,
-        )
+        return cls.from_file(page_path, name)
 
 
 @dataclass
@@ -86,7 +73,7 @@ class Dimensions:
 
 
 @dataclass
-class PenpotComponent(PenpotComposition):
+class PenpotComponent(PenpotComposition[PenpotComponentSVG]):
     dimensions: Dimensions
 
     def to_svg(self) -> SVG:
@@ -94,7 +81,7 @@ class PenpotComponent(PenpotComposition):
         # shape hierarchy. Since we currently represent a component by its raw
         # unprocessed SVG, we just copy the SVG DOM and place a component reference
         # to make it visible.
-        svg = deepcopy(self.container.svg)
+        svg = deepcopy(self.svg)
         svg_root = svg.dom.getroot()
         svg_root.append(
             etree.Element("use", {"href": f"#{self.id}"}),
@@ -104,6 +91,11 @@ class PenpotComponent(PenpotComposition):
 
 
 class PenpotComponentDict(dict[str, PenpotComponent]):
+    """A dict mapping component ids to PenpotComponent objects.
+
+    Provides some utility methods for retrieving components by name.
+    """
+
     def get_component_names(self) -> list[str]:
         return [component.name for component in self.values()]
 
@@ -126,25 +118,15 @@ class PenpotComponentsSVG(SVG):
         return cls.from_file(Path(file_dir) / "components.svg")
 
     def get_component_list(self) -> list[PenpotComponent]:
-        # Yes, lxml's find/xpath is not compatible with its own datatypes.
-        nsmap = self.dom.getroot().nsmap
-
-        xpath_nsmap = dict(nsmap)
-        xpath_nsmap[""] = xpath_nsmap.pop(None)
-
-        component_symbols = self.dom.findall(
-            "./defs/symbol",
-            namespaces=xpath_nsmap,
-        )
+        component_symbols = self.dom.findall("./defs/symbol")
 
         components = []
 
         for symbol in component_symbols:
             view_box = symbol.get("viewBox")
             dimensions = Dimensions.from_view_box_string(view_box)
-            svg = SVG.from_root_element(
+            svg = PenpotComponentSVG.from_root_element(
                 symbol,
-                nsmap=nsmap,
                 svg_attribs=dict(
                     viewBox=view_box,
                 ),
@@ -152,8 +134,8 @@ class PenpotComponentsSVG(SVG):
 
             component = PenpotComponent(
                 id=symbol.get("id"),
-                name=symbol.find("./title", namespaces=xpath_nsmap).text,
-                container=PenpotContainer(svg=svg),
+                name=symbol.find("./title").text,
+                svg=svg,
                 dimensions=dimensions,
             )
 
@@ -201,7 +183,11 @@ class PenpotFile:
 
 @dataclass
 class PenpotProject:
-    files: dict[str, PenpotFile] = field(default_factory=dict)
+    main_file_id: str
+    files: dict[str, PenpotFile]
+
+    def get_main_file(self) -> PenpotFile:
+        return self.files[self.main_file_id]
 
     def __str__(self) -> str:
         lines = []
@@ -223,13 +209,13 @@ class PenpotProject:
     def from_directory(cls, project_dir: PathLike) -> Self:
         project_dir = Path(project_dir)
 
-        manifest = PenpotProjectManifestSchema(**read_json(project_dir / "manifest.json"))
+        manifest = PenpotProjectManifestSchema.from_project_dir(project_dir)
         files = {}
 
-        for file_id, file_schema in manifest.files.root.items():
+        for file_id, file_schema in manifest.files.items():
             files[file_id] = PenpotFile.from_schema_and_dir(
                 file_schema,
                 project_dir / str(file_id),
             )
 
-        return cls(files=files)
+        return cls(files=files, main_file_id=manifest.fileId)

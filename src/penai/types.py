@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import AfterValidator
 
 PathLike = str | Path | os.PathLike[str]
+RecursiveStrDict = dict[str, "RecursiveStrDict"]
 
 
 def ensure_valid_uuid_str(value: str) -> str:

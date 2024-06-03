@@ -1,6 +1,13 @@
 name: Linting, Types and Docs Check
 
-on: [push, pull_request]
+# only on PR to main and on each push to the PR
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+        - main
 
 jobs:
   check:
