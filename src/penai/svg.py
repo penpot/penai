@@ -28,6 +28,8 @@ if TYPE_CHECKING:
 
     from penai.registries import RegisteredWebDriver
 
+_VIEW_BOX_KEY = "viewBox"
+
 
 @dataclass
 class BoundingBox:
@@ -50,6 +52,10 @@ class BoundingBox:
             width=self.width + 2 * absolute_margin,
             height=self.height + 2 * absolute_margin,
         )
+
+    @classmethod
+    def from_view_box_string(cls, view_box: str) -> Self:
+        return cls(*map(float, view_box.split()))
 
     def to_view_box_string(self) -> str:
         return f"{self.x} {self.y} {self.width} {self.height}"
@@ -306,6 +312,13 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     """
 
     def __init__(self, lxml_element: etree.ElementBase) -> None:
+        # NOTE: The PenpotShapeElement is a shallow wrapper around an lxml element.
+        # Equality, hash and other things are all bound to the lxml element itself
+        # This means that essentially no attributes should be saved in the instances
+        # of ShapeElement directly, as it would break this pattern.
+        # Instead, everything concerning the true state should "forwarded" to
+        # the _lxml_element. See the property _default_view_box for an example
+
         self._lxml_element = lxml_element
         self._depth_in_svg = get_node_depth(lxml_element)
         self._depth_in_shapes = len(self.get_all_parent_shapes())
@@ -315,10 +328,19 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             self.get_penpot_attr(PenpotShapeAttr.TYPE),
         )
 
-        # NOTE: may be too slow at init, then make lazy or remove
         self._child_shapes: list[PenpotShapeElement] = []
 
-        self._default_view_box: BoundingBox | None = None
+    @property
+    def _default_view_box(self) -> BoundingBox | None:
+        view_box_string = self._lxml_element.attrib.get(_VIEW_BOX_KEY)
+        if view_box_string:
+            return BoundingBox.from_view_box_string(view_box_string)
+        return None
+
+    @_default_view_box.setter
+    def _default_view_box(self, view_box: BoundingBox) -> None:
+        view_box_string = view_box.to_view_box_string()
+        self._lxml_element.attrib[_VIEW_BOX_KEY] = view_box_string
 
     def __getattr__(self, item: str) -> Any:
         return getattr(self._lxml_element, item)
@@ -362,6 +384,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 "from the dom.",
             )
         self._default_view_box = self.to_svg(view_box=None).retrieve_default_view_box(web_driver)
+        self._lxml_element.attrib["viewBox"] = self._default_view_box
 
     def get_default_view_box(
         self,
