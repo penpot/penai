@@ -1,6 +1,7 @@
 from jsonargparse import CLI
 
 from penai.config import DataStage, get_config, push_to_remote
+from penai.utils.argparse import HandleFlagsArgumentParser
 
 
 def push_all_data(stage: DataStage = "raw", force: bool = False) -> None:
@@ -16,4 +17,4 @@ def push_all_data(stage: DataStage = "raw", force: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    CLI(push_all_data)
+    CLI(push_all_data, parser_class=HandleFlagsArgumentParser)
