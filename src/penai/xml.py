@@ -82,7 +82,12 @@ class BetterElement(CustomElement):
         namespaces: dict[str, str] | None = None,
         **kwargs: dict[str, Any],
     ) -> list[Self]:
-        return super().xpath(path, namespaces=namespaces or self.query_compatible_nsmap, **kwargs)
+        namespaces = namespaces or self.query_compatible_nsmap
+
+        # xpath() does not support empty namespaces (applies to both None and empty string)
+        namespaces.pop("", None)
+
+        return super().xpath(path, namespaces=namespaces, **kwargs)
 
     @overload
     def get_namespaced_key(self, key: str) -> str:
