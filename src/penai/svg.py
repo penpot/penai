@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
@@ -88,7 +89,6 @@ class SVG:
         self.dom = dom
 
     def to_html_string(self) -> str:
-        # Perhaps not valid html but yolo
         return f"<html><body>{self.to_string()}</body></html>"
 
     def retrieve_default_view_box(
@@ -105,7 +105,8 @@ class SVG:
         if retrieved_bbox_dom_rect is None:
             raise ValueError(
                 f"Could not find the bbox for svg using {web_driver=}. "
-                f"Are you using a valid WebDriver?",
+                "This is likely caused by an invalid SVG, problems with the WebDriver "
+                "or an actual bug in PenAI.",
             )
         return BoundingBox.from_dom_rect(retrieved_bbox_dom_rect)
 
@@ -564,7 +565,8 @@ class PenpotPageSVG(SVG):
     def retrieve_and_set_view_boxes_for_shape_elements(
         self,
         web_driver: Union[WebDriver, "RegisteredWebDriver"],
-        selected_shape_elements: list[PenpotShapeElement] | None = None,
+        selected_shape_elements: Iterable[PenpotShapeElement] | None = None,
+        show_progress: bool = True,
     ) -> None:
         """Retrieve the default view boxes for all shapes in the SVG and set them on the shapes.
         This is more efficient than setting them one by one, as
@@ -574,6 +576,7 @@ class PenpotPageSVG(SVG):
         :param web_driver:
         :param selected_shape_elements: if None, all shapes in a page will be processed.
             Otherwise, a subset of the page's shapes can be passed.
+        :param show_progress: Whether to show a progress bar.
         :return:
         """
         from penai.registries import get_web_driver_for_html
@@ -587,9 +590,14 @@ class PenpotPageSVG(SVG):
                 raise ValueError(
                     f"The provided shapes are not a subset of the pages' shape. {non_contained_shape_ids=}",
                 )
+        if show_progress:
+            selected_shape_elements = cast(
+                Iterable[PenpotShapeElement],
+                tqdm(selected_shape_elements, desc="Setting view boxes"),
+            )
 
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
-            for shape_el in tqdm(selected_shape_elements, desc="Setting view boxes"):
+            for shape_el in selected_shape_elements:
                 view_box_dom_rect = driver.execute_script(
                     f"return document.getElementById('{shape_el.shape_id}').getBBox();",
                 )
