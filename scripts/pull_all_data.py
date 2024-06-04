@@ -1,6 +1,7 @@
 from jsonargparse import CLI
 
 from penai.config import DataStage, get_config, pull_from_remote
+from penai.utils.argparse import HandleFlagsArgumentParser
 
 
 def pull_data(stage: DataStage = "raw", force: bool = False) -> None:
@@ -16,4 +17,4 @@ def pull_data(stage: DataStage = "raw", force: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    CLI(pull_data)
+    CLI(pull_data, parser_class=HandleFlagsArgumentParser)
