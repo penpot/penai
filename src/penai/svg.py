@@ -4,7 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
 from functools import cache
-from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
 from lxml import etree
 from pptree import print_tree
@@ -27,6 +27,8 @@ if TYPE_CHECKING:
     # It has the same api as etree, but the latter is in python and properly typed and documented,
     # whereas the former is a stub but much faster. So at type-checking time, we use the python version of etree.
     from xml import etree
+
+    _CustomElementBaseAnnotationClass = BetterElement
 
 _VIEW_BOX_KEY = "viewBox"
 
@@ -328,6 +330,9 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
 
         self._child_shapes: list[PenpotShapeElement] = []
 
+    def get_root_element(self) -> BetterElement:
+        return cast(BetterElement, self._lxml_element.getroottree().getroot())
+
     @property
     def _default_view_box(self) -> BoundingBox | None:
         view_box_string = self._lxml_element.attrib.get(_VIEW_BOX_KEY)
@@ -382,7 +387,6 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 "from the dom.",
             )
         self._default_view_box = self.to_svg(view_box=None).retrieve_default_view_box(web_driver)
-        self._lxml_element.attrib["viewBox"] = self._default_view_box
 
     def get_default_view_box(
         self,
@@ -536,17 +540,51 @@ class PenpotPageSVG(SVG):
             self._max_shape_depth = 0
         self.penpot_shape_elements = shape_els
 
+    @overload
+    def _get_shapes_by_attr(
+        self,
+        attr_name: str,
+        attr_value: Any,
+        should_be_unique: Literal[True],
+    ) -> PenpotShapeElement:
+        ...
+
+    @overload
+    def _get_shapes_by_attr(
+        self,
+        attr_name: str,
+        attr_value: Any,
+        should_be_unique: Literal[False],
+    ) -> list[PenpotShapeElement]:
+        ...
+
     @cache
-    def get_shape_by_name(self, name: str) -> PenpotShapeElement:
-        matched_shapes = [shape for shape in self.penpot_shape_elements if shape.name == name]
+    def _get_shapes_by_attr(
+        self,
+        attr_name: str,
+        attr_value: Any,
+        should_be_unique: bool = False,
+    ) -> PenpotShapeElement | list[PenpotShapeElement]:
+        matched_shapes = [
+            shape for shape in self.penpot_shape_elements if getattr(shape, attr_name) == attr_value
+        ]
+        if not should_be_unique:
+            return matched_shapes
+
         if len(matched_shapes) == 0:
-            raise KeyError(f"No shape with '{name=}' found")
+            raise KeyError(f"No shape with '{attr_name=}' and '{attr_value=}' found")
         if len(matched_shapes) > 1:
             raise RuntimeError(
-                f"Multiple shapes {len(matched_shapes)=} with '{name=}' found. "
+                f"Multiple shapes {len(matched_shapes)=} with '{attr_name=}' and '{attr_value=}' found. "
                 "This should not happen and could be caused by an implementation error or by a malformed SVG file.",
             )
         return matched_shapes[0]
+
+    def get_shape_by_name(self, name: str) -> PenpotShapeElement:
+        return self._get_shapes_by_attr("name", name, should_be_unique=True)
+
+    def get_shape_by_id(self, shape_id: str) -> PenpotShapeElement:
+        return self._get_shapes_by_attr("shape_id", shape_id, should_be_unique=True)
 
     @property
     def max_shape_depth(self) -> int:
