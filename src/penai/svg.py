@@ -554,11 +554,10 @@ class PenpotPageSVG(SVG):
         self,
         attr_name: str,
         attr_value: Any,
-        should_be_unique: Literal[False],
+        should_be_unique: Literal[False] = False,
     ) -> list[PenpotShapeElement]:
         ...
 
-    @cache
     def _get_shapes_by_attr(
         self,
         attr_name: str,
@@ -580,9 +579,11 @@ class PenpotPageSVG(SVG):
             )
         return matched_shapes[0]
 
+    @cache
     def get_shape_by_name(self, name: str) -> PenpotShapeElement:
         return self._get_shapes_by_attr("name", name, should_be_unique=True)
 
+    @cache
     def get_shape_by_id(self, shape_id: str) -> PenpotShapeElement:
         return self._get_shapes_by_attr("shape_id", shape_id, should_be_unique=True)
 
