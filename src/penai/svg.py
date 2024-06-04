@@ -11,6 +11,7 @@ from pptree import print_tree
 from selenium.webdriver.remote.webdriver import WebDriver
 from tqdm import tqdm
 
+from penai.registries.web_drivers import RegisteredWebDriver, get_web_driver_for_html
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys
 from penai.utils.svg import (
@@ -26,8 +27,6 @@ if TYPE_CHECKING:
     # It has the same api as etree, but the latter is in python and properly typed and documented,
     # whereas the former is a stub but much faster. So at type-checking time, we use the python version of etree.
     from xml import etree
-
-    from penai.registries import RegisteredWebDriver
 
 _VIEW_BOX_KEY = "viewBox"
 
@@ -93,10 +92,8 @@ class SVG:
 
     def retrieve_default_view_box(
         self,
-        web_driver: Union[WebDriver, "RegisteredWebDriver"],
+        web_driver: WebDriver | RegisteredWebDriver,
     ) -> "BoundingBox":
-        from penai.registries import get_web_driver_for_html
-
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
             retrieved_bbox_dom_rect = driver.execute_script(
                 'return document.querySelector("svg").getBBox()',
@@ -564,7 +561,7 @@ class PenpotPageSVG(SVG):
 
     def retrieve_and_set_view_boxes_for_shape_elements(
         self,
-        web_driver: Union[WebDriver, "RegisteredWebDriver"],
+        web_driver: WebDriver | RegisteredWebDriver,
         selected_shape_elements: Iterable[PenpotShapeElement] | None = None,
         show_progress: bool = True,
     ) -> None:
@@ -579,8 +576,6 @@ class PenpotPageSVG(SVG):
         :param show_progress: Whether to show a progress bar.
         :return:
         """
-        from penai.registries import get_web_driver_for_html
-
         if selected_shape_elements is None:
             selected_shape_elements = self.penpot_shape_elements
         else:
