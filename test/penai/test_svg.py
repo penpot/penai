@@ -20,19 +20,19 @@ class TestPenpotShape:
 
     @staticmethod
     def test_parent_child_shapes_basics(penpot_page_svg: PenpotPageSVG) -> None:
-        roots = penpot_page_svg.get_shape_elements_at_depth(0)
-        leaves_subset = penpot_page_svg.get_shape_elements_at_depth(
-            penpot_page_svg.max_shape_depth
-        )
+        roots = list(penpot_page_svg.iter_shape_elements_at_depth(0))
+        leaves_subset = list(penpot_page_svg.iter_shape_elements_at_depth(penpot_page_svg.max_shape_depth))
         for root in roots:
             assert root.get_parent_shape() is None
             for child in root.get_direct_children_shapes():
                 assert child.get_parent_shape() == root
         for leaf in leaves_subset:
-            assert not leaf.get_all_children_shapes()
+            assert not list(leaf.iter_all_children_shapes())
             assert not leaf.get_direct_children_shapes()
             assert leaf.get_parent_shape() is not None
-            assert leaf in leaf.get_parent_shape().get_all_children_shapes()
+
+            if (parent_shape := leaf.get_parent_shape()):
+                assert leaf in list(parent_shape.iter_all_children_shapes())
 
 
 class TestPenpotPageSVG:
@@ -41,7 +41,7 @@ class TestPenpotPageSVG:
         penpot_page_svg: PenpotPageSVG,
         chrom_web_driver: WebDriver,
     ) -> None:
-        shapes = penpot_page_svg.penpot_shape_elements
+        shapes = list(penpot_page_svg.iter_all_shape_elements())
 
         # Should be None before deriving
         for shape in shapes:

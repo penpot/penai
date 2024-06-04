@@ -10,7 +10,6 @@ projects_to_test = [
 
 
 class TestPenpotProjectRegistry:
-
     @staticmethod
     @pytest.mark.parametrize("project", projects_to_test)
     def test_can_be_loaded(project: SavedPenpotProject) -> None:

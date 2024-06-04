@@ -49,7 +49,6 @@ class TestSVGRenderers:
         example_png_path: Path,
         log_dir: Path,
     ) -> None:
-
         renderer = ResvgRenderer()
 
         _test_svg_renderer(renderer, example_svg_path, example_png_path, log_dir)

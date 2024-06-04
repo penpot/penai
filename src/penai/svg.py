@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections.abc import Iterable, Iterator
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
@@ -255,8 +255,10 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     corresponding <g> tag.
     """
 
-    def __init__(self, lxml_element: etree.ElementBase) -> None:
+    def __init__(self, lxml_element: etree.ElementBase, parent_shape: Self | None = None) -> None:
         self._lxml_element = lxml_element
+        self._parent_shape = parent_shape
+
         self._depth_in_svg = get_node_depth(lxml_element)
         self._depth_in_shapes = len(self.get_all_parent_shapes())
 
@@ -265,8 +267,10 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             self.get_penpot_attr(PenpotShapeAttr.TYPE),
         )
 
-        # NOTE: may be too slow at init, then make lazy or remove
-        self._child_shapes: list[PenpotShapeElement] = []
+        if (content_group := self.get_content_g_element()) is not None:
+            self._direct_child_shapes = list(find_penpot_shapes(content_group, parent_shape=self))
+        else:
+            self._direct_child_shapes = []
 
         self._bounding_box: BoundingBox | None = None
 
@@ -297,10 +301,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
 
     @property
     def child_shapes(self) -> list["PenpotShapeElement"]:
-        # TODO: this might be slow, and properties shouldn't be slow, but setting at init leads to infinite recursion..
-        if not self._child_shapes:
-            self._child_shapes = self.get_direct_children_shapes()
-        return self._child_shapes
+        return self._direct_child_shapes
 
     def get_penpot_attr(self, key: str | PenpotShapeAttr) -> str:
         key = key.value if isinstance(key, PenpotShapeAttr) else key
@@ -330,14 +331,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         self._bounding_box = bbox
 
     def get_parent_shape(self) -> Self | None:
-        g_containing_par_shape_candidate = self.get_containing_g_element().getparent()
-        while g_containing_par_shape_candidate is not None:
-            if _el_is_group(g_containing_par_shape_candidate):
-                for child in g_containing_par_shape_candidate:
-                    if _el_is_penpot_shape(child):
-                        return self.__class__(child)
-            g_containing_par_shape_candidate = g_containing_par_shape_candidate.getparent()
-        return None
+        return self._parent_shape
 
     def get_all_parent_shapes(self) -> list[Self]:
         parent_shape = self.get_parent_shape()
@@ -352,22 +346,29 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         """
         return self.getparent()
 
+    def get_content_g_element(self) -> etree.ElementBase:
+        """Get the parent <g> element to which this shape corresponds; child shapes will be children of it.
+
+        See docstring of the class for more info on the relation between <g> and <penpot:shape> tags.
+        """
+        return self.getparent().find("g")
+
     def is_leave(self) -> bool:
         return not self.get_direct_children_shapes()
 
-    def get_all_children_shapes(self) -> list["PenpotShapeElement"]:
+    # @cache
+    def iter_all_children_shapes(self) -> Iterator[Self]:
         """Get all the children of this shape, including children of children, etc."""
-        containing_group = self.get_containing_g_element()
-        result = find_all_penpot_shapes(containing_group)[0]
-        return [shape for shape in result if shape != self]
+        for child in self._direct_child_shapes:
+            yield child
+            yield from child.iter_all_children_shapes()
 
     # TODO: very inefficient, should be optimized if ever a bottleneck
     def get_direct_children_shapes(self) -> list["PenpotShapeElement"]:
         """Get the direct children of this shape."""
-        children_shapes = self.get_all_children_shapes()
-        return [shape for shape in children_shapes if shape.get_parent_shape() == self]
+        return self._direct_child_shapes
 
-    def get_hierarchy_dict(self) -> dict["PenpotShapeElement", "_PenpotShapeDictEntry"]:
+    def get_hierarchy_dict(self) -> dict[Self, "_PenpotShapeDictEntry"]:
         result = {}
         for child in self.get_direct_children_shapes():
             result[child] = child.get_hierarchy_dict()
@@ -381,13 +382,10 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         print_tree(self, childattr="child_shapes", nameattr="name")
 
 
-def find_all_penpot_shapes(
-    root: etree.ElementBase | PenpotShapeElement,
-) -> tuple[
-    list[PenpotShapeElement],
-    dict[int, list[PenpotShapeElement]],
-    dict[PenpotShapeElement, int],
-]:
+def find_penpot_shapes(
+    root: etree.ElementBase,
+    parent_shape: PenpotShapeElement | None = None,
+) -> Iterator[PenpotShapeElement]:
     """Find all Penpot shapes in the SVG tree starting from the given root element.
 
     :param root:
@@ -395,18 +393,11 @@ def find_all_penpot_shapes(
         and a dictionary mapping shape elements to their depths. All depths are relative to the root element and
         are depths in terms of the parent and child shapes, not in terms of the depths in the SVG tree.
     """
-    depth_to_shape_el = defaultdict(list)
-    shape_el_to_depth = {}
-    penpot_shape_elements = []
-
-    for el in root.iter():
+    for el in root.iterchildren():
         if _el_is_penpot_shape(el):
-            shape_el = PenpotShapeElement(el)
-            depth_to_shape_el[shape_el.depth_in_shapes].append(shape_el)
-            shape_el_to_depth[shape_el] = shape_el.depth_in_shapes
-            penpot_shape_elements.append(shape_el)
-
-    return penpot_shape_elements, depth_to_shape_el, shape_el_to_depth
+            yield PenpotShapeElement(el, parent_shape=parent_shape)
+        else:
+            yield from find_penpot_shapes(el, parent_shape=parent_shape)
 
 
 class PenpotComponentSVG(SVG):
@@ -417,14 +408,7 @@ class PenpotPageSVG(SVG):
     def __init__(self, dom: etree.ElementTree):
         super().__init__(dom)
 
-        shape_els, depth_to_shape_el, shape_el_to_depth = find_all_penpot_shapes(dom)
-        self._depth_to_shape_el = depth_to_shape_el
-        self._shape_el_to_depth = shape_el_to_depth
-        if depth_to_shape_el:
-            self._max_shape_depth = max(depth_to_shape_el.keys())
-        else:
-            self._max_shape_depth = 0
-        self.penpot_shape_elements = shape_els
+        self._top_level_shapes = list(find_penpot_shapes(dom.getroot()))
 
         # We need the bounding box of the root element as well as the per-shape bounding boxes might
         # deviate between renderers or configurations, e.g. due to dpi differences.
@@ -433,13 +417,34 @@ class PenpotPageSVG(SVG):
 
     @property
     def max_shape_depth(self) -> int:
-        return self._max_shape_depth
+        return max(shape.depth_in_shapes for shape in self.iter_all_shape_elements())
 
-    def get_shape_elements_at_depth(self, depth: int) -> list[PenpotShapeElement]:
-        return self._depth_to_shape_el.get(depth, [])
+    def get_top_level_shape_elements(self) -> list[PenpotShapeElement]:
+        return self._top_level_shapes
+
+    def iter_shape_elements_at_depth(
+        self,
+        depth: int,
+        shapes: Iterable[PenpotShapeElement] | None = None,
+    ) -> Iterator[PenpotShapeElement]:
+        shapes = shapes if shapes is not None else self._top_level_shapes
+
+        if depth > 0:
+            for shape in shapes:
+                yield from self.iter_shape_elements_at_depth(
+                    depth - 1,
+                    shape.get_direct_children_shapes(),
+                )
+        else:
+            yield from shapes
+
+    def iter_all_shape_elements(self) -> Iterator[PenpotShapeElement]:
+        for shape in self._top_level_shapes:
+            yield shape
+            yield from shape.iter_all_children_shapes()
 
     def pprint_hierarchy(self) -> None:
-        for shape in self.get_shape_elements_at_depth(0):
+        for shape in self._top_level_shapes:
             shape.pprint_hierarchy()
 
     def derive_bounding_boxes(self, web_driver: WebDriver) -> None:
@@ -451,7 +456,7 @@ class PenpotPageSVG(SVG):
         with temp_file_for_content(html_string, extension=".html") as path:
             web_driver.get(path.absolute().as_uri())
 
-            for shape in self.penpot_shape_elements:
+            for shape in self.iter_all_shape_elements():
                 shape_id = shape.shape_id
 
                 bbox = web_driver.execute_script(
