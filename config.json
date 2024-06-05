@@ -21,7 +21,7 @@
     "gemini": "env:GEMINI_API_KEY"
   },
   "penpot_backend": {
-    "user": "",
-    "password": ""
+    "user": "mischa.panch@gmail.com",
+    "password": "env:PP_BACKEND_PASSWORD"
   }
 }

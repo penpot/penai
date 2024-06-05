@@ -16,8 +16,9 @@ class PenpotClient:
 
     def __init__(self, user_email: str, user_password: str, server_url: str = SERVER_URL_DEFAULT):
         self.server_url = server_url
+        self.session = requests.Session()
         login_response = self._login(user_email, user_password)
-        self.auth_token = login_response.cookies["auth-token"]
+        self.session.cookies.update(login_response.cookies)
 
     @classmethod
     def create_default(cls) -> Self:
@@ -33,7 +34,7 @@ class PenpotClient:
         headers = {
             "Content-Type": "application/transit+json",
         }
-        return requests.post(url=url, headers=headers, json=json)
+        return self.session.post(url=url, headers=headers, json=json)
 
     def _read_transit_dict(self, response: requests.Response) -> dict:
         reader = Reader("json")
@@ -53,10 +54,7 @@ class PenpotClient:
                 "fdata/shape-data-type",
             ],
         }
-        cookies = {
-            "auth-token": self.auth_token,
-        }
-        resp = requests.get(url=url, params=params, cookies=cookies)
+        resp = self.session.get(url=url, params=params)
         return self._read_transit_dict(resp)
 
     def _get_file_fragment(self, file_id: str, fragment_id: str) -> dict:
@@ -65,10 +63,7 @@ class PenpotClient:
             "file-id": file_id,
             "fragment-id": fragment_id,
         }
-        cookies = {
-            "auth-token": self.auth_token,
-        }
-        resp = requests.get(url=url, params=params, cookies=cookies)
+        resp = self.session.get(url=url, params=params)
         return self._read_transit_dict(resp)
 
     def get_page(self, project_id: str, file_id: str, page_id: str) -> dict:
