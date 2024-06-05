@@ -16,6 +16,7 @@ class PenpotClient:
 
     def __init__(self, user_email: str, user_password: str, server_url: str = SERVER_URL_DEFAULT):
         self.server_url = server_url
+        self.base_url = server_url + "/api/rpc/command"
         self.session = requests.Session()
         login_response = self._login(user_email, user_password)
         self.session.cookies.update(login_response.cookies)
@@ -26,7 +27,7 @@ class PenpotClient:
         return cls(cfg.penpot_user, cfg.penpot_password)
 
     def _login(self, email: str, password: str) -> requests.Response:
-        url = f"{self.server_url}/api/rpc/command/login-with-password"
+        url = f"{self.base_url}/login-with-password"
         json = {
             "~:email": email,
             "~:password": password,
@@ -41,7 +42,7 @@ class PenpotClient:
         return reader.read(io.StringIO(response.text))
 
     def get_file(self, project_id: str, file_id: str) -> dict:
-        url = f"{self.server_url}/api/rpc/command/get-file"
+        url = f"{self.base_url}/get-file"
         params = {
             "id": file_id,
             "project-id": project_id,
@@ -58,7 +59,7 @@ class PenpotClient:
         return self._read_transit_dict(resp)
 
     def _get_file_fragment(self, file_id: str, fragment_id: str) -> dict:
-        url = f"{self.server_url}/api/rpc/command/get-file-fragment"
+        url = f"{self.base_url}/get-file-fragment"
         params = {
             "file-id": file_id,
             "fragment-id": fragment_id,
