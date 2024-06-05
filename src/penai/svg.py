@@ -135,7 +135,7 @@ class SVG:
         nsmap = {None: "http://www.w3.org/2000/svg", **nsmap}
 
         # As recommended in https://lxml.de/tutorial.html, create a deep copy of the element.
-        # element = deepcopy(element)
+        element = deepcopy(element)
 
         if element.localname != "svg":
             root = BetterElement.create(tag="svg", nsmap=nsmap)
