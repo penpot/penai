@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
 from lxml import etree
 from pptree import print_tree
-from pydantic import PositiveFloat
+from pydantic import NonNegativeFloat
 from pydantic.dataclasses import dataclass
 from selenium.webdriver.remote.webdriver import WebDriver
 from tqdm import tqdm
@@ -39,8 +39,8 @@ _VIEW_BOX_KEY = "viewBox"
 class BoundingBox:
     x: float
     y: float
-    width: PositiveFloat
-    height: PositiveFloat
+    width: NonNegativeFloat
+    height: NonNegativeFloat
 
     def with_margin(self, margin: float, relative: bool = False) -> "BoundingBox":
         if relative:
