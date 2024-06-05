@@ -488,6 +488,14 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         return self.get_containing_g_element().get("id")
 
     @property
+    def id(self) -> str:
+        """:return: the shape's UUID"""
+        shape_id = self.shape_id
+        prefix = "shape-"
+        assert shape_id.startswith(prefix)
+        return shape_id[len(prefix) :]
+
+    @property
     def depth_in_svg(self) -> int:
         return self._depth_in_svg
 

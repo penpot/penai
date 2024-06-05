@@ -29,6 +29,7 @@ requests = "^2.32.2"
 resvg-py = "^0.1.5"
 selenium = "^4.21.0"
 tqdm = "^4.66.4"
+transit-python2 = "^0.8.321"
 webdriver-manager = "^4.0.1"
 cssutils = "^2.11.1"
 

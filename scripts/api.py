@@ -1,3 +1,4 @@
+# type: ignore
 import requests
 import gzip 
 import json
