@@ -683,7 +683,10 @@ class PenpotPageSVG(SVG):
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
             for shape_el in selected_shape_elements:
                 # Frames will typically have a clip-path that defines the clip mask.
-                if self.type is PenpotShapeType.FRAME and (clip_rect := self.get_clip_rect()) is not None:
+                if (
+                    shape_el.type is PenpotShapeType.FRAME
+                    and (clip_rect := shape_el.get_clip_rect()) is not None
+                ):
                     shape_bbox = clip_rect
                 else:
                     view_box_dom_rect = driver.execute_script(
