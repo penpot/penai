@@ -2,13 +2,14 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable
 from copy import deepcopy
-from dataclasses import dataclass
 from enum import Enum
 from functools import cache
 from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
 from lxml import etree
 from pptree import print_tree
+from pydantic import PositiveFloat
+from pydantic.dataclasses import dataclass
 from selenium.webdriver.remote.webdriver import WebDriver
 from tqdm import tqdm
 
@@ -38,8 +39,8 @@ _VIEW_BOX_KEY = "viewBox"
 class BoundingBox:
     x: float
     y: float
-    width: float
-    height: float
+    width: PositiveFloat
+    height: PositiveFloat
 
     def with_margin(self, margin: float, relative: bool = False) -> "BoundingBox":
         if relative:
@@ -62,16 +63,6 @@ class BoundingBox:
 
     def to_view_box_string(self) -> str:
         return f"{self.x} {self.y} {self.width} {self.height}"
-
-    def __post_init__(self) -> None:
-        for field_name in ("x", "y", "width", "height"):
-            if not isinstance(getattr(self, field_name), int | float):
-                raise TypeError(
-                    f"Expected a number for {field_name}, got {type(getattr(self, field_name))}",
-                )
-
-        if self.width < 0 or self.height < 0:
-            raise ValueError("Width and height must be non-negative")
 
     @classmethod
     def from_dom_rect(cls, dom_rect: dict[str, Any]) -> Self:
