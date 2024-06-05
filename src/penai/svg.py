@@ -1,13 +1,15 @@
+import re
 from collections import defaultdict
 from collections.abc import Iterable
 from copy import deepcopy
-from dataclasses import dataclass
 from enum import Enum
 from functools import cache
 from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
 from lxml import etree
 from pptree import print_tree
+from pydantic import NonNegativeFloat
+from pydantic.dataclasses import dataclass
 from selenium.webdriver.remote.webdriver import WebDriver
 from tqdm import tqdm
 
@@ -37,8 +39,8 @@ _VIEW_BOX_KEY = "viewBox"
 class BoundingBox:
     x: float
     y: float
-    width: float
-    height: float
+    width: NonNegativeFloat
+    height: NonNegativeFloat
 
     def with_margin(self, margin: float, relative: bool = False) -> "BoundingBox":
         if relative:
@@ -62,10 +64,6 @@ class BoundingBox:
     def to_view_box_string(self) -> str:
         return f"{self.x} {self.y} {self.width} {self.height}"
 
-    def __post_init__(self) -> None:
-        if self.width < 0 or self.height < 0:
-            raise ValueError("Width and height must be non-negative")
-
     @classmethod
     def from_dom_rect(cls, dom_rect: dict[str, Any]) -> Self:
         """Create a BoundingBox object from a DOMRect object.
@@ -78,6 +76,11 @@ class BoundingBox:
             width=dom_rect["width"],
             height=dom_rect["height"],
         )
+
+    @classmethod
+    def from_clip_rect(cls, clip_rect_el: Element) -> Self:
+        """Create a BoundingBox object from a clipPath rect SVG element."""
+        return cls(*[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")])
 
 
 class SVG:
@@ -388,6 +391,44 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             )
         self._default_view_box = self.to_svg(view_box=None).retrieve_default_view_box(web_driver)
 
+    def get_clip_rect(self) -> BoundingBox | None:
+        """Objects (maybe only groups?) in SVG can have a `clip-path` attribute that sets the clip mask.
+
+        For Penpot shape, this attribute will typically be set on the main group element of the shape
+        and reference a <clipPath> element that contains a <rect>-element, defining the clip mask, defined
+        in the <defs>-section of that shape.
+
+        This method retrieves the bounding box of the clip mask rect if it exists.
+
+        Note, that for now we only support simple clip masks that are defined by a <rect> element and will
+        throw an error if no such element can be found.
+        """
+        parent_group = self.get_containing_g_element()
+        if (child_group := parent_group.find("g")) is not None and (
+            clip_path := child_group.get("clip-path")
+        ) is not None:
+            if (clip_path_match := re.match(r"url\(#(.*)\)", clip_path)) is not None:
+                clip_path_id = clip_path_match.group(1)
+            else:
+                raise AssertionError(
+                    f"Expected clip-path to be in the format 'url(#id)', but got '{clip_path}'",
+                )
+
+            # Note: <clipPath> defines the clip _mask_ which can be a rect in the simplest case but potentially
+            # also more complex compositions.
+            # For the sake of sanity, we assume that the clip-path is a simple rect for now and will throw an error
+            # if a <rect>-element can't be found within the <clipPath>.
+            clip_rect = self.get_containing_g_element().find(
+                f'.//clipPath[@id="{clip_path_id}"]/rect',
+            )
+
+            assert clip_rect is not None, (
+                f"Expected to find <clipPath> with containing <rect> element with id {clip_path_id} as it was "
+                "referenced in the element's main group element, but didn't, which is, you know, like unexpected."
+            )
+            return BoundingBox.from_clip_rect(clip_rect)
+        return None
+
     def get_default_view_box(
         self,
         web_driver: Union[WebDriver, "RegisteredWebDriver"] | None = None,
@@ -602,6 +643,7 @@ class PenpotPageSVG(SVG):
         self,
         web_driver: WebDriver | RegisteredWebDriver,
         selected_shape_elements: Iterable[PenpotShapeElement] | None = None,
+        respect_clip_masks: bool = True,
         show_progress: bool = True,
     ) -> None:
         """Retrieve the default view boxes for all shapes in the SVG and set them on the shapes.
@@ -632,8 +674,16 @@ class PenpotPageSVG(SVG):
 
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
             for shape_el in selected_shape_elements:
-                view_box_dom_rect = driver.execute_script(
-                    f"return document.getElementById('{shape_el.shape_id}').getBBox();",
-                )
-                shape_bbox = BoundingBox.from_dom_rect(view_box_dom_rect)
+                # Frames will typically have a clip-path that defines the clip mask.
+                if (
+                    respect_clip_masks
+                    and shape_el.type is PenpotShapeType.FRAME
+                    and (clip_rect := shape_el.get_clip_rect()) is not None
+                ):
+                    shape_bbox = clip_rect
+                else:
+                    view_box_dom_rect = driver.execute_script(
+                        f"return document.getElementById('{shape_el.shape_id}').getBBox();",
+                    )
+                    shape_bbox = BoundingBox.from_dom_rect(view_box_dom_rect)
                 shape_el.set_default_view_box(bbox=shape_bbox)
