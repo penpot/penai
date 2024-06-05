@@ -23,6 +23,14 @@ class SavedPenpotProject(Enum):
     def get_project_name(self) -> str:
         return self.value
 
+    def get_project_id(self) -> str:
+        """:return: the project's UUID on the default server (design.penpot.app)"""
+        match self:
+            case SavedPenpotProject.INTERACTIVE_MUSIC_APP:
+                return "15586d98-a20a-8145-8004-69dd979da070"
+            case _:
+                raise NotImplementedError
+
     def get_path(self, pull: bool = False, force: bool = False) -> str:
         result = os.path.join(
             get_config().penpot_designs_basedir(),
