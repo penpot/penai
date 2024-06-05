@@ -417,10 +417,6 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         self,
         web_driver: Union[WebDriver, "RegisteredWebDriver"] | None = None,
     ) -> BoundingBox:
-        # Frames will typically have a clip-path that defines the clip mask.
-        if self.type is PenpotShapeType.FRAME and (clip_rect := self.get_clip_rect()) is not None:
-            return clip_rect
-
         if self._default_view_box is not None:
             return self._default_view_box
 
@@ -621,8 +617,12 @@ class PenpotPageSVG(SVG):
 
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
             for shape_el in tqdm(selected_shape_elements, desc="Setting view boxes"):
-                view_box_dom_rect = driver.execute_script(
-                    f"return document.getElementById('{shape_el.shape_id}').getBBox();",
-                )
-                shape_bbox = BoundingBox.from_dom_rect(view_box_dom_rect)
+                # Frames will typically have a clip-path that defines the clip mask.
+                if self.type is PenpotShapeType.FRAME and (clip_rect := self.get_clip_rect()) is not None:
+                    shape_bbox = clip_rect
+                else:
+                    view_box_dom_rect = driver.execute_script(
+                        f"return document.getElementById('{shape_el.shape_id}').getBBox();",
+                    )
+                    shape_bbox = BoundingBox.from_dom_rect(view_box_dom_rect)
                 shape_el.set_default_view_box(bbox=shape_bbox)
