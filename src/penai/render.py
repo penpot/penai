@@ -142,7 +142,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         :param width: The width of the rendered image. Currently not supported.
         :param height: The height of the rendered image. Currently not supported.
         """
-        return self.render_svg_string(Path(svg_path).read_text())
+        return self.render_svg(SVG.from_file(svg_path))
 
 
 class ResvgRenderer(BaseSVGRenderer):
