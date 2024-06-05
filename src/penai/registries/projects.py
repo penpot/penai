@@ -23,20 +23,23 @@ class SavedPenpotProject(Enum):
     def get_project_name(self) -> str:
         return self.value
 
-    def get_path(self, pull: bool = False) -> str:
-        result = os.path.join(get_config().penpot_designs_basedir(), self.get_project_name())
+    def get_path(self, pull: bool = False, force: bool = False) -> str:
+        result = os.path.join(
+            get_config().penpot_designs_basedir(),
+            self.get_project_name(),
+        )
         if pull:
             log.info(f"Pulling data for project {self.get_project_name()} to {result}")
-            pull_from_remote(result)
+            pull_from_remote(result, force=force)
         return result
 
     @classmethod
-    def pull_all(cls) -> None:
+    def pull_all(cls, force: bool = False) -> None:
         for design in cls:
-            design.get_path(pull=True)
+            design.get_path(pull=True, force=force)
 
-    def load(self, pull: bool = False) -> PenpotProject:
-        project_path = self.get_path(pull=pull)
+    def load(self, pull: bool = False, force: bool = False) -> PenpotProject:
+        project_path = self.get_path(pull=pull, force=force)
         return PenpotProject.from_directory(project_path)
 
 
