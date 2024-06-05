@@ -1,6 +1,3 @@
-from pprint import pprint
-
-from penai.client import PenpotClient, transit_to_py
 from penai.registries.projects import SavedPenpotProject
 from penai.registries.web_drivers import RegisteredWebDriver
 from penai.variations.svg_variations import SVGVariationsGenerator
@@ -14,4 +11,3 @@ if __name__ == '__main__':
     shape = page.svg.get_shape_by_name("ic_equalizer_48px-1")
 
     var_gen = SVGVariationsGenerator(shape=shape, semantics="equalizer")
-
