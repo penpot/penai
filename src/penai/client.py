@@ -1,10 +1,10 @@
 import io
-from typing import Self
+from typing import Any, Self
 from uuid import UUID
 
 import requests
 from transit.reader import Reader
-from transit.transit_types import Keyword
+from transit.transit_types import Keyword, TaggedValue, frozendict
 
 from penai.config import get_config
 
@@ -88,3 +88,23 @@ class PenpotClient:
         page = self.get_page(project_id, file_id, page_id)
         objects = page[Keyword("objects")]
         return objects[UUID(shape_id)]
+
+
+def transit_to_py(obj: Any) -> Any:
+    """Recursively converts the given transit representation to more primitive Python types.
+
+    :param obj: the object the convert
+    :return: the simplified representation
+    """
+    if isinstance(obj, TaggedValue):
+        return {obj.tag: transit_to_py(obj.rep)}
+    elif isinstance(obj, frozendict):
+        return {transit_to_py(k): transit_to_py(v) for k, v in obj.items()}
+    elif isinstance(obj, Keyword):
+        return obj.name
+    elif isinstance(obj, tuple):
+        return tuple(transit_to_py(x) for x in obj)
+    elif isinstance(obj, UUID):
+        return obj.hex
+    else:
+        return obj

@@ -1,4 +1,6 @@
-from penai.client import PenpotClient
+from pprint import pprint
+
+from penai.client import PenpotClient, transit_to_py
 from penai.registries.projects import SavedPenpotProject
 
 if __name__ == '__main__':
@@ -15,4 +17,4 @@ if __name__ == '__main__':
         page_id=page.id,
         shape_id=shape.id
     )
-    print(result)
+    pprint(transit_to_py(result))
