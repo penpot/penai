@@ -383,7 +383,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
 
         if web_driver is None:
             raise ValueError(
-                "since bbox was not provided, a renderer must be provided to derive the default view box "
+                "since bbox was not provided, a web_driver must be provided to derive the default view box "
                 "from the dom.",
             )
         self._default_view_box = self.to_svg(view_box=None).retrieve_default_view_box(web_driver)
@@ -397,7 +397,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
 
         if web_driver is None:
             raise ValueError(
-                "Default view box was not yet set, a renderer must be provided to derive the default view box.",
+                "Default view box was not yet set, a web_driver must be provided to derive the default view box.",
             )
         self.set_default_view_box(web_driver=web_driver)
         return cast(BoundingBox, self._default_view_box)
@@ -579,11 +579,11 @@ class PenpotPageSVG(SVG):
             )
         return matched_shapes[0]
 
-    @cache
+    # @cache
     def get_shape_by_name(self, name: str) -> PenpotShapeElement:
         return self._get_shapes_by_attr("name", name, should_be_unique=True)
 
-    @cache
+    # @cache
     def get_shape_by_id(self, shape_id: str) -> PenpotShapeElement:
         return self._get_shapes_by_attr("shape_id", shape_id, should_be_unique=True)
 
