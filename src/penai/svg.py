@@ -643,6 +643,7 @@ class PenpotPageSVG(SVG):
         self,
         web_driver: WebDriver | RegisteredWebDriver,
         selected_shape_elements: Iterable[PenpotShapeElement] | None = None,
+        respect_clip_masks: bool = True,
         show_progress: bool = True,
     ) -> None:
         """Retrieve the default view boxes for all shapes in the SVG and set them on the shapes.
@@ -675,7 +676,8 @@ class PenpotPageSVG(SVG):
             for shape_el in selected_shape_elements:
                 # Frames will typically have a clip-path that defines the clip mask.
                 if (
-                    shape_el.type is PenpotShapeType.FRAME
+                    respect_clip_masks
+                    and shape_el.type is PenpotShapeType.FRAME
                     and (clip_rect := shape_el.get_clip_rect()) is not None
                 ):
                     shape_bbox = clip_rect
