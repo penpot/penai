@@ -1,17 +1,16 @@
 import abc
 import io
-import time
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
-from typing import ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
+from typing import ParamSpec, Self, TypeVar, TypedDict, Unpack, cast
 
 import resvg_py
 from PIL import Image
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from penai.svg import SVG, BoundingBox
+from penai.svg import SVG
 from penai.types import PathLike
 from penai.utils.svg import image_from_bytes, temp_file_for_content
 from penai.utils.web_drivers import create_chrome_web_driver
@@ -93,35 +92,8 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         with create_chrome_web_driver() as driver:
             yield cls(driver, **kwargs)
 
-    def _open_svg(self, svg_path: str) -> None:
-        self.web_driver.get(svg_path)
-
-        # TODO: Wait until content is displayed instead of a fixed time
-        # See for instance https://www.selenium.dev/documentation/webdriver/waits/
-
-        if self.wait_time:
-            time.sleep(self.wait_time)
-
-        # Determine the size of the SVG element and set the window size accordingly
-        bbox = BoundingBox.from_dom_rect(
-            self.web_driver.execute_script(
-                "return document.querySelector('svg').getBoundingClientRect();",
-            ),
-        )
-
-        assert (
-            bbox.x >= 0 and bbox.y >= 0
-        ), f"Bounding box origin should be non-negative, got ({bbox.x}, {bbox.y})"
-
-        self.web_driver.set_window_size(bbox.x + bbox.width, bbox.y + bbox.height)
-
-        if self.wait_time:
-            time.sleep(self.wait_time)
-
-        self.web_driver.get(svg_path)
-
     def _render_svg(self, svg_path: str) -> Image.Image:
-        self._open_svg(svg_path)
+        self.web_driver.get(svg_path)
 
         buffer = io.BytesIO(self.web_driver.get_screenshot_as_png())
         buffer.seek(0)
@@ -148,7 +120,8 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         # See https://html.spec.whatwg.org/multipage/syntax.html#syntax-tag-omission
         content = '<body style="margin: 0;">' + svg_string + "</body>"
 
-        with temp_file_for_content(content, extension=".html") as path:
+        with temp_file_for_content(content, extension=".html", delete=False) as path:
+            print(f"Saving html to: {path.absolute().as_uri()}")
             return self._render_svg(path.absolute().as_uri())
 
     def render_svg(self, svg: SVG) -> Image.Image:
