@@ -69,8 +69,8 @@ def temp_file_for_content(content: str | bytes, extension: str, delete: bool = F
     # buffering=0 is very important if you want to yield inside
     # Since we don't use the delete option here (we delete manually below)
     # we yield outside of this context
-    # The code below is essentially equivalet to wit open()..write
-    with NamedTemporaryFile(prefix="penai_", suffix=extension, mode=mode, delete=False, buffering=0) as file:
+    # The code below is essentially equivalent to `with open()...write`
+    with NamedTemporaryFile(prefix="penai_", suffix=extension, mode=mode, delete=False) as file:
         file.write(content)
         path = Path(file.name)
     yield path
