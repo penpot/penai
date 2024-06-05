@@ -84,10 +84,41 @@ class PenpotClient:
             # data["~:data"]["~:pages-index"][k] = fragment["~:content"]
         return page
 
-    def get_shape(self, project_id: str, file_id: str, page_id: str, shape_id: str) -> dict:
+    def get_shape(self, project_id: str, file_id: str, page_id: str, shape_id: str) -> TaggedValue:
         page = self.get_page(project_id, file_id, page_id)
         objects = page[Keyword("objects")]
         return objects[UUID(shape_id)]
+
+    def get_shape_recursive_py(
+        self,
+        project_id: str,
+        file_id: str,
+        page_id: str,
+        shape_id: str,
+    ) -> dict:
+        """Gets the representation for the requested shape.
+
+        :param project_id: the project's UUID
+        :param file_id: the file's UUID
+        :param page_id: the page's UUID
+        :param shape_id: the shape's UUID
+        :return: a dictionary representation (containing mostly primitive types)
+            of the shape with all sub-shapes recursively expanded
+        """
+        page = self.get_page(project_id, file_id, page_id)
+        objects = page[Keyword("objects")]
+
+        def py_shape(uuid: str) -> dict:
+            shape = objects[UUID(uuid)]
+            shape_dict = transit_to_py(shape)["shape"]
+            if "shapes" in shape_dict:
+                subshapes = {}
+                for subshape_id in shape_dict["shapes"]:
+                    subshapes[subshape_id] = py_shape(subshape_id)
+                shape_dict["shapes"] = subshapes
+            return shape_dict
+
+        return py_shape(shape_id)
 
 
 def transit_to_py(obj: Any) -> Any:

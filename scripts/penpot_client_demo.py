@@ -11,10 +11,10 @@ if __name__ == '__main__':
     shape = page.svg.get_shape_by_name("ic_equalizer_48px-1")
 
     client = PenpotClient.create_default()
-    result = client.get_shape(
+    result = client.get_shape_recursive_py(
         project_id=saved_penpot_project.get_project_id(),
         file_id=main_file.id,
         page_id=page.id,
         shape_id=shape.id
     )
-    pprint(transit_to_py(result))
+    pprint(result)
