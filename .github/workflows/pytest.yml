@@ -44,6 +44,7 @@ jobs:
         env:
           GOOGLE_STORAGE_KEY: ${{ secrets.GOOGLE_STORAGE_KEY }}
           GOOGLE_STORAGE_SECRET: ${{ secrets.GOOGLE_STORAGE_SECRET }}
+          PP_BACKEND_PASSWORD: ${{ secrets.PP_BACKEND_PASSWORD }}
         run: poetry run poe test
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
