@@ -16,6 +16,7 @@ exclude = ["test/*", "examples/*", "docs/*"]
 [tool.poetry.dependencies]
 python = "^3.11, <3.12"
 accsr = "^0.4.7"
+bs4 = "^0.0.2"
 cryptography = "^42.0.7"
 jsonargparse = "^4.29.0"
 langchain = "^0.2.2"
