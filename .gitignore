@@ -143,3 +143,6 @@ data/
 
 # mac stuff
 .DS_Store
+
+# Penpot stuff
+scripts/gfonts.*
