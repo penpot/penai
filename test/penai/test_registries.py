@@ -1,6 +1,6 @@
 import pytest
 
-from penai.registries import SavedPenpotProject
+from penai.registries.projects import SavedPenpotProject
 
 projects_to_test = [
     SavedPenpotProject.AVATAAARS,

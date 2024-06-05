@@ -168,15 +168,15 @@ class PenpotFile:
 
     @cached_property
     def page_names(self) -> list[str]:
-        return list(self._name2page.keys())
+        return list(self._name_to_page.keys())
 
     @cached_property
-    def _name2page(self) -> dict[str, PenpotPage]:
+    def _name_to_page(self) -> dict[str, PenpotPage]:
         return {page.name: page for page in self.pages.values()}
 
     def get_page_by_name(self, name: str) -> PenpotPage:
         try:
-            return self._name2page[name]
+            return self._name_to_page[name]
         except KeyError as e:
             raise KeyError(
                 f"No page with '{name=}' found in file '{self.name}'. Valid page names are: {self.page_names}",

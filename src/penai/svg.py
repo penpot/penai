@@ -1,16 +1,18 @@
 import re
 from collections import defaultdict
+from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
 from functools import cache
-from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
 from lxml import etree
 from pptree import print_tree
 from selenium.webdriver.remote.webdriver import WebDriver
 from tqdm import tqdm
 
+from penai.registries.web_drivers import RegisteredWebDriver, get_web_driver_for_html
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys
 from penai.utils.svg import (
@@ -27,7 +29,9 @@ if TYPE_CHECKING:
     # whereas the former is a stub but much faster. So at type-checking time, we use the python version of etree.
     from xml import etree
 
-    from penai.registries import RegisteredWebDriver
+    _CustomElementBaseAnnotationClass = BetterElement
+
+_VIEW_BOX_KEY = "viewBox"
 
 
 @dataclass
@@ -51,6 +55,10 @@ class BoundingBox:
             width=self.width + 2 * absolute_margin,
             height=self.height + 2 * absolute_margin,
         )
+
+    @classmethod
+    def from_view_box_string(cls, view_box: str) -> Self:
+        return cls(*map(float, view_box.split()))
 
     def to_view_box_string(self) -> str:
         return f"{self.x} {self.y} {self.width} {self.height}"
@@ -94,15 +102,12 @@ class SVG:
         self.dom = dom
 
     def to_html_string(self) -> str:
-        # Perhaps not valid html but yolo
         return f"<html><body>{self.to_string()}</body></html>"
 
     def retrieve_default_view_box(
         self,
-        web_driver: Union[WebDriver, "RegisteredWebDriver"],
+        web_driver: WebDriver | RegisteredWebDriver,
     ) -> "BoundingBox":
-        from penai.registries import get_web_driver_for_html
-
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
             retrieved_bbox_dom_rect = driver.execute_script(
                 'return document.querySelector("svg").getBBox()',
@@ -111,7 +116,8 @@ class SVG:
         if retrieved_bbox_dom_rect is None:
             raise ValueError(
                 f"Could not find the bbox for svg using {web_driver=}. "
-                f"Are you using a valid WebDriver?",
+                "This is likely caused by an invalid SVG, problems with the WebDriver "
+                "or an actual bug in PenAI.",
             )
         return BoundingBox.from_dom_rect(retrieved_bbox_dom_rect)
 
@@ -318,6 +324,13 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     """
 
     def __init__(self, lxml_element: etree.ElementBase) -> None:
+        # NOTE: The PenpotShapeElement is a shallow wrapper around an lxml element.
+        # Equality, hash and other things are all bound to the lxml element itself
+        # This means that essentially no attributes should be saved in the instances
+        # of ShapeElement directly, as it would break this pattern.
+        # Instead, everything concerning the true state should "forwarded" to
+        # the _lxml_element. See the property _default_view_box for an example
+
         self._lxml_element = lxml_element
         self._depth_in_svg = get_node_depth(lxml_element)
         self._depth_in_shapes = len(self.get_all_parent_shapes())
@@ -327,10 +340,22 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             self.get_penpot_attr(PenpotShapeAttr.TYPE),
         )
 
-        # NOTE: may be too slow at init, then make lazy or remove
         self._child_shapes: list[PenpotShapeElement] = []
 
-        self._default_view_box: BoundingBox | None = None
+    def get_root_element(self) -> BetterElement:
+        return cast(BetterElement, self._lxml_element.getroottree().getroot())
+
+    @property
+    def _default_view_box(self) -> BoundingBox | None:
+        view_box_string = self._lxml_element.attrib.get(_VIEW_BOX_KEY)
+        if view_box_string:
+            return BoundingBox.from_view_box_string(view_box_string)
+        return None
+
+    @_default_view_box.setter
+    def _default_view_box(self, view_box: BoundingBox) -> None:
+        view_box_string = view_box.to_view_box_string()
+        self._lxml_element.attrib[_VIEW_BOX_KEY] = view_box_string
 
     def __getattr__(self, item: str) -> Any:
         return getattr(self._lxml_element, item)
@@ -565,17 +590,52 @@ class PenpotPageSVG(SVG):
             self._max_shape_depth = 0
         self.penpot_shape_elements = shape_els
 
-    @cache
-    def get_shape_by_name(self, name: str) -> PenpotShapeElement:
-        matched_shapes = [shape for shape in self.penpot_shape_elements if shape.name == name]
+    @overload
+    def _get_shapes_by_attr(
+        self,
+        attr_name: str,
+        attr_value: Any,
+        should_be_unique: Literal[True],
+    ) -> PenpotShapeElement:
+        ...
+
+    @overload
+    def _get_shapes_by_attr(
+        self,
+        attr_name: str,
+        attr_value: Any,
+        should_be_unique: Literal[False] = False,
+    ) -> list[PenpotShapeElement]:
+        ...
+
+    def _get_shapes_by_attr(
+        self,
+        attr_name: str,
+        attr_value: Any,
+        should_be_unique: bool = False,
+    ) -> PenpotShapeElement | list[PenpotShapeElement]:
+        matched_shapes = [
+            shape for shape in self.penpot_shape_elements if getattr(shape, attr_name) == attr_value
+        ]
+        if not should_be_unique:
+            return matched_shapes
+
         if len(matched_shapes) == 0:
-            raise KeyError(f"No shape with '{name=}' found")
+            raise KeyError(f"No shape with '{attr_name=}' and '{attr_value=}' found")
         if len(matched_shapes) > 1:
             raise RuntimeError(
-                f"Multiple shapes {len(matched_shapes)=} with '{name=}' found. "
+                f"Multiple shapes {len(matched_shapes)=} with '{attr_name=}' and '{attr_value=}' found. "
                 "This should not happen and could be caused by an implementation error or by a malformed SVG file.",
             )
         return matched_shapes[0]
+
+    @cache
+    def get_shape_by_name(self, name: str) -> PenpotShapeElement:
+        return self._get_shapes_by_attr("name", name, should_be_unique=True)
+
+    @cache
+    def get_shape_by_id(self, shape_id: str) -> PenpotShapeElement:
+        return self._get_shapes_by_attr("shape_id", shape_id, should_be_unique=True)
 
     @property
     def max_shape_depth(self) -> int:
@@ -590,8 +650,9 @@ class PenpotPageSVG(SVG):
 
     def retrieve_and_set_view_boxes_for_shape_elements(
         self,
-        web_driver: Union[WebDriver, "RegisteredWebDriver"],
-        selected_shape_elements: list[PenpotShapeElement] | None = None,
+        web_driver: WebDriver | RegisteredWebDriver,
+        selected_shape_elements: Iterable[PenpotShapeElement] | None = None,
+        show_progress: bool = True,
     ) -> None:
         """Retrieve the default view boxes for all shapes in the SVG and set them on the shapes.
         This is more efficient than setting them one by one, as
@@ -601,10 +662,9 @@ class PenpotPageSVG(SVG):
         :param web_driver:
         :param selected_shape_elements: if None, all shapes in a page will be processed.
             Otherwise, a subset of the page's shapes can be passed.
+        :param show_progress: Whether to show a progress bar.
         :return:
         """
-        from penai.registries import get_web_driver_for_html
-
         if selected_shape_elements is None:
             selected_shape_elements = self.penpot_shape_elements
         else:
@@ -614,9 +674,14 @@ class PenpotPageSVG(SVG):
                 raise ValueError(
                     f"The provided shapes are not a subset of the pages' shape. {non_contained_shape_ids=}",
                 )
+        if show_progress:
+            selected_shape_elements = cast(
+                Iterable[PenpotShapeElement],
+                tqdm(selected_shape_elements, desc="Setting view boxes"),
+            )
 
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
-            for shape_el in tqdm(selected_shape_elements, desc="Setting view boxes"):
+            for shape_el in selected_shape_elements:
                 # Frames will typically have a clip-path that defines the clip mask.
                 if self.type is PenpotShapeType.FRAME and (clip_rect := self.get_clip_rect()) is not None:
                     shape_bbox = clip_rect
