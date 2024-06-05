@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Iterator
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
@@ -294,6 +295,21 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     @property
     def depth_in_shapes(self) -> int:
         return self._depth_in_shapes
+
+    def get_shape_depth(self) -> int:
+        children = list(self.get_direct_children_shapes())
+
+        if not children:
+            return 0
+
+        return 1 + max(child.get_shape_depth() for child in children)
+
+    def iter_children_at_depth(self, depth: int) -> Iterator[Self]:
+        if depth:
+            for child in self.get_direct_children_shapes():
+                yield from child.iter_children_at_depth(depth - 1)
+        else:
+            yield self
 
     @property
     def child_shapes(self) -> list["PenpotShapeElement"]:
