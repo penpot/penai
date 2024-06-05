@@ -30,6 +30,7 @@ resvg-py = "^0.1.5"
 selenium = "^4.21.0"
 tqdm = "^4.66.4"
 webdriver-manager = "^4.0.1"
+cssutils = "^2.11.1"
 
 [tool.poetry.group.dev]
 optional = true
