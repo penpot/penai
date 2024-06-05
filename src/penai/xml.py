@@ -82,7 +82,12 @@ class BetterElement(CustomElement):
         namespaces: dict[str, str] | None = None,
         **kwargs: dict[str, Any],
     ) -> list[Self]:
-        return super().xpath(path, namespaces=namespaces or self.query_compatible_nsmap, **kwargs)
+        namespaces = namespaces or self.query_compatible_nsmap
+
+        # xpath() does not support empty namespaces (applies to both None and empty string)
+        namespaces.pop("", None)
+
+        return super().xpath(path, namespaces=namespaces, **kwargs)
 
     @overload
     def get_namespaced_key(self, key: str) -> str:
@@ -120,3 +125,13 @@ class BetterElement(CustomElement):
     @cached_property
     def localname(self) -> str:
         return etree.QName(self).localname
+
+    @classmethod
+    def create(
+        cls,
+        tag: str,
+        nsmap: dict | None = None,
+        attrib: dict[str, str] | None = None,
+        **extra: str,
+    ) -> Self:
+        return cls.get_parser().makeelement(tag, attrib=attrib, nsmap=nsmap, **extra)

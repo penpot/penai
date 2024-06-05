@@ -41,3 +41,16 @@ class SavedPenpotProject(Enum):
     def load(self, pull: bool = False, force: bool = False) -> PenpotProject:
         project_path = self.get_path(pull=pull, force=force)
         return PenpotProject.from_directory(project_path)
+
+
+# class RegisteredSVGRenderer(Enum):
+#     CHROME_WEB_DRIVER = "chrome_web_driver"
+
+#     @contextmanager
+#     def create_renderer(self) -> Generator[BaseSVGRenderer, None, None]:
+#         match self:
+#             case self.CHROME_WEB_DRIVER:
+#                 with WebDriverSVGRenderer.create_chrome_renderer() as renderer:
+#                     yield renderer
+#             case _:
+#                 raise ValueError(f"Unsupported renderer {self}")
