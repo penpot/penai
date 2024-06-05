@@ -4,7 +4,7 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
-from typing import ParamSpec, Self, TypeVar, TypedDict, Unpack, cast
+from typing import ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
 
 import resvg_py
 from PIL import Image

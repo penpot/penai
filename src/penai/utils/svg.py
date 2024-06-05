@@ -8,8 +8,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
-from PIL import Image
 from lxml import etree
+from PIL import Image
 
 
 def trim_namespace_from_tree(node: etree.Element, namespace: str) -> None:
@@ -54,7 +54,9 @@ def validate_uri(x: Any) -> bool:
 
 
 @contextmanager
-def temp_file_for_content(content: str | bytes, extension: str, delete: bool = False) -> Generator[Path, Any, Any]:
+def temp_file_for_content(
+    content: str | bytes, extension: str, delete: bool = False
+) -> Generator[Path, Any, Any]:
     """Create a temporary file for a given file content."""
     if extension and not extension.startswith("."):
         raise ValueError("Extension should start with a dot")
