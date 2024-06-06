@@ -23,18 +23,16 @@ ENV PATH="${PATH}:/root/.local/bin"
 RUN pipx install poetry
 
 # Set the working directory.
-WORKDIR /app
+WORKDIR /workspace
 
 # Copy the pyproject.toml and poetry.lock files (if available) into the image.
-COPY pyproject.toml poetry.lock* /app/
+COPY pyproject.toml poetry.lock* /workspace/
 
 RUN poetry install --with dev
 
-# Copy the rest of your application code.
-COPY . /app
-
-# Install the actual project
-RUN poetry install --with dev
+# Workspace content will be mounted, we don't need it in the image
+RUN rm -r /workspace/*
 
 # Entrypoint should be a shell in the workdir with poetry shell activated
-ENTRYPOINT ["/bin/bash", "-c", "poetry shell && $0 $@"]
+# Before that, the project should be installed with poetry install
+ENTRYPOINT ["/bin/bash", "-c", "poetry install --with dev && poetry shell && $0 $@"]

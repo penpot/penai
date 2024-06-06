@@ -1,6 +1,10 @@
 {
   "name": "PenAI Project",
   "dockerFile": "../Dockerfile",
+  "workspaceFolder": "/workspace",
+  "postStartCommand": [
+    "poetry install --with dev",
+  ],
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash",
     "python.pythonPath": "/usr/local/bin/python",

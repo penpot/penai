@@ -7,3 +7,4 @@ docs/.jupyter_cache
 .clj-kondo
 docs/_build
 coverage.xml
+docker_build_and_run.sh
