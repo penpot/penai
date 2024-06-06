@@ -397,7 +397,10 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             return False
         return self._lxml_element == other._lxml_element
 
-    def to_svg(self, view_box: BoundingBox | Literal["default"] | None = "default") -> SVG:
+    def to_svg(
+        self,
+        view_box: BoundingBox | Literal["default"] | None = "default",
+    ) -> SVG:
         """Convert the shape to an SVG object.
 
         :param view_box: The view box to set for the SVG. The "default" setting will use the view-box that just fits
@@ -411,7 +414,10 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         if view_box is not None:
             svg_root_attribs["viewBox"] = view_box.to_view_box_string()
         svg_root_attribs["preserveAspectRatio"] = "xMinYMin meet"
-        return SVG.from_root_element(self.get_containing_g_element(), svg_attribs=svg_root_attribs)
+        return SVG.from_root_element(
+            self.get_containing_g_element(),
+            svg_attribs=svg_root_attribs,
+        )
 
     def set_default_view_box(
         self,
@@ -427,7 +433,9 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 "since bbox was not provided, a renderer must be provided to derive the default view box "
                 "from the dom.",
             )
-        self._default_view_box = self.to_svg(view_box=None).retrieve_default_view_box(web_driver)
+        self._default_view_box = self.to_svg(view_box=None).retrieve_default_view_box(
+            web_driver,
+        )
 
     def get_clip_rect(self) -> BoundingBox | None:
         """Objects (maybe only groups?) in SVG can have a `clip-path` attribute that sets the clip mask.
@@ -579,7 +587,12 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         return apply_func_to_nested_keys(hierarchy_dict, lambda k: k.name)
 
     def pprint_hierarchy(self, horizontal: bool = True) -> None:
-        print_tree(self, childattr="child_shapes", nameattr="name", horizontal=horizontal)
+        print_tree(
+            self,
+            childattr="child_shapes",
+            nameattr="name",
+            horizontal=horizontal,
+        )
 
 
 def find_all_penpot_shapes(
