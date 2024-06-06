@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
+from typing import Any, ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
 
 import resvg_py
 from PIL import Image
@@ -25,7 +25,7 @@ class RenderArtifacts:
 
 @dataclass
 class RenderResult:
-    def __init__(self, image: Image.Image, **artifacts):
+    def __init__(self, image: Image.Image, **artifacts: dict[str, Any]):
         self.image = image
         self.artefacts = RenderArtifacts(**artifacts)
 
@@ -57,7 +57,7 @@ class BaseSVGRenderer(abc.ABC):
         svg: SVG,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         pass
 
     @abc.abstractmethod
@@ -85,7 +85,12 @@ class WebDriverSVGRendererParams(TypedDict, total=False):
 class WebDriverSVGRenderer(BaseSVGRenderer):
     SUPPORTS_ALPHA = False
 
-    def __init__(self, webdriver: WebDriver, wait_time: float | None = None, infer_bounding_boxes: bool = False):
+    def __init__(
+        self,
+        webdriver: WebDriver,
+        wait_time: float | None = None,
+        infer_bounding_boxes: bool = False,
+    ):
         self.web_driver = webdriver
         self.wait_time = wait_time
         self.infer_bounding_boxes = infer_bounding_boxes
@@ -117,7 +122,8 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         return f"{dim}px" if dim is not None else "auto"
 
     def _infer_bounding_boxes(self) -> dict[str, BoundingBox]:
-        bboxes_result = self.web_driver.execute_script("""
+        bboxes_result = self.web_driver.execute_script(
+            """
             return Object.fromEntries(
                 Array.from(
                     document.querySelectorAll('[id]')).map(el => [
@@ -125,7 +131,8 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
                     ]
                 )
             );
-        """)
+        """,
+        )
 
         return {
             element_id: BoundingBox.from_dom_rect(bbox)
@@ -137,7 +144,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         svg_path: str,
         width: int | None,
         height: int | None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         self._get(svg_path)
 
         # At this point, the SVG will have been rendered and have the dimensions as specified by
@@ -206,7 +213,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         svg: SVG,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         return self.render_svg_string(svg.to_string(), width=width, height=height)
 
     def render_svg_file(
@@ -240,7 +247,7 @@ class ResvgRenderer(BaseSVGRenderer):
         svg_string: str,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         svg = SVG.from_string(svg_string)
 
         if self.inline_linked_images:
@@ -270,7 +277,7 @@ class ResvgRenderer(BaseSVGRenderer):
         svg_path: PathLike,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         svg_string = Path(svg_path).read_text()
         return self.render_svg_string(svg_string, width=width, height=height)
 
@@ -279,5 +286,5 @@ class ResvgRenderer(BaseSVGRenderer):
         svg: SVG,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         return self.render_svg_string(svg.to_string(), width=width, height=height)
