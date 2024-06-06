@@ -51,7 +51,7 @@ def page_example_svg_path(resources_path: Path) -> Path:
 def log_dir() -> Path:
     log_dir_root = existing_path("test/log")
     session_log_dir = log_dir_root / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    session_log_dir.mkdir(parents=True)
+    session_log_dir.mkdir(parents=True, exist_ok=True)
     return session_log_dir
 
 
