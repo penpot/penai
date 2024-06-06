@@ -57,6 +57,10 @@ class BoundingBox:
             height=self.height + 2 * absolute_margin,
         )
 
+    @property
+    def aspect_ratio(self) -> NonNegativeFloat:
+        return self.width / self.height
+
     @classmethod
     def from_view_box_string(cls, view_box: str) -> Self:
         return cls(*map(float, view_box.split()))
@@ -80,7 +84,9 @@ class BoundingBox:
     @classmethod
     def from_clip_rect(cls, clip_rect_el: Element) -> Self:
         """Create a BoundingBox object from a clipPath rect SVG element."""
-        return cls(*[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")])
+        return cls(
+            *[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")],
+        )
 
 
 class SVG:
