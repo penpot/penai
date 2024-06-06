@@ -30,9 +30,6 @@ COPY pyproject.toml poetry.lock* /workspace/
 
 RUN poetry install --with dev
 
-# Workspace content will be mounted, we don't need it in the image
-RUN rm -r /workspace/*
-
 # Entrypoint should be a shell in the workdir with poetry shell activated
 # Before that, the project should be installed with poetry install
 ENTRYPOINT ["/bin/bash", "-c", "poetry install --with dev && poetry shell && $0 $@"]
