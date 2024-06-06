@@ -173,6 +173,28 @@ class SVG:
             raise ValueError("No view box set.")
         return BoundingBox(*map(float, view_box_str.split()))
 
+    def set_dimensions(
+        self,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> None:
+        if not width and not height:
+            raise ValueError("At least one of width or height must be provided.")
+
+        aspect_ratio = self.get_view_box().aspect_ratio
+
+        root = self.dom.getroot()
+
+        if width is not None:
+            root.attrib["width"] = str(width)
+        elif height is not None:
+            root.attrib["width"] = str(round(height * aspect_ratio))
+
+        if height is not None:
+            root.attrib["height"] = str(height)
+        elif width is not None:
+            root.attrib["height"] = str(round(width / aspect_ratio))
+
     @classmethod
     def from_file(cls, path: PathLike) -> Self:
         return cls(dom=BetterElement.parse_file(path))
