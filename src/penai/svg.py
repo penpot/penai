@@ -89,10 +89,6 @@ class BoundingBox:
             *[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")],
         )
 
-    @property
-    def aspect_ratio(self) -> float:
-        return self.width / self.height
-
 
 class SVG:
     """A simple wrapper around an `ElementTree` that is based on `BetterElement` as nodes in the tree.
@@ -739,6 +735,10 @@ class PenpotPageSVG(SVG):
 
     def get_shape_by_id(self, shape_id: str) -> PenpotShapeElement:
         return self._get_shapes_by_attr("shape_id", shape_id, should_be_unique=True)
+
+    @property
+    def penpot_shape_elements(self) -> list[PenpotShapeElement]:
+        return self._shape_elements
 
     @property
     def max_shape_depth(self) -> int:
