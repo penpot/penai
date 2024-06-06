@@ -1,5 +1,7 @@
 import re
 import uuid
+from collections.abc import Callable
+from enum import Enum, StrEnum
 
 from penai.config import get_config
 from penai.llm.conversation import Conversation, Response
@@ -7,6 +9,49 @@ from penai.llm.llm_model import RegisteredLLM
 from penai.svg import SVG, PenpotShapeElement
 
 cfg = get_config()
+
+
+class VariationLogicSnippet(StrEnum):
+    SHAPES_COLORS_POSITIONS = (
+        "Modify shapes, foreground colors and relative positioning, "
+        "but stay close to the original design. "
+    )
+
+
+def get_default_variation_prefix(num_variations: int) -> str:
+    """Returns the default prefix for prompts that create variations."""
+    return f"Create {num_variations} variations of the SVG."
+
+
+def get_default_variations_format_description() -> str:
+    """Returns the default format description for prompts that create variations."""
+    return """For each variation, create a level 2 heading (markdown prefix `## `) that names
+the variation followed by the respective code snippet."""
+
+
+def get_default_variations_prompt(
+    num_variations: int = 5,
+    variation_logic: str | VariationLogicSnippet = VariationLogicSnippet.SHAPES_COLORS_POSITIONS,
+) -> str:
+    """Returns the default prompt for variations."""
+    prefix = get_default_variation_prefix(num_variations)
+    format_description = get_default_variations_format_description()
+    return f"{prefix}\n{variation_logic}\n{format_description}"
+
+
+class VariationPromptFactory(Enum):
+    DEFAULT = "DEFAULT"
+
+    def get_factory(self) -> Callable[[int, str], str]:
+        """Returns the default prompt factory for the variation prompt.
+
+        The factory will map the number of variations and the variation logic to a prompt string.
+        """
+        match self:
+            case VariationPromptFactory.DEFAULT:
+                return get_default_variations_prompt
+            case _:
+                raise NotImplementedError(self)
 
 
 def transform_generated_svg_code(svg_code: str) -> str:
@@ -32,7 +77,7 @@ def transform_generated_svg_code(svg_code: str) -> str:
 
 
 class SVGVariationsResponse(Response):
-    def get_variations_dict(self) -> dict:
+    def get_variations_dict(self) -> dict[str, str]:
         return {
             k: transform_generated_svg_code(svg_code)
             for k, svg_code in self.get_code_in_sections(2).items()
@@ -82,30 +127,48 @@ class SVGVariationsGenerator:
         shape: PenpotShapeElement,
         semantics: str,
         verbose: bool = True,
-        num_variations: int = 5,
     ):
-        self.conversation = SVGVariationsConversation(verbose=verbose)
         self.semantics = semantics
-        self.num_variations = num_variations
 
         # create simplified SVG (without the bloat)
         self.svg = shape.to_svg()
         self.svg.strip_penpot_tags()
+        self.verbose = verbose
 
-    def create_variations(self) -> SVGVariations:
-        self.conversation.query(
+    def _create_conversation(self) -> SVGVariationsConversation:
+        return SVGVariationsConversation(verbose=self.verbose)
+
+    def get_svg_refactoring_prompt(self) -> str:
+        return (
             f"The semantics of the following SVG can be summarized using the term(s) '{self.semantics}'. "
             "Refactor the SVG to make the shapes that are being used explicit (where applicable), "
             "making use of the respective shape tags (rect, circle, ellipse, etc.) whenever possible. "
             "Be sure to maintain any cutouts that are present in the original SVG by using appropriate masks.\n\n"
-            f"```{self.svg.to_string()}```",
+            f"```{self.svg.to_string()}```"
         )
 
-        response = self.conversation.query_response(
-            f"Create {self.num_variations} variations of the SVG. "
-            f"Modify shapes, foreground colors and relative positioning, but stay close to the original design. "
-            "For each variation, create a level 2 heading (markdown prefix `## `) that names the variation "
-            "followed by the respective code snippet.",
-        )
+    def create_variations(
+        self,
+        num_variations: int = 5,
+        variation_logic: str
+        | VariationLogicSnippet = VariationLogicSnippet.SHAPES_COLORS_POSITIONS,
+    ) -> SVGVariations:
+        refactoring_prompt = self.get_svg_refactoring_prompt()
+        logic_prompt = get_default_variations_prompt(num_variations, variation_logic)
+        conversation = self._create_conversation()
+        conversation.query(refactoring_prompt)
+
+        response = conversation.query_response(logic_prompt)
         variations_dict = response.get_code_in_sections(2)
-        return SVGVariations(self.svg, variations_dict, self.conversation)
+        return SVGVariations(self.svg, variations_dict, conversation)
+
+    # TODO: we can save tokens by branching off after the refactoring query instead of resetting
+    def query_free_prompt(
+        self,
+        prompt: str,
+        include_svg_refactoring_query: bool = True,
+    ) -> tuple[SVGVariationsResponse, SVGVariationsConversation]:
+        conversation = self._create_conversation()
+        if include_svg_refactoring_query:
+            conversation.query(self.get_svg_refactoring_prompt())
+        return conversation.query_response(prompt), conversation

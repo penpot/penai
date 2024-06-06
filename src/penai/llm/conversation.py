@@ -19,7 +19,7 @@ class Response:
     def get_code_in_sections(self, heading_level: int) -> dict[str, str]:
         """Retrieves code snippets in the response that appear under a certain heading level.
 
-        :param heading_level: the heading level (e.g. 2 for markdown prefix `## `)
+        :param heading_level: the heading level (e.g. 2 for markdown prefix "## ")
         :return: a mapping from heading captions to code snippets
         """
         result = {}
