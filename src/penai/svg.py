@@ -89,6 +89,10 @@ class BoundingBox:
             *[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")],
         )
 
+    @property
+    def aspect_ratio(self) -> float:
+        return self.width / self.height
+
 
 class SVG:
     """A simple wrapper around an `ElementTree` that is based on `BetterElement` as nodes in the tree.

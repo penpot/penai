@@ -69,9 +69,10 @@ class WebDriverSVGRendererParams(TypedDict, total=False):
 class WebDriverSVGRenderer(BaseSVGRenderer):
     SUPPORTS_ALPHA = False
 
-    def __init__(self, webdriver: WebDriver, wait_time: float | None = None):
+    def __init__(self, webdriver: WebDriver, wait_time: float | None = None, scale: float = 1.0):
         self.web_driver = webdriver
         self.wait_time = wait_time
+        self.scale = scale
 
     @classmethod
     @contextmanager

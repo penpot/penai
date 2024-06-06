@@ -1,8 +1,12 @@
-from copy import copy, deepcopy
+from pathlib import Path
 
+import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 from selenium.webdriver.remote.webdriver import WebDriver
 
+from penai.registries.projects import SavedPenpotProject
+from penai.render import BaseSVGRenderer
 from penai.svg import PenpotPageSVG, PenpotShapeElement
 
 
@@ -73,7 +77,9 @@ class TestPenpotPage:
         original_shape_bbox = penpot_shape_el.get_default_view_box(chrom_web_driver)
 
         # computing viewbox for all shapes in the page
-        penpot_page_svg.retrieve_and_set_view_boxes_for_shape_elements(chrom_web_driver, show_progress=False)
+        penpot_page_svg.retrieve_and_set_view_boxes_for_shape_elements(
+            chrom_web_driver, show_progress=False,
+        )
         shape_from_page = penpot_page_svg.get_shape_by_id(penpot_shape_el.shape_id)
 
         # shape elements should be equal
@@ -82,3 +88,54 @@ class TestPenpotPage:
         assert penpot_shape_el.get_default_view_box() == original_shape_bbox
 
         assert penpot_shape_el.to_svg().get_view_box() == original_shape_bbox
+
+    @staticmethod
+    def test_removing_shapes_without_content(
+        example_project: SavedPenpotProject,
+        chrome_svg_renderer: BaseSVGRenderer,
+        log_dir: Path,
+    ) -> None:
+        # TODO: this adds a relatively large delay to the tests.
+        # We should consider reducing the number of files or pages we test on.
+        for file in example_project.load().files.values():
+            for page in file.pages.values():
+                shapes_before = list(page.svg.penpot_shape_elements)
+                img_before = chrome_svg_renderer.render_svg(page.svg, width=2000)
+
+                page.svg.remove_elements_with_no_visible_content()
+
+                shapes_after = list(page.svg.penpot_shape_elements)
+
+                assert len(shapes_before) >= len(shapes_after)
+
+                img_after = chrome_svg_renderer.render_svg(page.svg, width=2000)
+
+                img_before_arr = np.array(img_before) / 255.0
+                img_after_arr = np.array(img_after) / 255.0
+
+                if not np.allclose(img_before_arr, img_after_arr, atol=0.5):
+                    fig, (before_ax, after_ax, diff_ax) = plt.subplots(1, 3, figsize=(40, 10))
+
+                    before_ax.imshow(img_before)
+                    before_ax.set_title("Before")
+
+                    after_ax.imshow(img_after)
+                    after_ax.set_title("After")
+
+                    diff = abs(img_before_arr - img_after_arr)
+
+                    diff_ax.imshow(diff)
+                    diff_ax.set_title("Diff")
+
+                    fig.savefig(
+                        save_path := (
+                            log_dir
+                            / f"removing_shapes_without_content_{example_project.name}.png"
+                        ),
+                        bbox_inches='tight',
+                        dpi=400,
+                    )
+
+                    raise AssertionError(
+                        f"Images do not match. Max diff of {np.max(diff)} between the two versions. Saved to file://{save_path} for visual inspection.",
+                    )
