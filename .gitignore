@@ -3,6 +3,7 @@
 config_local.json
 temp
 test/log
+/*.iml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -143,3 +144,6 @@ data/
 
 # mac stuff
 .DS_Store
+
+# Penpot stuff
+scripts/gfonts.*

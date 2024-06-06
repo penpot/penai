@@ -1,0 +1,26 @@
+<svg viewBox="1088 346 3320 3321" version="1.1" xmlns="http://www.w3.org/2000/svg"
+     xmlns:penpot="https://penpot.app/xmlns"
+     style="width:100%;height:100%;background:#E8E9EA" fill="none">
+    <g id="shape-76ead8ec-83db-803d-8004-697e69d8581d">
+        <penpot:shape penpot:name="bg-6" penpot:type="rect"
+                      penpot:transform="matrix(1.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000)"
+                      penpot:transform-inverse="matrix(1.000000, -0.000000, -0.000000, 1.000000, 0.000000, 0.000000)"
+                      penpot:proportion="1" penpot:proportion-lock="false" penpot:rotation="0"
+                      penpot:center-x="2584" penpot:center-y="1319"
+                      penpot:constraints-h="leftright" penpot:constraints-v="topbottom"
+                      penpot:stroke-color-ref-id="76ead8ec-83db-803d-8004-697dc911be84"
+                      penpot:stroke-color-ref-file="76ead8ec-83db-803d-8004-697dad54d69a"
+                      penpot:shape-ref="76ead8ec-83db-803d-8004-697e69d8581c">
+            <penpot:svg-import></penpot:svg-import>
+            <penpot:fills>
+                <penpot:fill penpot:fill-color="#8a16ff" penpot:fill-opacity="1"></penpot:fill>
+            </penpot:fills>
+        </penpot:shape>
+        <defs></defs>
+        <g class="fills" id="fills-76ead8ec-83db-803d-8004-697e69d8581d">
+            <rect rx="24" ry="24" x="2512" y="1295"
+                  transform="matrix(1.000000, 0.000000, 0.000000, 1.000000, -0.000021, -0.000046)"
+                  width="144" height="48" style="fill:#8a16ff;fill-opacity:1"></rect>
+        </g>
+    </g>
+</svg>

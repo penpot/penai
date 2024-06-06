@@ -1,15 +1,15 @@
 import abc
 import io
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from functools import wraps
 from pathlib import Path
 from typing import ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
 
 import resvg_py
 from PIL import Image
+from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from penai.svg import SVG, BoundingBox
@@ -25,12 +25,12 @@ class RenderArtifacts:
 
 @dataclass
 class RenderResult:
-    def __init__(self, image: Image.Image, **artefacts):
+    def __init__(self, image: Image.Image, **artifacts):
         self.image = image
-        self.artefacts = RenderArtifacts(**artefacts)
+        self.artefacts = RenderArtifacts(**artifacts)
 
     image: Image.Image
-    artefacts: RenderArtifacts
+    artifacts: RenderArtifacts
 
 
 class BaseSVGRenderer(abc.ABC):
@@ -43,12 +43,21 @@ class BaseSVGRenderer(abc.ABC):
     SUPPORTS_ALPHA: bool
 
     @abc.abstractmethod
-    def render_svg(
+    def render_svg_string(
         self,
         svg_string: str,
         width: int | None = None,
         height: int | None = None,
     ) -> RenderResult:
+        pass
+
+    @abc.abstractmethod
+    def render_svg(
+        self,
+        svg: SVG,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> Image.Image:
         pass
 
     @abc.abstractmethod
@@ -69,21 +78,6 @@ Param = ParamSpec("Param")
 RetType = TypeVar("RetType")
 
 
-def _size_arguments_not_supported(
-    fn: Callable[Param, RetType],
-) -> Callable[Param, RetType]:
-    @wraps(fn)
-    def wrapper(*args: Param.args, **kwargs: Param.kwargs) -> RetType:
-        if kwargs.get("width") or kwargs.get("height"):
-            raise NotImplementedError(
-                "Specifying width or height is currently not supported by this renderer",
-            )
-
-        return fn(*args, **kwargs)
-
-    return wrapper
-
-
 class WebDriverSVGRendererParams(TypedDict, total=False):
     wait_time: float | None
 
@@ -91,9 +85,10 @@ class WebDriverSVGRendererParams(TypedDict, total=False):
 class WebDriverSVGRenderer(BaseSVGRenderer):
     SUPPORTS_ALPHA = False
 
-    def __init__(self, webdriver: WebDriver, wait_time: float | None = None):
+    def __init__(self, webdriver: WebDriver, wait_time: float | None = None, infer_bounding_boxes: bool = False):
         self.web_driver = webdriver
         self.wait_time = wait_time
+        self.infer_bounding_boxes = infer_bounding_boxes
 
     @classmethod
     @contextmanager
@@ -105,37 +100,23 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         with create_chrome_web_driver() as driver:
             yield cls(driver, **kwargs)
 
-    def _open_svg(self, svg_path: str) -> None:
-        self.web_driver.get(svg_path)
-
-        # TODO: Wait until content is displayed instead of a fixed time
-        # See for instance https://www.selenium.dev/documentation/webdriver/waits/
-
+    def _get(self, url: str) -> None:
+        # It's not totally clear when an explicit wait time is needed.
+        # For the Chrome web driver, get() seems to be blocking until the page is loaded
+        # but this might be different for other web drivers or if external resources are loaded
+        # in an asynchronous fashion.
         if self.wait_time:
             time.sleep(self.wait_time)
 
-        # Determine the size of the SVG element and set the window size accordingly
-        root_bbox = BoundingBox.from_dom_rect(
-            self.web_driver.execute_script(
-                "return document.querySelector('svg').getBoundingClientRect();",
-            ),
-        )
+        self.web_driver.get(url)
 
-        assert (
-            root_bbox.x >= 0 and root_bbox.y >= 0
-        ), f"Bounding box origin should be non-negative, got ({root_bbox.x}, {root_bbox.y})"
+    def _dim_to_css(self, dim: int | None) -> str:
+        # Note that contrary to common believe, a "px" does not necessarily correspond to a physical pixel
+        # but is defined to correspond to 1/96th of an inch. However, under normal circumstances, this will
+        # correspond to a physical pixel in typical desktop environments.
+        return f"{dim}px" if dim is not None else "auto"
 
-        self.web_driver.set_window_size(root_bbox.x + root_bbox.width, root_bbox.y + root_bbox.height)
-
-        if self.wait_time:
-            time.sleep(self.wait_time)
-
-        self.web_driver.get(svg_path)
-
-    def _render_svg(self, svg_path: str) -> RenderResult:
-        self._open_svg(svg_path)
-
-        # TODO: put this into a JS file and just load it here
+    def _infer_bounding_boxes(self) -> dict[str, BoundingBox]:
         bboxes_result = self.web_driver.execute_script("""
             return Object.fromEntries(
                 Array.from(
@@ -146,20 +127,62 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
             );
         """)
 
-        bboxes = {
+        return {
             element_id: BoundingBox.from_dom_rect(bbox)
             for element_id, bbox in bboxes_result.items()
         }
 
-        buffer = io.BytesIO(self.web_driver.get_screenshot_as_png())
+    def _render_svg(
+        self,
+        svg_path: str,
+        width: int | None,
+        height: int | None,
+    ) -> Image.Image:
+        self._get(svg_path)
+
+        # At this point, the SVG will have been rendered and have the dimensions as specified by
+        # the width and height attributes of the <svg>-element or corresponding to the default
+        # size of the browser window if width and height are set to "100%" or not specified.
+        # Since the size of the browser window might be too small not, we have to determine the necessary
+        # size and set it accordingly.
+
+        # If `width` or/and `height` are provided, we first set the element dimensions to the provided values
+        # and then resize the window to the actual size of the SVG element.
+        # Otherwise we will try to infer a default size from the SVG's view box.
+        if width or height:
+            style = f"width: {self._dim_to_css(width)}; height: {self._dim_to_css(height)};"
+            self.web_driver.execute_script(
+                f"document.querySelector('svg').setAttribute('style', '{style}');",
+            )
+        else:
+            view_box = SVG.from_file(svg_path).get_view_box()
+            self.web_driver.set_window_size(view_box.width, view_box.height)
+
+        bbox = BoundingBox.from_dom_rect(
+            self.web_driver.execute_script(
+                "return document.querySelector('svg').getBoundingClientRect();",
+            ),
+        )
+
+        # Set the window size to the size of the SVG element, assuming that it is placed at the origin.
+        # We add a small buffer to the window size to account for margins, scrollbars, etc.
+        self.web_driver.set_window_size(bbox.width + 32, bbox.height + 32)
+
+        svg_el = self.web_driver.find_element(By.CSS_SELECTOR, "svg")
+
+        artifacts = {}
+
+        if self.infer_bounding_boxes:
+            artifacts["bounding_boxes"] = self._infer_bounding_boxes()
+
+        buffer = io.BytesIO(svg_el.screenshot_as_png)
         buffer.seek(0)
 
         image = Image.open(buffer).convert("RGB")
 
-        return RenderResult(image=image, bounding_boxes=bboxes)
+        return RenderResult(image=image, **artifacts)
 
-    @_size_arguments_not_supported
-    def render_svg(
+    def render_svg_string(
         self,
         svg_string: str,
         width: int | None = None,
@@ -171,17 +194,21 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         :param width: The width of the rendered image. Currently not supported.
         :param height: The height of the rendered image. Currently not supported.
         """
-        # The svg element needs to be wrapped in a <body> element.
-        # Otherwise the SVG element bounding box will take on the size of the whole screen,
-        # but only within the web driver and not a *normal* Chrome instance for some yet unknown reason.
-        # And yes, the <HTML> tag can be omitted.
-        # See https://html.spec.whatwg.org/multipage/syntax.html#syntax-tag-omission
-        content = '<body style="margin: 0;">' + svg_string + "</body>"
+        with temp_file_for_content(svg_string, extension=".svg") as path:
+            return self._render_svg(
+                path.absolute().as_uri(),
+                width=width,
+                height=height,
+            )
 
-        with temp_file_for_content(content, extension=".html") as path:
-            return self._render_svg(path.absolute().as_uri())
+    def render_svg(
+        self,
+        svg: SVG,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> Image.Image:
+        return self.render_svg_string(svg.to_string(), width=width, height=height)
 
-    @_size_arguments_not_supported
     def render_svg_file(
         self,
         svg_path: PathLike,
@@ -194,36 +221,50 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         :param width: The width of the rendered image. Currently not supported.
         :param height: The height of the rendered image. Currently not supported.
         """
-        return self.render_svg(Path(svg_path).read_text())
+        return self.render_svg_string(
+            Path(svg_path).read_text(),
+            width=width,
+            height=height,
+        )
 
 
 class ResvgRenderer(BaseSVGRenderer):
     SUPPORTS_ALPHA = True
 
-    def __init__(self, inline_linked_images: bool = True):
+    def __init__(self, inline_linked_images: bool = True, dpi: int | None = None):
         self.inline_linked_images = inline_linked_images
+        self.dpi = dpi
 
-    @_size_arguments_not_supported
-    def render_svg(
+    def render_svg_string(
         self,
         svg_string: str,
         width: int | None = None,
         height: int | None = None,
-    ) -> RenderResult:
+    ) -> Image.Image:
+        svg = SVG.from_string(svg_string)
+
         if self.inline_linked_images:
-            svg = SVG.from_string(svg_string)
             svg.inline_images()
-            svg_string = svg.to_string()
+
+        if width or height:
+            svg.set_dimensions(width=width, height=height)
+
+        svg_string = svg.to_string()
 
         # resvg_py.svg_to_bytes seem to be have a wrong type hint as itr
         # returns a list of ints while it's annotated to return list[bytes]
-        image = image_from_bytes(
-            bytes(cast(list[int], resvg_py.svg_to_bytes(svg_string=svg_string))),
+        result = cast(
+            list[int],
+            resvg_py.svg_to_bytes(
+                svg_string=svg_string,
+                width=width,
+                height=height,
+                dpi=self.dpi,
+            ),
         )
 
-        return RenderResult(image=image)
+        return RenderResult(image=image_from_bytes(bytes(result)))
 
-    @_size_arguments_not_supported
     def render_svg_file(
         self,
         svg_path: PathLike,
@@ -231,4 +272,12 @@ class ResvgRenderer(BaseSVGRenderer):
         height: int | None = None,
     ) -> Image.Image:
         svg_string = Path(svg_path).read_text()
-        return self.render_svg(svg_string)
+        return self.render_svg_string(svg_string, width=width, height=height)
+
+    def render_svg(
+        self,
+        svg: SVG,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> Image.Image:
+        return self.render_svg_string(svg.to_string(), width=width, height=height)

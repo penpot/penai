@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
-from functools import cache
+from functools import cached_property
 from pathlib import Path
 from typing import Generic, Self, TypeVar
 from uuid import UUID
@@ -57,6 +57,7 @@ class Dimensions:
         if self.width < 0 or self.height < 0:
             raise ValueError("Width and height must be non-negative")
 
+    # TODO: end the toxic non-relationship with BoundingBox
     @classmethod
     def from_bbox(cls, left: float, top: float, right: float, bottom: float) -> Self:
         return cls(
@@ -99,7 +100,6 @@ class PenpotComponentDict(dict[str, PenpotComponent]):
     def get_component_names(self) -> list[str]:
         return [component.name for component in self.values()]
 
-    @cache
     def get_by_name(self, name: str) -> PenpotComponent:
         # This can definitely be implemented more efficiently but since the number
         # of components per file is typically very small, this shouldn't become
@@ -155,12 +155,31 @@ class PenpotFile:
     id: str
     name: str
     pages: dict[str, PenpotPage]
+    """Maps page ids to PenpotPage objects.
+    A page is in one to one correspondence to an svg file, and the page id is
+    the filename without the '.svg' extension."""
     components: PenpotComponentDict
 
     # TODO: Implement when needed
     # colors: list[PenpotColor]
     # mediaItems: list[PenpotMediaItem]
     # typography: list[PenpotTypography]
+
+    @cached_property
+    def page_names(self) -> list[str]:
+        return list(self._name_to_page.keys())
+
+    @cached_property
+    def _name_to_page(self) -> dict[str, PenpotPage]:
+        return {page.name: page for page in self.pages.values()}
+
+    def get_page_by_name(self, name: str) -> PenpotPage:
+        try:
+            return self._name_to_page[name]
+        except KeyError as e:
+            raise KeyError(
+                f"No page with '{name=}' found in file '{self.name}'. Valid page names are: {self.page_names}",
+            ) from e
 
     @classmethod
     def from_schema_and_dir(cls, schema: PenpotFileDetailsSchema, file_dir: PathLike) -> Self:

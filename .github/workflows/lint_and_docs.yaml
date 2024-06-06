@@ -8,16 +8,28 @@ on:
   push:
     branches:
         - main
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'ci skip')"
     permissions:
       id-token: write
       pages: write
       actions: write
       contents: read
     steps:
+      # Enable tmate debugging of manually-triggered workflows if the input option was provided
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       - name: Cancel previous run
         uses: styfle/cancel-workflow-action@0.11.0
         with:
@@ -47,6 +59,10 @@ jobs:
       - name: Types
         run: poetry run poe type-check
       - name: Docs
+        env:
+          GOOGLE_STORAGE_KEY: ${{ secrets.GOOGLE_STORAGE_KEY }}
+          GOOGLE_STORAGE_SECRET: ${{ secrets.GOOGLE_STORAGE_SECRET }}
+          PP_BACKEND_PASSWORD: ${{ secrets.PP_BACKEND_PASSWORD }}
         run: poetry run poe doc-build
 #      - name: Upload artifact
 #        uses: actions/upload-pages-artifact@v2

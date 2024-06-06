@@ -53,6 +53,14 @@ class __Configuration(DefaultDataConfiguration):
     def get_openai_client(self, timeout: int = 100) -> OpenAI:
         return OpenAI(api_key=self.openai_api_key, timeout=timeout)
 
+    @property
+    def penpot_user(self) -> str:
+        return cast(str, self._get_non_empty_entry(["penpot_backend", "user"]))
+
+    @property
+    def penpot_password(self) -> str:
+        return cast(str, self._get_non_empty_entry(["penpot_backend", "password"]))
+
 
 class ConfigProvider(ConfigProviderBase[__Configuration]):
     pass
