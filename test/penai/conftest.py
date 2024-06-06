@@ -1,13 +1,15 @@
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 import pytest
-from pytest import MonkeyPatch
+from pytest import FixtureRequest, MonkeyPatch
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from penai.config import top_level_directory
+from penai.registries.projects import SavedPenpotProject
+from penai.render import BaseSVGRenderer, WebDriverSVGRenderer
 from penai.types import PathLike
 from penai.utils.web_drivers import create_chrome_web_driver
 
@@ -57,3 +59,18 @@ def log_dir() -> Path:
 def chrom_web_driver() -> Generator[WebDriver, Any, Any]:
     with create_chrome_web_driver() as driver:
         yield driver
+
+
+@pytest.fixture(scope="session")
+def chrome_svg_renderer(chrom_web_driver: WebDriver) -> Iterable[BaseSVGRenderer]:
+    return WebDriverSVGRenderer(chrom_web_driver)
+
+
+@pytest.fixture(params=[
+    SavedPenpotProject.AVATAAARS,
+    SavedPenpotProject.BLACK_AND_WHITE_MOBILE_TEMPLATES,
+    SavedPenpotProject.MATERIAL_DESIGN_3,
+])
+def example_project(request: FixtureRequest) -> SavedPenpotProject:
+    return request.param
+
