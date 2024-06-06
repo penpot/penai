@@ -100,7 +100,7 @@ class TestPenpotPage:
         for file in example_project.load().files.values():
             for page in file.pages.values():
                 shapes_before = list(page.svg.penpot_shape_elements)
-                img_before = chrome_svg_renderer.render_svg(page.svg, width=2000)
+                img_before = chrome_svg_renderer.render_svg(page.svg, width=2000).image
 
                 page.svg.remove_elements_with_no_visible_content()
 
@@ -108,7 +108,7 @@ class TestPenpotPage:
 
                 assert len(shapes_before) >= len(shapes_after)
 
-                img_after = chrome_svg_renderer.render_svg(page.svg, width=2000)
+                img_after = chrome_svg_renderer.render_svg(page.svg, width=2000).image
 
                 img_before_arr = np.array(img_before) / 255.0
                 img_after_arr = np.array(img_after) / 255.0
