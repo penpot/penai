@@ -157,9 +157,19 @@ class SVG:
     def set_default_view_box_from_web_driver(self, web_driver: WebDriver) -> None:
         self.set_view_box(self.retrieve_default_view_box(web_driver))
 
-    def get_view_box(self) -> "BoundingBox":
+    def get_view_box(self) -> BoundingBox:
         view_box_str = self.dom.getroot().attrib.get("viewBox")
         if view_box_str is None:
+            # If a view box is not explicitly set, we can try to derive it from the width and height attributes.
+            # This seems to the default behavior of Chrome.
+            root = self.dom.getroot()
+
+            width = root.get("width")
+            height = root.get("height")
+
+            if width and height:
+                return BoundingBox(0, 0, float(width), float(height))
+
             raise ValueError("No view box set.")
         return BoundingBox(*map(float, view_box_str.split()))
 
