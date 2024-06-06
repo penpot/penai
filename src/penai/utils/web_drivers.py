@@ -10,13 +10,16 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 
 @contextmanager
-def create_chrome_web_driver() -> Generator[WebDriver, Any, Any]:
+def create_chrome_web_driver(headless: bool = True) -> Generator[WebDriver, Any, Any]:
     """Helper function to instantiate a Chrome WebDriver instance with all options we need."""
     driver = None
 
     try:
         chrome_options = Options()
-        chrome_options.add_argument("--headless")
+
+        if headless:
+            chrome_options.add_argument("--headless")
+
         chrome_options.add_argument("--disable-gpu")
 
         # The screenshot size might deviate from the actual SVG size on high-dpi devices with a device scale factor != 1.0
