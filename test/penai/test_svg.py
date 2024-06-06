@@ -178,9 +178,12 @@ class TestPenpotPage:
         renderer = resvg_renderer
 
         def hook(file: PenpotFile, page: PenpotPage) -> bool | None:
-            # Choose a random high-level shape to remove
             try:
-                visible_shape = random.choice(page.svg.get_shape_elements_at_depth(0))
+                # Choose a random visible top-level shape to remove
+                top_level_shapes = page.svg.get_shape_elements_at_depth(0)
+                visible_shape = random.choice(
+                    [shape for shape in top_level_shapes if shape.produces_visible_content],
+                )
             except IndexError:
                 return False
 
