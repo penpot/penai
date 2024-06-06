@@ -1,5 +1,3 @@
-from copy import copy, deepcopy
-
 import pytest
 from selenium.webdriver.remote.webdriver import WebDriver
 
