@@ -57,6 +57,10 @@ class BoundingBox:
             height=self.height + 2 * absolute_margin,
         )
 
+    @property
+    def aspect_ratio(self) -> NonNegativeFloat:
+        return self.width / self.height
+
     @classmethod
     def from_view_box_string(cls, view_box: str) -> Self:
         return cls(*map(float, view_box.split()))
@@ -80,7 +84,9 @@ class BoundingBox:
     @classmethod
     def from_clip_rect(cls, clip_rect_el: Element) -> Self:
         """Create a BoundingBox object from a clipPath rect SVG element."""
-        return cls(*[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")])
+        return cls(
+            *[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")],
+        )
 
 
 class SVG:
@@ -151,11 +157,43 @@ class SVG:
     def set_default_view_box_from_web_driver(self, web_driver: WebDriver) -> None:
         self.set_view_box(self.retrieve_default_view_box(web_driver))
 
-    def get_view_box(self) -> "BoundingBox":
+    def get_view_box(self) -> BoundingBox:
         view_box_str = self.dom.getroot().attrib.get("viewBox")
         if view_box_str is None:
+            # If a view box is not explicitly set, we can try to derive it from the width and height attributes.
+            # This seems to the default behavior of Chrome.
+            root = self.dom.getroot()
+
+            width = root.get("width")
+            height = root.get("height")
+
+            if width and height:
+                return BoundingBox(0, 0, float(width), float(height))
+
             raise ValueError("No view box set.")
         return BoundingBox(*map(float, view_box_str.split()))
+
+    def set_dimensions(
+        self,
+        width: int | None = None,
+        height: int | None = None,
+    ) -> None:
+        if not width and not height:
+            raise ValueError("At least one of width or height must be provided.")
+
+        aspect_ratio = self.get_view_box().aspect_ratio
+
+        root = self.dom.getroot()
+
+        if width is not None:
+            root.attrib["width"] = str(width)
+        elif height is not None:
+            root.attrib["width"] = str(round(height * aspect_ratio))
+
+        if height is not None:
+            root.attrib["height"] = str(height)
+        elif width is not None:
+            root.attrib["height"] = str(round(width / aspect_ratio))
 
     @classmethod
     def from_file(cls, path: PathLike) -> Self:
@@ -359,7 +397,10 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             return False
         return self._lxml_element == other._lxml_element
 
-    def to_svg(self, view_box: BoundingBox | Literal["default"] | None = "default") -> SVG:
+    def to_svg(
+        self,
+        view_box: BoundingBox | Literal["default"] | None = "default",
+    ) -> SVG:
         """Convert the shape to an SVG object.
 
         :param view_box: The view box to set for the SVG. The "default" setting will use the view-box that just fits
@@ -373,7 +414,10 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         if view_box is not None:
             svg_root_attribs["viewBox"] = view_box.to_view_box_string()
         svg_root_attribs["preserveAspectRatio"] = "xMinYMin meet"
-        return SVG.from_root_element(self.get_containing_g_element(), svg_attribs=svg_root_attribs)
+        return SVG.from_root_element(
+            self.get_containing_g_element(),
+            svg_attribs=svg_root_attribs,
+        )
 
     def set_default_view_box(
         self,
@@ -389,7 +433,9 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 "since bbox was not provided, a web_driver must be provided to derive the default view box "
                 "from the dom.",
             )
-        self._default_view_box = self.to_svg(view_box=None).retrieve_default_view_box(web_driver)
+        self._default_view_box = self.to_svg(view_box=None).retrieve_default_view_box(
+            web_driver,
+        )
 
     def get_clip_rect(self) -> BoundingBox | None:
         """Objects (maybe only groups?) in SVG can have a `clip-path` attribute that sets the clip mask.
@@ -541,7 +587,12 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         return apply_func_to_nested_keys(hierarchy_dict, lambda k: k.name)
 
     def pprint_hierarchy(self, horizontal: bool = True) -> None:
-        print_tree(self, childattr="child_shapes", nameattr="name", horizontal=horizontal)
+        print_tree(
+            self,
+            childattr="child_shapes",
+            nameattr="name",
+            horizontal=horizontal,
+        )
 
 
 def find_all_penpot_shapes(
