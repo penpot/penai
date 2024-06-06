@@ -5637,6 +5637,17 @@ trio = ">=0.11"
 wsproto = ">=0.14"
 
 [[package]]
+name = "types-markdown"
+version = "3.6.0.20240316"
+description = "Typing stubs for Markdown"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "types-Markdown-3.6.0.20240316.tar.gz", hash = "sha256:de9fb84860b55b647b170ca576895fcca61b934a6ecdc65c31932c6795b440b8"},
+    {file = "types_Markdown-3.6.0.20240316-py3-none-any.whl", hash = "sha256:d3ecd26a940781787c7b57a0e3c9d77c150db64e12989ef687059edc83dfd78a"},
+]
+
+[[package]]
 name = "types-python-dateutil"
 version = "2.9.0.20240316"
 description = "Typing stubs for python-dateutil"
@@ -5980,4 +5991,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11, <3.12"
-content-hash = "8296d2b576138cf07682fbc53aede26a7b6ce89b2fbc8adbf4b4bb3b680a5b3c"
+content-hash = "93260fe932ada332386509f58a90ffdd2bfc4eedb5d009e98f7b3c99c4dca2b7"
