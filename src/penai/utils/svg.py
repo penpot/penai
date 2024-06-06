@@ -77,7 +77,7 @@ def temp_file_for_content(
     with NamedTemporaryFile(prefix="penai_", suffix=extension, mode=mode, delete=False) as file:
         file.write(content)
         file.flush()
-        
+
         path = Path(file.name)
     yield path
 
