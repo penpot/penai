@@ -7,7 +7,9 @@
     "python.pythonPath": "/usr/local/bin/python",
   },
   "extensions": [
-    "ms-python.python"
+    "ms-python.python",
+    "ms-toolsai.jupyter",
+    "ms-python.vscode-pylance"
   ],
   "forwardPorts": [],
   "postCreateCommand": "poetry install --with dev",
