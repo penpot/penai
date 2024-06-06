@@ -7,6 +7,7 @@ from PIL import Image
 from pytest import FixtureRequest
 
 from penai.render import BaseSVGRenderer, ResvgRenderer, WebDriverSVGRenderer
+from penai.svg import SVG
 
 
 @pytest.fixture()
@@ -65,12 +66,19 @@ class TestSVGRenderers:
                 f"Images do not match. Saved to reference and generated image to {ref_path} and {cmp_path} for visual inspection.",
             )
 
-    def test_explicit_size_specification(
+    def test_size_inference(
         self, renderer: BaseSVGRenderer, example_svg_path: Path,
     ) -> None:
         img = renderer.render_svg_file(example_svg_path)
 
-        orig_aspect_ratio = img.size[0] / img.size[1]
+        view_box = SVG.from_file(example_svg_path).get_view_box()
+
+        assert img.size == (view_box.width, view_box.height)
+
+    def test_explicit_size_specification(
+        self, renderer: BaseSVGRenderer, example_svg_path: Path,
+    ) -> None:
+        orig_aspect_ratio = SVG.from_file(example_svg_path).get_view_box().aspect_ratio
 
         img = renderer.render_svg_file(example_svg_path, width=100, height=100)
         assert img.size == (100, 100)

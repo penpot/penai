@@ -115,11 +115,15 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
 
         # If `width` or/and `height` are provided, we first set the element dimensions to the provided values
         # and then resize the window to the actual size of the SVG element.
+        # Otherwise we will try to infer a default size from the SVG's view box.
         if width or height:
             style = f"width: {self._dim_to_css(width)}; height: {self._dim_to_css(height)};"
             self.web_driver.execute_script(
                 f"document.querySelector('svg').setAttribute('style', '{style}');",
             )
+        else:
+            view_box = SVG.from_file(svg_path).get_view_box()
+            self.web_driver.set_window_size(view_box.width, view_box.height)
 
         bbox = BoundingBox.from_dom_rect(
             self.web_driver.execute_script(
@@ -150,14 +154,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         :param width: The width of the rendered image. Currently not supported.
         :param height: The height of the rendered image. Currently not supported.
         """
-        # The svg element needs to be wrapped in a <body> element.
-        # Otherwise the SVG element bounding box will take on the size of the whole screen,
-        # but only within the web driver and not a *normal* Chrome instance for some yet unknown reason.
-        # And yes, the <HTML> tag can be omitted.
-        # See https://html.spec.whatwg.org/multipage/syntax.html#syntax-tag-omission
-        content = '<body style="margin: 0;">' + svg_string + "</body>"
-
-        with temp_file_for_content(content, extension=".html") as path:
+        with temp_file_for_content(svg_string, extension=".html") as path:
             return self._render_svg(
                 path.absolute().as_uri(),
                 width=width,
