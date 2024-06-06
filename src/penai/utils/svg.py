@@ -55,7 +55,9 @@ def validate_uri(x: Any) -> bool:
 
 @contextmanager
 def temp_file_for_content(
-    content: str | bytes, extension: str, delete: bool = False
+    content: str | bytes,
+    extension: str,
+    delete: bool = False,
 ) -> Generator[Path, Any, Any]:
     """Create a temporary file for a given file content."""
     if extension and not extension.startswith("."):

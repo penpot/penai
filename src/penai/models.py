@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass, field
-from functools import cache, cached_property
+from functools import cached_property
 from pathlib import Path
 from typing import Generic, Self, TypeVar
 from uuid import UUID
@@ -100,7 +100,6 @@ class PenpotComponentDict(dict[str, PenpotComponent]):
     def get_component_names(self) -> list[str]:
         return [component.name for component in self.values()]
 
-    @cache
     def get_by_name(self, name: str) -> PenpotComponent:
         # This can definitely be implemented more efficiently but since the number
         # of components per file is typically very small, this shouldn't become
