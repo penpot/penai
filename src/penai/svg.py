@@ -770,7 +770,7 @@ class PenpotPageSVG(SVG):
         raise AssertionError(f"Shape with id {shape_id} was not removed correctly.")
 
     def remove_elements_with_no_visible_content(self) -> None:
-        # Sort the shapes by depth in shapes, so that we start with the deepest shapes
+        # Sort the shapes by depth in shapes, so that we start with the deepest shapes.
         # Otherwise we may delete a parent shape before its children, thus decouple the children from the tree
         # which will lead to weird behavior (i.e. lxml will assign arbitrary namespace names) and errors.
         # We could, of course, also detect these relationships and only remove invisible parents,

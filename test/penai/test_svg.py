@@ -95,7 +95,7 @@ class TestPenpotPage:
         chrome_svg_renderer: BaseSVGRenderer,
         log_dir: Path,
     ) -> None:
-        # TODO: this adds a relatively large delay to the tests.
+        # TODO: this adds a relatively large overhead to the tests.
         # We should consider reducing the number of files or pages we test on.
         for file in example_project.load().files.values():
             for page in file.pages.values():
