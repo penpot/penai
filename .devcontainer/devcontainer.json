@@ -1,7 +1,7 @@
 {
   "name": "PenAI Project",
   "dockerFile": "../Dockerfile",
-  "workspaceFolder": "/workspace",
+  "workspaceFolder": "/workspaces/penai",
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash",
     "python.pythonPath": "/usr/local/bin/python",

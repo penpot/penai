@@ -22,11 +22,12 @@ ENV PATH="${PATH}:/root/.local/bin"
 # Install the latest version of Poetry using pipx.
 RUN pipx install poetry
 
-# Set the working directory.
-WORKDIR /workspace
+# Set the working directory. IMPORTANT: can't be changed as needs to be in sync to the dir where the project is cloned
+# to in the codespace
+WORKDIR /workspaces/penai
 
 # Copy the pyproject.toml and poetry.lock files (if available) into the image.
-COPY pyproject.toml poetry.lock* /workspace/
+COPY pyproject.toml poetry.lock* /workspaces/penai/
 
 RUN poetry install --with dev
 
