@@ -131,8 +131,6 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
             ),
         )
 
-        print('bbox', bbox)
-
         # Set the window size to the size of the SVG element, assuming that it is placed at the origin.
         # We add a small buffer to the window size to account for margins, scrollbars, etc.
         self.web_driver.set_window_size(bbox.width + 32, bbox.height + 32)
