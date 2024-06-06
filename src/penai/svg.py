@@ -742,7 +742,7 @@ class PenpotPageSVG(SVG):
             selected_shape_elements = cast(
                 Iterable[PenpotShapeElement],
                 tqdm(selected_shape_elements, desc="Setting view boxes"),
-        )
+            )
 
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
             for shape_el in selected_shape_elements:
