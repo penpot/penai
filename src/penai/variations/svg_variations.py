@@ -127,6 +127,7 @@ class SVGVariationsGenerator:
         shape: PenpotShapeElement,
         semantics: str,
         verbose: bool = True,
+        model: RegisteredLLM = RegisteredLLM.GPT4O,
     ):
         self.semantics = semantics
 
@@ -134,9 +135,10 @@ class SVGVariationsGenerator:
         self.svg = shape.to_svg()
         self.svg.strip_penpot_tags()
         self.verbose = verbose
+        self.model = model
 
     def _create_conversation(self) -> SVGVariationsConversation:
-        return SVGVariationsConversation(verbose=self.verbose)
+        return SVGVariationsConversation(verbose=self.verbose, model=self.model)
 
     def get_svg_refactoring_prompt(self) -> str:
         return (
