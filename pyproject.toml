@@ -54,6 +54,7 @@ pre-commit = "^3.3.3"
 pytest = "^8.0.2"
 pytest-cov = "*"
 pytest-lazy-fixtures = "^1.0.5"
+pytest-xdist = "^3.6.1"
 ruff = "^0.4.5"
 sphinx = "^7"
 sphinx-book-theme = "^1.0.1"
@@ -64,7 +65,6 @@ sphinx-togglebutton = "^0.3.2"
 sphinx-toolbox = "^3.5.0"
 sphinxcontrib-bibtex = "*"
 types-requests = "^2.32.0.20240523"
-pytest-xdist = "^3.6.1"
 
 [tool.mypy]
 allow_redefinition = true

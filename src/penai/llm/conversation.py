@@ -46,8 +46,17 @@ class Conversation(Generic[TResponse]):
         self.verbose = verbose
         self.response_factory = response_factory
 
+    @property
+    def _input_key(self) -> str:
+        return self.chain.input_key
+
+    @property
+    def _output_key(self) -> str:
+        return self.chain.output_key
+
     def query_text(self, query: str) -> str:
-        response = self.chain.run(query)
+        response_dict = self.chain.invoke({self._input_key: query}, return_only_outputs=True)
+        response = response_dict[self._output_key]
         if self.verbose:
             print(response)
         return response
