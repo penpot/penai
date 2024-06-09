@@ -54,7 +54,11 @@ def validate_uri(x: Any) -> bool:
 
 
 @contextmanager
-def temp_file_for_content(content: str | bytes, extension: str) -> Generator[Path, Any, Any]:
+def temp_file_for_content(
+    content: str | bytes,
+    extension: str,
+    delete: bool = False,
+) -> Generator[Path, Any, Any]:
     """Create a temporary file for a given file content."""
     if extension and not extension.startswith("."):
         raise ValueError("Extension should start with a dot")
@@ -65,9 +69,15 @@ def temp_file_for_content(content: str | bytes, extension: str) -> Generator[Pat
         assert isinstance(content, bytes)
         mode = "wb"
 
+    # Note: (just for the curious, not actually needed to know)
+    # buffering=0 is very important if you want to yield inside
+    # Since we don't use the delete option here (we delete manually below)
+    # we yield outside of this context
+    # The code below is essentially equivalent to `with open()...write`
     with NamedTemporaryFile(prefix="penai_", suffix=extension, mode=mode, delete=False) as file:
         file.write(content)
         path = Path(file.name)
-        yield path
+    yield path
 
-    path.unlink()
+    if delete:
+        path.unlink()

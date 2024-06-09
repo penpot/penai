@@ -64,6 +64,7 @@ sphinx-togglebutton = "^0.3.2"
 sphinx-toolbox = "^3.5.0"
 sphinxcontrib-bibtex = "*"
 types-requests = "^2.32.0.20240523"
+pytest-xdist = "^3.6.1"
 
 [tool.mypy]
 allow_redefinition = true
@@ -186,9 +187,9 @@ move-optionals-to-bottom = true
 PYDEVD_DISABLE_FILE_VALIDATION = "1"
 # keep relevant parts in sync with pre-commit
 [tool.poe.tasks] # https://github.com/nat-n/poethepoet
-test = "pytest test --cov=penai --cov-report=xml --cov-report=term-missing --durations=0 -v --color=yes"
+test = "pytest test --cov=penai --cov-report=xml --cov-report=term-missing --durations=0 -v --color=yes -n auto"
 # Adjust to a smaller set of tests if appropriate
-test-subset = "pytest test --color=yes"
+test-subset = "pytest test --color=yes -n auto"
 _black_check = "black --check src docs"
 _ruff_check = "ruff check src docs"
 _ruff_check_nb = "nbqa ruff docs"

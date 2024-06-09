@@ -1,0 +1,37 @@
+{
+  "name": "PenAI Project",
+  "dockerFile": "../Dockerfile",
+  "workspaceFolder": "/workspaces/penai",
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash",
+    "python.pythonPath": "/usr/local/bin/python",
+  },
+  "extensions": [
+    "ms-python.python",
+    "ms-toolsai.jupyter",
+    "ms-python.vscode-pylance"
+  ],
+  "forwardPorts": [],
+  "postCreateCommand": "poetry install --with dev",
+  "remoteUser": "root",
+  "secrets": {
+    GOOGLE_STORAGE_KEY: {
+      "description": "Google Storage Key; for accessing saved data",
+    },
+    GOOGLE_STORAGE_SECRET: {
+      "description": "Google Storage Secret; for accessing saved data",
+    },
+    "PP_BACKEND_PASSWORD": {
+      "description": "Password for interacting with the penpot backend",
+    },
+    "OPENAI_API_KEY": {
+      "description": "API Key for interacting with OpenAI",
+    },
+    "ANTHROPIC_API_KEY": {
+      "description": "API Key for interacting with Anthropic",
+    },
+    "GEMINI_API_KEY": {
+      "description": "API Key for interacting with Gemini",
+    },
+  }
+}
