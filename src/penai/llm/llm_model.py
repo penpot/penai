@@ -1,3 +1,6 @@
+# mypy: disable-error-code="call-arg"
+# Langchain uses pydantic validators to turn args into kwargs, this confuses mypy
+
 from enum import Enum
 
 from langchain_anthropic import ChatAnthropic
@@ -49,43 +52,43 @@ class RegisteredLLM(Enum):
                     model=self.value,
                     google_api_key=cfg.gemini_api_key,
                     temperature=temperature,
-                    max_tokens=max_tokens,
+                    max_output_tokens=max_tokens,
                 )
             case RegisteredLLM.GEMINI_15_FLASH:
                 return ChatGoogleGenerativeAI(
                     model=self.value,
                     google_api_key=cfg.gemini_api_key,
                     temperature=temperature,
-                    max_tokens=max_tokens,
+                    max_output_tokens=max_tokens,
                 )
             case RegisteredLLM.GEMINI_10_PRO:
                 return ChatGoogleGenerativeAI(
                     model=self.value,
                     google_api_key=cfg.gemini_api_key,
                     temperature=temperature,
-                    max_tokens=max_tokens,
+                    max_output_tokens=max_tokens,
                 )
             case RegisteredLLM.GEMINI_10_FLASH:
                 return ChatGoogleGenerativeAI(
                     model=self.value,
                     google_api_key=cfg.gemini_api_key,
                     temperature=temperature,
-                    max_tokens=max_tokens,
+                    max_output_tokens=max_tokens,
                 )
             case RegisteredLLM.GEMINI_PRO:
                 return ChatGoogleGenerativeAI(
                     model=self.value,
                     google_api_key=cfg.gemini_api_key,
                     temperature=temperature,
-                    max_tokens=max_tokens,
+                    max_output_tokens=max_tokens,
                 )
             case RegisteredLLM.CLAUDE3_OPUS:
                 # Anthropic doesn't accept None for max_tokens. 4096 is the maximal allowed value.
                 if max_tokens is None:
                     max_tokens = 4096
                 return ChatAnthropic(
-                    model=self.value,
-                    anthropic_api_key=cfg.anthropic_api_key,
+                    model_name=self.value,
+                    api_key=cfg.anthropic_api_key,
                     temperature=temperature,
                     max_tokens_to_sample=max_tokens,
                 )
