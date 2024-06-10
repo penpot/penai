@@ -1,6 +1,7 @@
 import base64
 from collections.abc import Callable
 from copy import copy, deepcopy
+from io import BytesIO
 from typing import Any, Generic, Self, TypeAlias, TypeVar
 
 import httpx
@@ -8,6 +9,7 @@ import markdown
 from bs4 import BeautifulSoup
 from langchain.memory import ConversationBufferMemory
 from langchain_core.messages import HumanMessage
+from PIL.Image import Image
 
 from penai.llm.llm_model import RegisteredLLM
 
@@ -102,6 +104,13 @@ class HumanMessageBuilder:
 
     def with_image_from_url(self, image_url: str) -> Self:
         image_bytes = httpx.get(image_url).content
+        self._add_image_from_bytes(image_bytes)
+        return self
+
+    def with_image(self, image: Image) -> Self:
+        byte_buffer = BytesIO()
+        image.save(byte_buffer, format="PNG")
+        image_bytes = byte_buffer.getvalue()
         self._add_image_from_bytes(image_bytes)
         return self
 
