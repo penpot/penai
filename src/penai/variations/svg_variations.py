@@ -1,14 +1,22 @@
+import logging
+import os
 import re
 import uuid
 from collections.abc import Callable
 from enum import Enum, StrEnum
+from pathlib import Path
+
+from sensai.util.logging import datetime_tag
 
 from penai.config import get_config
 from penai.llm.conversation import Conversation, Response
 from penai.llm.llm_model import RegisteredLLM
 from penai.svg import SVG, PenpotShapeElement
+from penai.types import PathLike
 
 cfg = get_config()
+
+log = logging.getLogger(__name__)
 
 
 class VariationLogicSnippet(StrEnum):
@@ -128,7 +136,19 @@ class SVGVariationsGenerator:
         semantics: str,
         verbose: bool = True,
         model: RegisteredLLM = RegisteredLLM.GPT4O,
+        responses_persistence_basedir: PathLike = Path("log") / "llm_responses",
+        responses_persistence_enabled: bool = True,
+        add_timestamp_to_logged_files: bool = True,
     ):
+        """:param shape:
+        :param semantics:
+        :param verbose:
+        :param model:
+        :param responses_persistence_basedir:
+        :param responses_persistence_enabled: whether to save the responses to disk
+        :param add_timestamp_to_logged_files: if False, iterative calls to the same method will
+            overwrite previously logged files for the same model
+        """
         self.semantics = semantics
 
         # create simplified SVG (without the bloat)
@@ -136,9 +156,31 @@ class SVGVariationsGenerator:
         self.svg.strip_penpot_tags()
         self.verbose = verbose
         self.model = model
+        self.responses_basedir = Path(responses_persistence_basedir)
+        self.persistence_enabled = responses_persistence_enabled
+        self.add_timestamp_to_logged_files = add_timestamp_to_logged_files
+
+    def _get_llm_responses_logdir(self) -> Path:
+        responses_dir = Path(self.responses_basedir) / self.model.value
+        if self.add_timestamp_to_logged_files:
+            responses_dir = responses_dir / datetime_tag()
+        return responses_dir
 
     def _create_conversation(self) -> SVGVariationsConversation:
         return SVGVariationsConversation(verbose=self.verbose, model=self.model)
+
+    def _write_if_logging_enabled(
+        self,
+        path: PathLike,
+        content: str,
+        content_description: str = "",
+    ) -> None:
+        path = Path(path)
+        if self.persistence_enabled:
+            os.makedirs(path.parent, exist_ok=True)
+            log.info(f"Writing {content_description} to:\n{path.absolute()}")
+            with open(path, "w") as f:
+                f.write(content)
 
     def get_svg_refactoring_prompt(self) -> str:
         return (
@@ -155,14 +197,48 @@ class SVGVariationsGenerator:
         variation_logic: str
         | VariationLogicSnippet = VariationLogicSnippet.SHAPES_COLORS_POSITIONS,
     ) -> SVGVariations:
+        # all of this is unused if logging is disabled
+        response_logdir = self._get_llm_responses_logdir()
+        if self.persistence_enabled:
+            os.makedirs(response_logdir, exist_ok=True)
+        svg_refactoring_path = response_logdir / "svg_refactoring.txt"
+        variations_response_md_path = response_logdir / "variations_response.md"
+        variations_response_html_path = response_logdir / "variations_response.html"
+        full_conversation_path = response_logdir / "full_conversation.txt"
+
         refactoring_prompt = self.get_svg_refactoring_prompt()
         logic_prompt = get_default_variations_prompt(num_variations, variation_logic)
-        conversation = self._create_conversation()
-        conversation.query(refactoring_prompt)
 
-        response = conversation.query_response(logic_prompt)
-        variations_dict = response.get_code_in_sections(2)
-        return SVGVariations(self.svg, variations_dict, conversation)
+        conversation = self._create_conversation()
+        refactoring_response = conversation.query_text(refactoring_prompt)
+
+        self._write_if_logging_enabled(
+            svg_refactoring_path,
+            refactoring_response,
+            content_description="svg refactoring response",
+        )
+
+        variations_response = conversation.query_response(logic_prompt)
+
+        self._write_if_logging_enabled(
+            variations_response_md_path,
+            variations_response.text,
+            content_description="variations response",
+        )
+        self._write_if_logging_enabled(
+            full_conversation_path,
+            conversation.get_full_conversation_string(),
+            content_description="full conversation",
+        )
+
+        variations_dict = variations_response.get_code_in_sections(2)
+        variations = SVGVariations(self.svg, variations_dict, conversation)
+        self._write_if_logging_enabled(
+            variations_response_html_path,
+            variations.to_html(),
+            content_description="variations response as html",
+        )
+        return variations
 
     # TODO: we can save tokens by branching off after the refactoring query instead of resetting
     def query_free_prompt(

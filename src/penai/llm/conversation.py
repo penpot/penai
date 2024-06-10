@@ -46,6 +46,14 @@ class Conversation(Generic[TResponse]):
         self.verbose = verbose
         self.response_factory = response_factory
 
+    def get_full_conversation_string(
+        self,
+        messages_separator: str = "\n",
+    ) -> str:
+        return messages_separator.join(
+            [message.pretty_repr() for message in self.memory.buffer_as_messages],
+        )
+
     @property
     def _input_key(self) -> str:
         return self.chain.input_key
