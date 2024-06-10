@@ -1,7 +1,9 @@
+import base64
 from collections.abc import Callable
 from copy import copy, deepcopy
-from typing import Generic, Self, TypeAlias, TypeVar
+from typing import Any, Generic, Self, TypeAlias, TypeVar
 
+import httpx
 import markdown
 from bs4 import BeautifulSoup
 from langchain.memory import ConversationBufferMemory
@@ -74,3 +76,34 @@ class Conversation(Generic[TResponse]):
         clone = copy(self)
         clone.memory = deepcopy(self.memory)
         return clone
+
+
+class HumanMessageBuilder:
+    def __init__(self, text_message: str | None = None):
+        self._content: list[dict[str, Any]] = []
+        if text_message is not None:
+            self._add_text_message(text_message)
+
+    def _add_text_message(self, msg: str) -> None:
+        self._content.append({"type": "text", "text": msg})
+
+    def with_text_message(self, text_message: str) -> Self:
+        self._add_text_message(text_message)
+        return self
+
+    def _add_image_from_bytes(self, image_bytes: bytes) -> None:
+        image_data = base64.b64encode(image_bytes).decode("utf-8")
+        self._content.append(
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
+            },
+        )
+
+    def with_image_from_url(self, image_url: str) -> Self:
+        image_bytes = httpx.get(image_url).content
+        self._add_image_from_bytes(image_bytes)
+        return self
+
+    def build(self) -> HumanMessage:
+        return HumanMessage(content=self._content)  # type: ignore
