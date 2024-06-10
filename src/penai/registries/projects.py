@@ -31,34 +31,22 @@ class SavedPenpotProject(Enum):
             case _:
                 raise NotImplementedError
 
-    def get_path(self, pull: bool = False, force: bool = False) -> str:
+    def get_path(self, pull: bool = False) -> str:
+        """:param pull: whether to (force) pull the project from the remote storage."""
         result = os.path.join(
             get_config().penpot_designs_basedir(),
             self.get_project_name(),
         )
         if pull:
             log.info(f"Pulling data for project {self.get_project_name()} to {result}")
-            pull_from_remote(result, force=force)
+            pull_from_remote(result, force=True)
         return result
 
     @classmethod
-    def pull_all(cls, force: bool = False) -> None:
+    def pull_all(cls) -> None:
         for design in cls:
-            design.get_path(pull=True, force=force)
+            design.get_path(pull=True)
 
-    def load(self, pull: bool = False, force: bool = False) -> PenpotProject:
-        project_path = self.get_path(pull=pull, force=force)
+    def load(self, pull: bool = False) -> PenpotProject:
+        project_path = self.get_path(pull=pull)
         return PenpotProject.from_directory(project_path)
-
-
-# class RegisteredSVGRenderer(Enum):
-#     CHROME_WEB_DRIVER = "chrome_web_driver"
-
-#     @contextmanager
-#     def create_renderer(self) -> Generator[BaseSVGRenderer, None, None]:
-#         match self:
-#             case self.CHROME_WEB_DRIVER:
-#                 with WebDriverSVGRenderer.create_chrome_renderer() as renderer:
-#                     yield renderer
-#             case _:
-#                 raise ValueError(f"Unsupported renderer {self}")
