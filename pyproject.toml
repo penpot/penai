@@ -34,6 +34,7 @@ pptree = "^3.1"
 requests = "^2.32.2"
 resvg-py = "^0.1.5"
 selenium = "^4.21.0"
+sensai = "^1.1.0"
 tqdm = "^4.66.4"
 transit-python2 = "^0.8.321"
 types-markdown = "^3.6.0.20240316"
@@ -48,6 +49,7 @@ docutils = "0.20.1"
 jinja2 = "*"
 jupyter = "^1.0.0"
 jupyter-book = "^1.0.0"
+jupyterlab-lsp = "^5.1.0" # autocomplete for jupyterlab
 mypy = "^1.4.1"
 nbqa = "^1.7.1"
 nbstripout = "^0.6.1"
@@ -132,12 +134,12 @@ select = [
     "YTT",
 ]
 ignore = [
-    "E501",   # line too long. black does a good enough job
-    "E741",   # variable names like "l". this isn't a huge problem
-    "B008",   # do not perform function calls in argument defaults. we do this sometimes
-    "B011",   # assert false. we don't use python -O
-    "B028",   # we don't need explicit stacklevel for warnings
-    "B019",   # using @cache is fine
+    "E501", # line too long. black does a good enough job
+    "E741", # variable names like "l". this isn't a huge problem
+    "B008", # do not perform function calls in argument defaults. we do this sometimes
+    "B011", # assert false. we don't use python -O
+    "B028", # we don't need explicit stacklevel for warnings
+    "B019", # using @cache is fine
     "D100",
     "D101",
     "D102",
@@ -147,7 +149,7 @@ ignore = [
     "D203",
     "D213",
     "D401",
-    "D402",   # docstring stuff
+    "D402", # docstring stuff
     "DTZ005", # we don't need that
     # remaining rules from https://github.com/psf/black/blob/main/.flake8 (except W503)
     # this is a simplified version of config, making vscode plugin happy
@@ -161,10 +163,10 @@ ignore = [
     "G004",
     # Unnecessary `elif` after `return` statement
     "RET505",
-    "D106",    # undocumented public nested class
-    "D205",    # blank line after summary (prevents summary-only docstrings, which makes no sense)
+    "D106", # undocumented public nested class
+    "D205", # blank line after summary (prevents summary-only docstrings, which makes no sense)
     "PLW0603", # using global statement
-    "B018",    # strip useless expressions in notebooks. These "useless expressions" often serve as a way to display output
+    "B018", # strip useless expressions in notebooks. These "useless expressions" often serve as a way to display output
 ]
 unfixable = []
 extend-fixable = [
