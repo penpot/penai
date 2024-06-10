@@ -8,7 +8,7 @@ class ResultWriter(sensai_io.ResultWriter):
         content: str,
         extension_to_add: str | None = None,
         content_description: str = "text file",
-    ):
+    ) -> str:
         p = self.path(filename_suffix, extension_to_add=extension_to_add)
         if self.enabled:
             self.log.info(f"Saving {content_description} to {p}")
