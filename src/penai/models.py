@@ -6,10 +6,12 @@ from typing import Generic, Self, TypeVar
 from uuid import UUID
 
 from lxml import etree
+from lxml.etree import Element
 
 from penai.schemas import PenpotFileDetailsSchema, PenpotProjectManifestSchema
-from penai.svg import SVG, PenpotComponentSVG, PenpotPageSVG
+from penai.svg import SVG, PenpotComponentSVG, PenpotPageSVG, PenpotShapeElement
 from penai.types import PathLike
+from penai.xml import BetterElement
 
 
 @dataclass
@@ -238,3 +240,67 @@ class PenpotProject:
             )
 
         return cls(files=files, main_file_id=manifest.fileId)
+
+
+class PenpotMinimalShapeXML:
+    """(Minimal) XML representation of a Penpot shape (as contained in SVGs exported by Penpot)."""
+
+    NSMAP = {
+        "svg": "http://www.w3.org/2000/svg",
+        "penpot": "https://penpot.app/xmlns",
+    }
+
+    def __init__(self, element: Element):
+        """:param element: the root element, which must be a <g> element.
+        The element is assumed not to contain any redundant, non-penpot elements.
+        If your starting point is a PenpotShapeElement, use PenpotXML.from_shape instead.
+        """
+        self.root = element
+
+    @classmethod
+    def from_shape(cls, shape: PenpotShapeElement) -> Self:
+        root = cls._remove_unwanted_elements(shape.get_containing_g_element())
+        return cls(root)
+
+    @classmethod
+    def _is_penpot_element(self, element: etree.Element) -> bool:
+        return element.tag.startswith("{" + self.NSMAP["penpot"] + "}")
+
+    @classmethod
+    def _element_to_string(cls, element: etree.Element) -> str:
+        return etree.tostring(element, encoding="unicode")
+
+    @classmethod
+    def _remove_unwanted_elements(cls, tree: BetterElement) -> BetterElement:
+        root = deepcopy(tree)
+        removed_elements = []
+        for _i, element in enumerate(root.iter()):
+            keep = cls._is_penpot_element(element)
+            if not keep and element.tag == cls._tag("g", "svg"):
+                for child in element.getchildren():
+                    if cls._is_penpot_element(child):
+                        keep = True
+                        break
+            if not keep:
+                removed_elements.append(element)
+        for element in removed_elements:
+            element.getparent().remove(element)
+        return root
+
+    @classmethod
+    def _tag(cls, tag: str, namespace: str) -> str:
+        return "{" + cls.NSMAP[namespace] + "}" + tag
+
+    @classmethod
+    def _nsmap_with_default(cls, default_ns: str) -> dict[str | None, str]:
+        return {None if k == default_ns else k: v for k, v in cls.NSMAP.items()}
+
+    def to_svg_root(self) -> etree.Element:
+        nsmap = self._nsmap_with_default("svg")
+        root = etree.Element(self._tag("svg", namespace="svg"), nsmap=nsmap)
+        root.append(self.root)
+        return root
+
+    def to_string(self) -> str:
+        root = self.to_svg_root()
+        return etree.tostring(root, encoding="unicode")
