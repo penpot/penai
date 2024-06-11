@@ -124,7 +124,7 @@ class SVGVariations:
 
     def revise(self, prompt: str) -> "SVGVariations":
         conversation = self.conversation.clone()
-        response = conversation.query_response(prompt)
+        response = conversation.query(prompt)
         variations_dict = response.get_variations_dict()
         return SVGVariations(self.original_svg, variations_dict, conversation)
 
@@ -191,7 +191,7 @@ class SVGVariationsGenerator:
             content_description="SVG refactoring response",
         )
 
-        variations_response = conversation.query_response(logic_prompt)
+        variations_response = conversation.query(logic_prompt)
 
         self.result_writer.write_text_file(
             "response_variations.md",
@@ -223,4 +223,4 @@ class SVGVariationsGenerator:
         conversation = self._create_conversation()
         if include_svg_refactoring_query:
             conversation.query(self.get_svg_refactoring_prompt())
-        return conversation.query_response(prompt), conversation
+        return conversation.query(prompt), conversation

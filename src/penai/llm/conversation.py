@@ -1,6 +1,7 @@
 import base64
 from collections.abc import Callable
 from copy import copy, deepcopy
+from functools import cached_property
 from io import BytesIO
 from typing import Any, Generic, Self, TypeAlias, TypeVar
 
@@ -17,8 +18,14 @@ from penai.llm.llm_model import RegisteredLLM
 class Response:
     def __init__(self, response_text: str):
         self.text = response_text
-        self.html = markdown.markdown(response_text)
-        self.soup = BeautifulSoup(self.html, features="html.parser")
+
+    @cached_property
+    def html(self) -> str:
+        return markdown.markdown(self.text)
+
+    @cached_property
+    def soup(self) -> BeautifulSoup:
+        return BeautifulSoup(self.html, features="html.parser")
 
     def get_code_in_sections(self, heading_level: int) -> dict[str, str]:
         """Retrieves code snippets in the response that appear under a certain heading level.
@@ -60,6 +67,11 @@ class Conversation(Generic[TResponse]):
         )
 
     def query_text(self, query: QueryType) -> str:
+        """Issues the given query and returns the model's text response.
+
+        :param query: the query
+        :return: the response text
+        """
         self.memory.chat_memory.add_user_message(query)
         ai_message = self.llm.invoke(self.memory.chat_memory.messages)
         self.memory.chat_memory.add_ai_message(ai_message)
@@ -68,10 +80,7 @@ class Conversation(Generic[TResponse]):
             print(response_text)
         return response_text
 
-    def query(self, query: QueryType) -> None:
-        self.query_text(query)
-
-    def query_response(self, query: QueryType) -> TResponse:
+    def query(self, query: QueryType) -> TResponse:
         return self.response_factory(self.query_text(query))
 
     def clone(self) -> Self:
