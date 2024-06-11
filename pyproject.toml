@@ -167,6 +167,7 @@ ignore = [
     "D205", # blank line after summary (prevents summary-only docstrings, which makes no sense)
     "PLW0603", # using global statement
     "B018", # strip useless expressions in notebooks. These "useless expressions" often serve as a way to display output
+    "RUF012",  # forbids mutable types for class attributes
 ]
 unfixable = []
 extend-fixable = [
