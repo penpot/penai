@@ -61,6 +61,11 @@ class __Configuration(DefaultDataConfiguration):
     def penpot_password(self) -> str:
         return cast(str, self._get_non_empty_entry(["penpot_backend", "password"]))
 
+    @property
+    def cache_dir(self) -> str:
+        """:return: absolute path to directory where cache files are stored"""
+        return self._get_existing_path("cache")
+
 
 class ConfigProvider(ConfigProviderBase[__Configuration]):
     pass
