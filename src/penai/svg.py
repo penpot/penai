@@ -89,6 +89,15 @@ class BoundingBox:
             *[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")],
         )
 
+    def intersects(self, other: Self) -> bool:
+        # Check if one rectangle is to the left of the other
+        if self.x + self.width < other.x or other.x + other.width < self.x:
+            return False
+        # Check if one rectangle is above the other
+        if self.y + self.height < other.y or other.y + other.height < self.y:
+            return False
+        return True
+
 
 class SVG:
     """A simple wrapper around an `ElementTree` that is based on `BetterElement` as nodes in the tree.
