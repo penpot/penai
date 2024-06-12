@@ -15,3 +15,12 @@ class ResultWriter(sensai_io.ResultWriter):
             with open(p, "w") as f:
                 f.write(content)
         return p
+
+
+def fn_compatible(name: str) -> str:
+    """Returns a filename-compatible version of the given name.
+
+    :param name: the name
+    :return: a string that can be used as a filename/directory name
+    """
+    return name.replace("/", "")

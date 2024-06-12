@@ -10,6 +10,7 @@ from penai.registries.web_drivers import RegisteredWebDriver
 from penai.svg import PenpotPageSVG
 
 log = logging.getLogger(__name__)
+cfg = get_config()
 
 
 class SavedPenpotProject(Enum):
@@ -23,6 +24,7 @@ class SavedPenpotProject(Enum):
     PLANTS_APP = "Plants app"
     UX_NOTES = "UX Notes"
     WIREFRAMING_KIT = "Wireframing kit"
+    GENERATIVE_VARIATIONS = "Generative variations"
 
     def get_project_name(self) -> str:
         return self.value
@@ -71,7 +73,7 @@ class SavedPenpotProject(Enum):
         :return: the page's SVG
         """
 
-        @pickle_cached(os.path.join("temp", "cache"), load=cached)
+        @pickle_cached(cfg.cache_dir, load=cached)
         def load_page_svg_text(project: SavedPenpotProject, page_name: str) -> str:
             page = project._load_page_with_viewboxes(page_name)
             return page.svg.to_string()
