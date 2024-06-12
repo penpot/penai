@@ -169,6 +169,7 @@ ignore = [
     "B018", # strip useless expressions in notebooks. These "useless expressions" often serve as a way to display output
     "RUF012",  # forbids mutable types for class attributes
     "SIM102", "RET507",  # forbids freedom in specification if/elif and return
+    "ISC002",  # forbids implicitly concatenated string literals
 ]
 unfixable = []
 extend-fixable = [
