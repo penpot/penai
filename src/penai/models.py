@@ -300,7 +300,7 @@ class PenpotMinimalShapeXML:
                                 subsequent_g = sibling
                             else:
                                 raise ValueError(
-                                    f"Unexpected element after a penpot shape path: {sibling}"
+                                    f"Unexpected element after a penpot shape path: {sibling}",
                                 )
                         retained_element_set.update(subsequent_g.iter())  # type: ignore
 
