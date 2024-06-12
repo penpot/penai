@@ -16,9 +16,15 @@ exclude = ["test/*", "examples/*", "docs/*"]
 [tool.poetry.dependencies]
 python = "^3.11, <3.12"
 accsr = "^0.4.7"
+bs4 = "^0.0.2"
 cryptography = "^42.0.7"
 jsonargparse = "^4.29.0"
+langchain = "^0.2.2"
+langchain-anthropic = "^0.1.15"
+langchain-google-genai = "^1.0.6"
+langchain-openai = "^0.1.8"
 lxml = "^5.2.2"
+markdown = "^3.6"
 matplotlib = "^3.9.0"
 openai = "^1.30.1"
 pandas = "^2.2.1"
@@ -28,8 +34,10 @@ pptree = "^3.1"
 requests = "^2.32.2"
 resvg-py = "^0.1.5"
 selenium = "^4.21.0"
+sensai = "^1.2.0"
 tqdm = "^4.66.4"
 transit-python2 = "^0.8.321"
+types-markdown = "^3.6.0.20240316"
 webdriver-manager = "^4.0.1"
 cssutils = "^2.11.1"
 
@@ -42,6 +50,7 @@ docutils = "0.20.1"
 jinja2 = "*"
 jupyter = "^1.0.0"
 jupyter-book = "^1.0.0"
+jupyterlab-lsp = "^5.1.0" # autocomplete for jupyterlab
 mypy = "^1.4.1"
 nbqa = "^1.7.1"
 nbstripout = "^0.6.1"
@@ -50,6 +59,7 @@ pre-commit = "^3.3.3"
 pytest = "^8.0.2"
 pytest-cov = "*"
 pytest-lazy-fixtures = "^1.0.5"
+pytest-xdist = "^3.6.1"
 ruff = "^0.4.5"
 sphinx = "^7"
 sphinx-book-theme = "^1.0.1"
@@ -125,12 +135,12 @@ select = [
     "YTT",
 ]
 ignore = [
-    "E501",   # line too long. black does a good enough job
-    "E741",   # variable names like "l". this isn't a huge problem
-    "B008",   # do not perform function calls in argument defaults. we do this sometimes
-    "B011",   # assert false. we don't use python -O
-    "B028",   # we don't need explicit stacklevel for warnings
-    "B019",   # using @cache is fine
+    "E501", # line too long. black does a good enough job
+    "E741", # variable names like "l". this isn't a huge problem
+    "B008", # do not perform function calls in argument defaults. we do this sometimes
+    "B011", # assert false. we don't use python -O
+    "B028", # we don't need explicit stacklevel for warnings
+    "B019", # using @cache is fine
     "D100",
     "D101",
     "D102",
@@ -140,7 +150,7 @@ ignore = [
     "D203",
     "D213",
     "D401",
-    "D402",   # docstring stuff
+    "D402", # docstring stuff
     "DTZ005", # we don't need that
     # remaining rules from https://github.com/psf/black/blob/main/.flake8 (except W503)
     # this is a simplified version of config, making vscode plugin happy
@@ -154,10 +164,11 @@ ignore = [
     "G004",
     # Unnecessary `elif` after `return` statement
     "RET505",
-    "D106",    # undocumented public nested class
-    "D205",    # blank line after summary (prevents summary-only docstrings, which makes no sense)
+    "D106", # undocumented public nested class
+    "D205", # blank line after summary (prevents summary-only docstrings, which makes no sense)
     "PLW0603", # using global statement
-    "B018",    # strip useless expressions in notebooks. These "useless expressions" often serve as a way to display output
+    "B018", # strip useless expressions in notebooks. These "useless expressions" often serve as a way to display output
+    "RUF012",  # forbids mutable types for class attributes
 ]
 unfixable = []
 extend-fixable = [
@@ -182,9 +193,9 @@ move-optionals-to-bottom = true
 PYDEVD_DISABLE_FILE_VALIDATION = "1"
 # keep relevant parts in sync with pre-commit
 [tool.poe.tasks] # https://github.com/nat-n/poethepoet
-test = "pytest test --cov=penai --cov-report=xml --cov-report=term-missing --durations=0 -v --color=yes"
+test = "pytest test --cov=penai --cov-report=xml --cov-report=term-missing --durations=0 -v --color=yes -n auto"
 # Adjust to a smaller set of tests if appropriate
-test-subset = "pytest test --color=yes"
+test-subset = "pytest test --color=yes -n auto"
 _black_check = "black --check src docs"
 _ruff_check = "ruff check src docs"
 _ruff_check_nb = "nbqa ruff docs"

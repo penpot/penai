@@ -40,6 +40,16 @@ for you.
 Note: for the WSL subsystem on Windows you might need to adjust the path for the
 volume.
 
+### Codespaces
+
+The fastest way to get running without any installation is to use GitHub 
+Codespaces. The repository has been set up to provide a fully functioning
+Codespace with everything installed out of the box. You can either
+paste your `config_local.json` file there or pass the secrets as env vars
+when the codespace is created by using the `New with options` button:
+
+<img src="images/codespaces.png" align="center" width="70%" style="margin: auto">
+
 ## Secrets, Configuration and Credentials
 
 For pulling data or interacting with VLM providers, you will need secrets that
