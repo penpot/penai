@@ -23,6 +23,7 @@ class SavedPenpotProject(Enum):
     PLANTS_APP = "Plants app"
     UX_NOTES = "UX Notes"
     WIREFRAMING_KIT = "Wireframing kit"
+    GENERATIVE_VARIATIONS = "Generative variations"
 
     def get_project_name(self) -> str:
         return self.value
