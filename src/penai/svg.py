@@ -6,6 +6,7 @@ from enum import Enum
 from functools import cache
 from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
+import matplotlib.transforms as mpl_transforms
 from lxml import etree
 from pptree import print_tree
 from pydantic import NonNegativeFloat
@@ -338,7 +339,8 @@ def _el_has_visible_content(el: Element) -> bool:
             return False
 
         if not path.getchildren() and (
-            path.get("fill") == "none" or path_style.getPropertyValue("fill") in ["none"]
+            path.get("fill") == "none"
+            or path_style.getPropertyValue("fill") in ["none"]
         ):
             return False
 
@@ -614,7 +616,9 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         if not inner_groups:
             return False
 
-        assert len(inner_groups), etree.tostring(self.get_containing_g_element(), pretty_print=True)
+        assert len(inner_groups), etree.tostring(
+            self.get_containing_g_element(), pretty_print=True,
+        )
 
         return any(_el_has_visible_content(group) for group in inner_groups)
 
@@ -625,7 +629,9 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 for child in g_containing_par_shape_candidate:
                     if _el_is_penpot_shape(child):
                         return self.__class__(child)
-            g_containing_par_shape_candidate = g_containing_par_shape_candidate.getparent()
+            g_containing_par_shape_candidate = (
+                g_containing_par_shape_candidate.getparent()
+            )
         return None
 
     def get_all_parent_shapes(self) -> list[Self]:
@@ -735,8 +741,7 @@ class PenpotPageSVG(SVG):
         attr_name: str,
         attr_value: Any,
         should_be_unique: Literal[True],
-    ) -> PenpotShapeElement:
-        ...
+    ) -> PenpotShapeElement: ...
 
     @overload
     def _get_shapes_by_attr(
@@ -744,8 +749,7 @@ class PenpotPageSVG(SVG):
         attr_name: str,
         attr_value: Any,
         should_be_unique: Literal[False] = False,
-    ) -> list[PenpotShapeElement]:
-        ...
+    ) -> list[PenpotShapeElement]: ...
 
     def _get_shapes_by_attr(
         self,
@@ -754,7 +758,9 @@ class PenpotPageSVG(SVG):
         should_be_unique: bool = False,
     ) -> PenpotShapeElement | list[PenpotShapeElement]:
         matched_shapes = [
-            shape for shape in self.penpot_shape_elements if getattr(shape, attr_name) == attr_value
+            shape
+            for shape in self.penpot_shape_elements
+            if getattr(shape, attr_name) == attr_value
         ]
         if not should_be_unique:
             return matched_shapes
@@ -844,7 +850,9 @@ class PenpotPageSVG(SVG):
         if selected_shape_elements is None:
             selected_shape_elements = self.penpot_shape_elements
         else:
-            if non_contained_shape_ids := {s.shape_id for s in selected_shape_elements}.difference(
+            if non_contained_shape_ids := {
+                s.shape_id for s in selected_shape_elements
+            }.difference(
                 {s.shape_id for s in self.penpot_shape_elements},
             ):
                 raise ValueError(
