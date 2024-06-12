@@ -98,6 +98,20 @@ class BoundingBox:
             return False
         return True
 
+    @classmethod
+    def from_corner_points(
+        cls, x0: float, y0: float, x1: float, y1: float,
+    ) -> Self:
+        if x0 > x1:
+            x0, x1 = x1, x0
+        if y0 > y1:
+            y0, y1 = y1, y0
+        return cls(x0, y0, x1 - x0, y1 - y0)
+
+    @classmethod
+    def from_mpl_bbox(cls, bbox: mpl_transforms.Bbox) -> Self:
+        return cls.from_corner_points(bbox.x0, bbox.y0, bbox.x1, bbox.y1)
+
 
 class SVG:
     """A simple wrapper around an `ElementTree` that is based on `BetterElement` as nodes in the tree.
