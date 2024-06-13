@@ -29,53 +29,38 @@ class RegisteredLLM(Enum):
         self,
         max_tokens: int | None = None,
         temperature: float = 0,
+        require_json: bool = False,
     ) -> BaseLanguageModel:
+        """:param max_tokens: the maximum number of tokens to generate in the response; set to None for no limit.
+        :param temperature: the generation temperature which controls the randomness of the output. 0 is typically deterministic
+            (save for equal token probabilities). Higher values increase randomness.
+        :param require_json: whether to constrain the model to only (valid) JSON.
+            For OpenAI models, this requires that the term "JSON" also appear in a system or user prompt.
+            For other models, it is currently unsupported.
+        :return:
+        """
+
+        def require_json_unsupported() -> None:
+            if require_json:
+                raise ValueError(f"Constraining output to JSON is not supported for {self}.")
+
         match self:
-            # NOTE: annoyingly, all models have different parameter names for the same things...
-            # makes for a lot of boilerplate code
-            case RegisteredLLM.GPT4O:
+            case RegisteredLLM.GPT4O | RegisteredLLM.GPT4:
+                model_kwargs = {}
+                if require_json:
+                    model_kwargs["response_format"] = {"type": "json_object"}
                 return ChatOpenAI(
                     model=self.value,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     api_key=cfg.openai_api_key,
+                    model_kwargs=model_kwargs,
                 )
-            case RegisteredLLM.GPT4:
-                return ChatOpenAI(
-                    model=self.value,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    api_key=cfg.openai_api_key,
-                )
-            case RegisteredLLM.GEMINI_15_PRO:
-                return ChatGoogleGenerativeAI(
-                    model=self.value,
-                    google_api_key=cfg.gemini_api_key,
-                    temperature=temperature,
-                    max_output_tokens=max_tokens,
-                )
-            case RegisteredLLM.GEMINI_15_FLASH:
-                return ChatGoogleGenerativeAI(
-                    model=self.value,
-                    google_api_key=cfg.gemini_api_key,
-                    temperature=temperature,
-                    max_output_tokens=max_tokens,
-                )
-            case RegisteredLLM.GEMINI_10_PRO:
-                return ChatGoogleGenerativeAI(
-                    model=self.value,
-                    google_api_key=cfg.gemini_api_key,
-                    temperature=temperature,
-                    max_output_tokens=max_tokens,
-                )
-            case RegisteredLLM.GEMINI_10_FLASH:
-                return ChatGoogleGenerativeAI(
-                    model=self.value,
-                    google_api_key=cfg.gemini_api_key,
-                    temperature=temperature,
-                    max_output_tokens=max_tokens,
-                )
-            case RegisteredLLM.GEMINI_PRO:
+            case RegisteredLLM.GEMINI_15_PRO | RegisteredLLM.GEMINI_15_FLASH | RegisteredLLM.GEMINI_10_PRO | RegisteredLLM.GEMINI_10_FLASH | RegisteredLLM.GEMINI_PRO:
+                # NOTE: In langchain-google, the changes necessary to support require_json were merged on June 10, 2024.
+                # https://github.com/langchain-ai/langchain-google/pull/228
+                # TODO This code should be updated to use the require_json parameter once the changes are released.
+                require_json_unsupported()
                 return ChatGoogleGenerativeAI(
                     model=self.value,
                     google_api_key=cfg.gemini_api_key,
@@ -83,8 +68,9 @@ class RegisteredLLM(Enum):
                     max_output_tokens=max_tokens,
                 )
             case RegisteredLLM.CLAUDE3_OPUS:
-                # Anthropic doesn't accept None for max_tokens. 4096 is the maximal allowed value.
+                require_json_unsupported()
                 if max_tokens is None:
+                    # Anthropic doesn't accept None for max_tokens. 4096 is the maximal allowed value.
                     max_tokens = 4096
                 return ChatAnthropic(
                     model_name=self.value,
