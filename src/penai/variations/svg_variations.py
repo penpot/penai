@@ -36,7 +36,7 @@ class VariationsPrompt:
     def __init__(self, text: str, _private: int):
         if _private != 42:
             raise ValueError(
-                "This class should not be instantiated directly. Use VariationsPromptBuilder instead."
+                "This class should not be instantiated directly. Use VariationsPromptBuilder instead.",
             )
         self.text = text
 
@@ -48,7 +48,9 @@ class VariationsPromptBuilder:
         """
         num_variations_text = "" if num_variations is None else f"{num_variations} "
         self._prompt_1_create_variations = f"Create {num_variations_text}variations of the SVG."
-        self._prompt_2_variation_instructions: str | VariationInstructionSnippet = VariationInstructionSnippet.SHAPES_COLORS_POSITIONS
+        self._prompt_2_variation_instructions: str | VariationInstructionSnippet = (
+            VariationInstructionSnippet.SHAPES_COLORS_POSITIONS
+        )
 
     def with_variation_instructions(self, instructions: str | VariationInstructionSnippet) -> Self:
         """:param instructions: instructions on how to generate variations.
