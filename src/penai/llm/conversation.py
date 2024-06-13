@@ -6,10 +6,10 @@ from functools import cached_property
 from io import BytesIO
 from typing import Any, Generic, Self, TypeAlias, TypeVar
 
+import bs4
 import httpx
 import markdown
 from bs4 import BeautifulSoup
-from langchain.document_loaders.parsers.html import bs4
 from langchain.memory import ConversationBufferMemory
 from langchain_core.messages import HumanMessage, SystemMessage
 from PIL.Image import Image
