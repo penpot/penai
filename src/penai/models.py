@@ -283,6 +283,16 @@ class PenpotMinimalShapeXML:
             sibling = sibling.getnext()
         return None
 
+    DEFAULT_PENPOT_ATTRIBUTES = {
+        "transform": "matrix(1.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000)",
+        "transform-inverse": "matrix(1.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000)",
+        "proportion": "1",
+        "proportion-lock": "false",
+        "rotation": "0",
+        "constraints-h": "scale",
+        "constraints-v": "scale",
+    }
+
     @classmethod
     def _remove_unwanted_elements(cls, tree: BetterElement) -> BetterElement:
         root = deepcopy(tree)
@@ -329,6 +339,13 @@ class PenpotMinimalShapeXML:
         # apply the actual removal of the elements
         for element in removed_elements:
             element.getparent().remove(element)
+
+        # remove default attributes
+        for element in root.iter():
+            for attr_name, value in cls.DEFAULT_PENPOT_ATTRIBUTES.items():
+                attr_qual_name = cls._name(attr_name, "penpot")
+                if attr_qual_name in element.attrib and element.attrib[attr_qual_name] == value:
+                    del element.attrib[attr_qual_name]
 
         return root
 
