@@ -37,7 +37,7 @@ class CodeSnippet:
         """
         self.language: str | None = language
         """
-        the language that was declared in the LLM's markdown response (succeeding the code delimiter "```"), if any
+        the language that was declared in the LLM's markdown response (succeeding the triple backtick code delimiter), if any
         """
 
     def get_preceding_heading(self, heading_level: int) -> str | None:
