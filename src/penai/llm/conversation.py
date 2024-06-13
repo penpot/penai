@@ -89,9 +89,10 @@ class Conversation(Generic[TResponse]):
         verbose: bool = True,
         response_factory: Callable[[str], TResponse] = Response,  # type: ignore
         system_prompt: str | None = None,
+        require_json: bool = False,
     ):
         self.memory = ConversationBufferMemory()
-        self.llm = model.create_model()
+        self.llm = model.create_model(require_json=require_json)
         self.verbose = verbose
         self.response_factory = response_factory
         if system_prompt is not None:
