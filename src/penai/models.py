@@ -267,8 +267,21 @@ class PenpotMinimalShapeXML:
         return element.tag.startswith("{" + self.NSMAP["penpot"] + "}")
 
     @classmethod
+    def _has_penpot_child(cls, el: BetterElement) -> bool:
+        return any(cls._is_penpot_element(child) for child in el.getchildren())
+
+    @classmethod
     def _element_to_string(cls, element: etree.Element) -> str:
         return etree.tostring(element, encoding="unicode")
+
+    @classmethod
+    def _find_g_sibling(cls, el: BetterElement) -> BetterElement | None:
+        sibling = el.getnext()
+        while sibling is not None:
+            if sibling.tag == cls._name("g", "svg"):
+                return sibling
+            sibling = sibling.getnext()
+        return None
 
     @classmethod
     def _remove_unwanted_elements(cls, tree: BetterElement) -> BetterElement:
@@ -279,39 +292,37 @@ class PenpotMinimalShapeXML:
 
         # traverse the elements of the tree, collecting the ones to remove
         for element in root.iter():
+            # if the element is already marked as retained, we don't need to check it
             if element in retained_element_set:
                 continue
 
             is_penpot_element = cls._is_penpot_element(element)
 
-            # apply special handling depending on penpot element
             if is_penpot_element:
+                # For penpot:shapes, we need to retain the subsequent <g> sibling and all its descendants if
+                #   - the <g> sibling has no subsequent penpot sibling AND
+                #   - the <g> sibling has no penpot child.
+                # Note that if the <g> sibling has a penpot child, we may need to clean its children recursively
+                # and the logic below applies.
                 if element.tag == cls._name("shape", "penpot"):
-                    attr_type = element.attrib.get(cls._name("type", "penpot"))
-                    if attr_type in ("path", "circle", "ellipse"):
-                        # for certain types penpot shapes, we need to retain the subsequent <g> sibling and all its descendants
-                        subsequent_g = None
-                        sibling = element
-                        while subsequent_g is None:
-                            sibling = sibling.getnext()
-                            if sibling.tag == cls._name("defs", "svg"):
-                                continue
-                            elif sibling.tag == cls._name("g", "svg"):
-                                subsequent_g = sibling
-                            else:
-                                raise ValueError(
-                                    f"Unexpected element after a penpot shape path: {sibling}",
-                                )
-                        retained_element_set.update(subsequent_g.iter())  # type: ignore
+                    g_sibling = cls._find_g_sibling(element)
+                    if g_sibling is not None:
+                        subsequent_sibling = g_sibling.getnext()
+                        has_subsequent_penpot_sibling = (
+                            subsequent_sibling is not None
+                            and cls._is_penpot_element(subsequent_sibling)
+                        )
+                        if not has_subsequent_penpot_sibling and not cls._has_penpot_child(
+                            g_sibling
+                        ):
+                            retained_element_set.update(g_sibling.iter())
 
             # decide whether to keep or remove the current element:
             # We keep penpot elements and <g> elements that have at least one penpot element as a child
             keep = is_penpot_element
             if not keep and element.tag == cls._name("g", "svg"):
-                for child in element.getchildren():
-                    if cls._is_penpot_element(child):
-                        keep = True
-                        break
+                if cls._has_penpot_child(element):
+                    keep = True
             if not keep:
                 removed_elements.append(element)
 
