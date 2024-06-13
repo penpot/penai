@@ -313,7 +313,7 @@ class PenpotMinimalShapeXML:
                             and cls._is_penpot_element(subsequent_sibling)
                         )
                         if not has_subsequent_penpot_sibling and not cls._has_penpot_child(
-                            g_sibling
+                            g_sibling,
                         ):
                             retained_element_set.update(g_sibling.iter())
 
