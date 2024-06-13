@@ -9,7 +9,7 @@ import httpx
 import markdown
 from bs4 import BeautifulSoup
 from langchain.memory import ConversationBufferMemory
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from PIL.Image import Image
 
 from penai.llm.llm_model import RegisteredLLM
@@ -52,11 +52,16 @@ class Conversation(Generic[TResponse]):
         model: RegisteredLLM = RegisteredLLM.GPT4O,
         verbose: bool = True,
         response_factory: Callable[[str], TResponse] = Response,  # type: ignore
+        system_prompt: str | None = None,
     ):
         self.memory = ConversationBufferMemory()
         self.llm = model.create_model()
         self.verbose = verbose
         self.response_factory = response_factory
+        if system_prompt is not None:
+            self.memory.chat_memory.add_message(
+                SystemMessage(content=system_prompt),
+            )
 
     def get_full_conversation_string(
         self,
