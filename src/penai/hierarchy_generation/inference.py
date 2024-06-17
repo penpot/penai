@@ -18,9 +18,9 @@ from penai.utils.vis import ShapeVisualization, ShapeVisualizer
 class HierarchyInferenceElement(BaseModel):
     id: str
     description: str
-    children: list[Self] | None = None
+    children: list["HierarchyInferenceElement"] | None = None
 
-    def flatten(self) -> Generator[Self, None, None]:
+    def flatten(self) -> Generator["HierarchyInferenceElement", None, None]:
         yield self
 
         if self.children:
@@ -70,7 +70,9 @@ class SchemaResponse(Response):
         self.parser = parser
 
     def parse_response(self) -> HierarchyInferenceElement:
-        return self.parser.invoke(self.text)
+        return HierarchyInferenceElement.parse_obj(
+            self.parser.invoke(self.text),
+        )
 
 
 class HierarchyInferencer:
