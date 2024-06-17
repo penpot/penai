@@ -2,6 +2,7 @@ from sensai.util import logging
 
 from penai.models import PenpotMinimalShapeXML
 from penai.registries.projects import SavedPenpotProject
+from penai.variations.xml_variations import XMLVariationsGenerator
 
 if __name__ == '__main__':
     logging.configure()
@@ -10,3 +11,6 @@ if __name__ == '__main__':
 
     pxml = PenpotMinimalShapeXML.from_shape(shape)
     print(pxml.to_string())
+
+    variations = XMLVariationsGenerator(shape, "equalizer").create_variations()
+
