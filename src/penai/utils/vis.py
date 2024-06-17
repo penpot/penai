@@ -1,6 +1,5 @@
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from functools import reduce
 
 import matplotlib.pyplot as plt
 from matplotlib import patches
@@ -156,13 +155,13 @@ class ShapeVisualizer:
 
         fig.canvas.draw()
 
-        if not hasattr(fig.canvas, "buffer_rgba"):
+        if not hasattr(fig.canvas, "tostring_rgb"):
             raise ValueError("The backend does not support the buffer_rgba method")
 
         image = Image.frombytes(
             "RGB",
             fig.canvas.get_width_height(),
-            fig.canvas.buffer_rgba(),
+            fig.canvas.tostring_rgb(),
         )
 
         plt.close(fig)
@@ -177,12 +176,13 @@ class ShapeVisualizer:
 
         children = self._get_relevant_children(shape)
 
-        largest_bbox = reduce(lambda a, b: a.union(b), shape_bboxes.values())
+        # largest_bbox = reduce(lambda a, b: a.union(b), shape_bboxes.values())
 
         for i, child in enumerate(children):
             bbox = shape_bboxes[child.shape_id].with_margin(5)
             label = self.label_factory(i, shape)
-            image, label = self._highlight_shape(shape_image, child, label, bbox, largest_bbox)
+            # TODO: Clipping by the largest bounding box is not working yet
+            image, label = self._highlight_shape(shape_image, child, label, bbox)
             yield ShapeVisualization(child, label, bbox, image)
 
         return
