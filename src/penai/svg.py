@@ -59,6 +59,22 @@ class BoundingBox:
             height=self.height + 2 * absolute_margin,
         )
 
+    def intersection(self, other: Self):
+        return BoundingBox(
+            x=min(self.x + self.width, other.x + other.width) - max(self.x, other.x),
+            y=min(self.y + self.height, other.y + other.height) - max(self.y, other.y),
+            width=min(self.x + self.width, other.x + other.width) - max(self.x, other.x),
+            height=min(self.y + self.height, other.y + other.height) - max(self.y, other.y),
+        )
+
+    def union(self, other: Self):
+        return BoundingBox(
+            x=min(self.x, other.x),
+            y=min(self.y, other.y),
+            width=max(self.x + self.width, other.x + other.width) - min(self.x, other.x),
+            height=max(self.y + self.height, other.y + other.height) - min(self.y, other.y),
+        )
+
     @property
     def aspect_ratio(self) -> NonNegativeFloat:
         return self.width / self.height
@@ -69,6 +85,14 @@ class BoundingBox:
 
     def to_view_box_string(self) -> str:
         return f"{self.x} {self.y} {self.width} {self.height}"
+
+    def to_svg_attribs(self) -> dict[str, str]:
+        return {
+            "x": str(self.x),
+            "y": str(self.y),
+            "width": str(self.width),
+            "height": str(self.height),
+        }
 
     @classmethod
     def from_dom_rect(cls, dom_rect: dict[str, Any]) -> Self:
@@ -101,7 +125,11 @@ class BoundingBox:
 
     @classmethod
     def from_corner_points(
-        cls, x0: float, y0: float, x1: float, y1: float,
+        cls,
+        x0: float,
+        y0: float,
+        x1: float,
+        y1: float,
     ) -> Self:
         if x0 > x1:
             x0, x1 = x1, x0
