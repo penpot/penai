@@ -18,6 +18,7 @@ python = "^3.11, <3.12"
 accsr = "^0.4.7"
 bs4 = "^0.0.2"
 cryptography = "^42.0.7"
+cssutils = "^2.11.1"
 jsonargparse = "^4.29.0"
 langchain = "^0.2.2"
 langchain-anthropic = "^0.1.15"
@@ -39,7 +40,6 @@ tqdm = "^4.66.4"
 transit-python2 = "^0.8.321"
 types-markdown = "^3.6.0.20240316"
 webdriver-manager = "^4.0.1"
-cssutils = "^2.11.1"
 
 [tool.poetry.group.dev]
 optional = true
