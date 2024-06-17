@@ -1,10 +1,14 @@
+import json
+import os
 import textwrap
 from copy import deepcopy
 
 from lxml import etree
 
+from penai.config import top_level_directory
 from penai.hierarchy_generation.inference import HierarchyElement
-from penai.svg import BoundingBox
+from penai.svg import BoundingBox, PenpotShapeElement
+from penai.types import PathLike
 
 color_by_hierarchy_level = [
     "#984447",
@@ -19,11 +23,18 @@ color_by_hierarchy_level = [
 ]
 
 
-class InteractiveHierarchyVisualizer:
-    def __init__(self) -> None:
-        pass
+class InteractiveSVGHierarchyVisualizer:
+    def __init__(self, hierarchy_element: HierarchyElement, shape: PenpotShapeElement) -> None:
+        # augment hierarchy
+        self._inject_hierarchy_visualization(hierarchy_element)
+        self.hierarchy_element = hierarchy_element
 
-    def bbox_to_svg_attribs(self, bbox: BoundingBox) -> dict[str, str]:
+        # create SVG with interactive elements
+        svg = shape.to_svg()
+        self._inject_stylesheet(svg.dom.getroot())
+        self.svg = svg
+
+    def _bbox_to_svg_attribs(self, bbox: BoundingBox) -> dict[str, str]:
         return {
             "x": str(bbox.x),
             "y": str(bbox.y),
@@ -31,10 +42,21 @@ class InteractiveHierarchyVisualizer:
             "height": str(bbox.height),
         }
 
-    def inject_shape_visualization(self, hierarchy_element: HierarchyElement) -> None:
+    @staticmethod
+    def hierarchy_highlight_element_id(hierarchy_element: HierarchyElement) -> str:
+        return f"hierarchy_hl_{id(hierarchy_element)}"
+
+    def _inject_shape_visualization(self, hierarchy_element: HierarchyElement) -> None:
         root = hierarchy_element.shape.get_containing_g_element()
 
-        interactive_group = etree.SubElement(root, "g", attrib={"class": "interactive"})
+        interactive_group = etree.SubElement(
+            root,
+            "g",
+            attrib={
+                "class": "interactive",
+                "id": self.hierarchy_highlight_element_id(hierarchy_element),
+            },
+        )
 
         hover_group = etree.SubElement(interactive_group, "g")
         ghost_group = etree.SubElement(interactive_group, "g", attrib={"pointer-events": "none"})
@@ -76,7 +98,7 @@ class InteractiveHierarchyVisualizer:
             hierarchy_element = hierarchy_element.parent
             hierarchy_level += 1
 
-    def inject_stylesheet(self, svg_root: etree.Element) -> None:
+    def _inject_stylesheet(self, svg_root: etree.Element) -> None:
         style = etree.Element("style")
         style.text = textwrap.dedent(
             """
@@ -91,9 +113,48 @@ class InteractiveHierarchyVisualizer:
         )
         svg_root.insert(0, style)
 
-    def inject_hierarchy_visualization(self, hierarchy: HierarchyElement) -> None:
+    def _inject_hierarchy_visualization(self, hierarchy: HierarchyElement) -> None:
         for hierarchy_element in hierarchy.flatten():
             if hierarchy_element is None:
                 continue
 
-            self.inject_shape_visualization(hierarchy_element)
+            self._inject_shape_visualization(hierarchy_element)
+
+    def write_svg(self, path: PathLike) -> None:
+        self.svg.to_file(path)
+
+
+class InteractiveHTMLHierarchyVisualizer:
+    def __init__(
+        self,
+        svg_path: str,
+        hierarchy_element: HierarchyElement,
+        title="Hierarchy Inspection",
+    ):
+        with open(os.path.join(top_level_directory, "resources", "hierarchy.html")) as f:
+            html_content = f.read()
+        jstree_data_dict = self._create_jstree_data_dict(hierarchy_element)
+        self.html_content = (
+            html_content.replace("$$title", title)
+            .replace("$$svgFile", svg_path)
+            .replace("$$data", json.dumps(jstree_data_dict))
+        )
+
+    def _create_jstree_data_dict(self, hierarchy_element: HierarchyElement) -> dict:
+        item_dict = {
+            "text": hierarchy_element.description,
+            "data": {
+                "id": InteractiveSVGHierarchyVisualizer.hierarchy_highlight_element_id(
+                    hierarchy_element,
+                ),
+            },
+        }
+        if hierarchy_element.children:
+            item_dict["children"] = [
+                self._create_jstree_data_dict(child) for child in hierarchy_element.children
+            ]
+        return item_dict
+
+    def write_html(self, path: PathLike) -> None:
+        with open(path, "w") as f:
+            f.write(self.html_content)

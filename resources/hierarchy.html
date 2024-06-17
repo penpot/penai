@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>$$title</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+    <style>
+        body {
+            font-family: Calibri, Helvetica, sans-serif;
+        }
+
+        .visible { opacity: 100% !important; }
+
+        #hierarchy {
+            position: fixed;
+            height: 100%;
+            overflow-x: scroll;
+            overflow-y: scroll;
+        }
+
+        #svg {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="hierarchy">
+        <button onclick="$('.visible').removeClass('visible')">clear selection</button>
+        <div id="jstree">
+        </div>
+    </div>
+
+    <script>
+        var inlineSVG = function() {
+            const $svg_img = $("#svg-img");
+            const $svg = $($svg_img[0].contentDocument);
+            console.log("svg", $svg_img[0].contentDocument);
+            const svg_content = $svg.find('svg').prop('outerHTML');
+            $('#svg').html(svg_content);
+        };
+
+        $(function () {
+            const $hierarchy = $("#hierarchy");
+            const $svg = $("#svg");
+
+            const resizeElements = function() {
+                console.log("resize");
+                const hierarchyWidth = 380;
+                var windowWidth = $(window).width();
+                $hierarchy.width(hierarchyWidth);
+                $svg.width(windowWidth-hierarchyWidth);
+            };
+
+            resizeElements();
+            $(window).on('resize', resizeElements);
+
+            // create hierarchy tree
+            // data: list of objects
+            var $tree = $('#jstree');
+            $tree.jstree({
+                'core': {
+                    'data': $$hierarchyData
+                }
+            }).on('loaded.jstree', function() {
+                $tree.jstree('open_all');
+            });
+
+            // handle hierarchy selections in the tree
+            $('#jstree').on("changed.jstree", function (e, data) {
+                console.log("selected", data.selected);
+                $(".visible").removeClass("visible");
+                data.selected.map(function (id) {
+                    var node = data.instance.get_node(id);
+                    $("#" + node.data["id"]).addClass("visible");
+                });
+            });
+        });
+    </script>
+
+    <div id="svg">
+        <object id="svg-img" type="image/svg+xml" data="$$svgFile" width="100%" height="100%" onload="inlineSVG();" />
+    </div>
+</body>
+</html>
