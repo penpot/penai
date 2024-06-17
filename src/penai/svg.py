@@ -704,6 +704,13 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         hierarchy_dict = self.get_hierarchy_dict()
         return apply_func_to_nested_keys(hierarchy_dict, lambda k: k.name)
 
+    def remove_clip_paths(self) -> bool:
+        groups = self.get_inner_g_elements()
+        return any(
+            group.attrib.pop("clip-path", None) is not None
+            for group in groups
+        )
+
     def pprint_hierarchy(self, horizontal: bool = True) -> None:
         print_tree(
             self,
