@@ -59,7 +59,7 @@ class BoundingBox:
             height=self.height + 2 * absolute_margin,
         )
 
-    def intersection(self, other: Self):
+    def intersection(self, other: Self) -> "BoundingBox":
         return BoundingBox(
             x=min(self.x + self.width, other.x + other.width) - max(self.x, other.x),
             y=min(self.y + self.height, other.y + other.height) - max(self.y, other.y),
@@ -67,7 +67,7 @@ class BoundingBox:
             height=min(self.y + self.height, other.y + other.height) - max(self.y, other.y),
         )
 
-    def union(self, other: Self):
+    def union(self, other: Self) -> "BoundingBox":
         return BoundingBox(
             x=min(self.x, other.x),
             y=min(self.y, other.y),

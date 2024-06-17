@@ -18,3 +18,6 @@ def ensure_valid_uuid_str(value: str) -> str:
 
 
 ValidUUID = Annotated[str, AfterValidator(ensure_valid_uuid_str)]
+
+RGBColor = tuple[int, int, int]
+RGBAColor = tuple[int, int, int, int]
