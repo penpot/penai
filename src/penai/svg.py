@@ -14,7 +14,7 @@ from pydantic.dataclasses import dataclass
 from selenium.webdriver.remote.webdriver import WebDriver
 from tqdm import tqdm
 
-from penai import utils
+import penai.utils.misc as utils
 from penai.registries.web_drivers import RegisteredWebDriver, get_web_driver_for_html
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys

@@ -4,7 +4,7 @@ from typing import Any, Self
 from pydantic import BaseModel
 
 from penai.types import PathLike, ValidUUID
-from penai.utils import read_json
+from penai.utils.misc import read_json
 
 
 class PenpotPageIndexItemSchema(BaseModel):

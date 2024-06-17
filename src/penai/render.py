@@ -14,7 +14,8 @@ from selenium.webdriver.remote.webdriver import WebDriver
 
 from penai.svg import SVG, BoundingBox
 from penai.types import PathLike
-from penai.utils.svg import image_from_bytes, temp_file_for_content
+from penai.utils.io import temp_file_for_content
+from penai.utils.svg import image_from_bytes
 from penai.utils.web_drivers import create_chrome_web_driver
 
 
