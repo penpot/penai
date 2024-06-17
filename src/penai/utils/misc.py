@@ -6,7 +6,7 @@ from pathlib import Path
 
 from cssutils import CSSParser
 
-from penai.types import PathLike
+from penai.types import PathLike, RGBColor
 
 
 def read_json(path: PathLike) -> dict:
@@ -20,7 +20,7 @@ def get_css_parser() -> CSSParser:
     return CSSParser(loglevel=logging.CRITICAL)
 
 
-def random_rgb_color():
+def random_rgb_color() -> RGBColor:
     """Generates a random RGB color in hex."""
     rgb = tuple(random.randint(0, 255) for _ in range(3))
     return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"

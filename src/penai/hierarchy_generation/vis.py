@@ -7,6 +7,7 @@ from lxml import etree
 
 from penai.config import top_level_directory
 from penai.hierarchy_generation.inference import HierarchyElement
+from penai.svg import BoundingBox
 
 color_by_hierarchy_level = [
     "#984447",
@@ -22,10 +23,10 @@ color_by_hierarchy_level = [
 
 
 class InteractiveHierarchyVisualizer:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def bbox_to_svg_attribs(self, bbox):
+    def bbox_to_svg_attribs(self, bbox: BoundingBox) -> dict[str, str]:
         return {
             "x": str(bbox.x),
             "y": str(bbox.y),
@@ -37,7 +38,7 @@ class InteractiveHierarchyVisualizer:
     def hierarchy_highlight_element_id(hierarchy_element: HierarchyElement) -> str:
         return f"hierarchy_hl_{id(hierarchy_element)}"
 
-    def inject_shape_visualization(self, hierarchy_element: HierarchyElement):
+    def inject_shape_visualization(self, hierarchy_element: HierarchyElement) -> None:
         root = hierarchy_element.shape.get_containing_g_element()
 
         interactive_group = etree.SubElement(
@@ -89,7 +90,7 @@ class InteractiveHierarchyVisualizer:
             hierarchy_element = hierarchy_element.parent
             hierarchy_level += 1
 
-    def inject_stylesheet(self, svg_root: etree.Element):
+    def inject_stylesheet(self, svg_root: etree.Element) -> None:
         style = etree.Element("style")
         style.text = textwrap.dedent(
             """
@@ -104,7 +105,7 @@ class InteractiveHierarchyVisualizer:
         )
         svg_root.insert(0, style)
 
-    def inject_hierarchy_visualization(self, hierarchy: HierarchyElement):
+    def inject_hierarchy_visualization(self, hierarchy: HierarchyElement) -> None:
         for hierarchy_element in hierarchy.flatten():
             if hierarchy_element is None:
                 continue

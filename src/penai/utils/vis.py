@@ -13,7 +13,7 @@ from penai.svg import BoundingBox, PenpotShapeElement
 ShapeLabelFactory = Callable[[int, PenpotShapeElement], str]
 
 
-def _default_shape_label_factory(idx: int, shape: PenpotShapeElement):
+def _default_shape_label_factory(idx: int, shape: PenpotShapeElement) -> str:
     return "#" + str(idx + 1)
 
 
@@ -42,7 +42,7 @@ class ShapeVisualizer:
         bbox_edge_color: str = "green",
         bbox_face_color: str = "gray",
         bbox_alpha: float = 0.2,
-    ):
+    ) -> None:
         self.web_driver_type = web_driver_type
         self.only_primitives = only_primitives
         self.dpi = dpi
@@ -60,14 +60,17 @@ class ShapeVisualizer:
         self.bbox_face_color = bbox_face_color
         self.bbox_alpha = bbox_alpha
 
-    def _get_relevant_children(self, shape: PenpotShapeElement):
+    def _get_relevant_children(self, shape: PenpotShapeElement) -> list[PenpotShapeElement]:
         return [
             child
             for child in shape.get_all_children_shapes()
             if not self.only_primitives or child.is_primitive_type
         ]
 
-    def _prepare_shape(self, shape: PenpotShapeElement):
+    def _prepare_shape(
+        self,
+        shape: PenpotShapeElement,
+    ) -> tuple[Image.Image, dict[str, BoundingBox]]:
         with get_web_driver(self.web_driver_type) as web_driver:
             renderer = WebDriverSVGRenderer(web_driver, infer_bounding_boxes=True)
 
@@ -83,11 +86,18 @@ class ShapeVisualizer:
 
         return shape_image, shape_bboxes
 
-    def _highlight_shape(self, image, shape, label, bbox, clip_bbox=None):
+    def _highlight_shape(
+        self,
+        image: Image.Image,
+        shape: PenpotShapeElement,
+        label: str,
+        bbox: BoundingBox,
+        clip_bbox: BoundingBox | None = None,
+    ) -> tuple[Image.Image, str]:
         ax_bbox = bbox.with_margin(self.ax_margin)
 
-        # if clip_bbox is not None:
-        #     ax_bbox = ax_bbox.intersection(clip_bbox)
+        if clip_bbox is not None:
+            ax_bbox = ax_bbox.intersection(clip_bbox)
 
         fig, ax = plt.subplots(
             dpi=self.dpi,
@@ -146,10 +156,13 @@ class ShapeVisualizer:
 
         fig.canvas.draw()
 
+        if not hasattr(fig.canvas, "buffer_rgba"):
+            raise ValueError("The backend does not support the buffer_rgba method")
+
         image = Image.frombytes(
             "RGB",
             fig.canvas.get_width_height(),
-            fig.canvas.tostring_rgb(),
+            fig.canvas.buffer_rgba(),
         )
 
         plt.close(fig)
