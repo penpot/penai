@@ -4,6 +4,7 @@ from enum import Enum
 
 from sensai.util.cache import pickle_cached
 
+from penai.client import PenpotClient
 from penai.config import get_config, pull_from_remote
 from penai.models import PenpotPage, PenpotProject
 from penai.registries.web_drivers import RegisteredWebDriver
@@ -79,3 +80,23 @@ class SavedPenpotProject(Enum):
             return page.svg.to_string()
 
         return PenpotPageSVG.from_string(load_page_svg_text(self, page_name))
+
+    def load_typographies_css(self, cached: bool = True) -> str:
+        """Loads the typography CSS for the project's main file.
+
+        :param cached: whether to use a previously cached result; if False, the cache will
+            not be read, but it will be updated
+        :return: the CSS content
+        """
+
+        @pickle_cached(cfg.cache_dir, load=cached)
+        def load_main_file_typographies_css(saved_project: SavedPenpotProject) -> str:
+            client = PenpotClient.create_default()
+            project = saved_project.load(pull=True)
+            typographies = client.get_file_typographies(
+                saved_project.get_project_id(),
+                project.main_file_id,
+            )
+            return typographies.to_css()
+
+        return load_main_file_typographies_css(self)
