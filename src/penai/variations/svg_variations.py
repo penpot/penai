@@ -1,7 +1,7 @@
 import logging
 import re
 import uuid
-from enum import StrEnum
+from enum import Enum, StrEnum
 from pathlib import Path
 from typing import Self
 
@@ -22,7 +22,11 @@ log = logging.getLogger(__name__)
 class VariationInstructionSnippet(StrEnum):
     SHAPES_COLORS_POSITIONS = (
         "Modify shapes, foreground colors and relative positioning, "
-        "but stay close to the original design. "
+        "but stay close to the original design."
+    )
+    SPECIFIC_COLORS_SHAPES = (
+        "Modify border colors, foreground and background colors as well as shapes. "
+        "Stay close to the original design. "
     )
 
 
@@ -30,6 +34,14 @@ PROMPT_FORMAT_DESCRIPTION = (
     "For each variation, create a level 2 heading (markdown prefix `## `) that names"
     "the variation followed by the respective code snippet."
 )
+
+
+class VariationDescriptionSequence(Enum):
+    UI_ELEMENT_STATES = (
+        "adapted for UI state 'active'",
+        "adapted for UI state 'disabled'",
+        "adapted for UI state 'error'",
+    )
 
 
 class VariationsPrompt:
@@ -220,3 +232,48 @@ class SVGVariationsGenerator:
             .build()
         )
         return self.create_variations_for_prompt(prompt)
+
+    def create_variations_sequentially(
+        self,
+        variation_scope: VariationInstructionSnippet
+        | str = VariationInstructionSnippet.SPECIFIC_COLORS_SHAPES,
+        variation_description_sequence: VariationDescriptionSequence
+        | list[str] = VariationDescriptionSequence.UI_ELEMENT_STATES,
+    ) -> SVGVariations:
+        """Generates variations sequentially, one at a time, accounting for limitations in response token count
+        (~4K for GPT-4o, which is not enough for multiple variations at once).
+
+        :param variation_scope: describes the scope of variations to apply in generation
+        :param variation_description_sequence: a sequence of instructions describing what to do for each variation
+        :return: the variations
+        """
+        conversation = self._create_conversation()
+        conversation.query(self.get_svg_refactoring_prompt())
+
+        variation_scope_prompt = str(variation_scope)
+
+        initial_variation_query = (
+            "In the following, your task is to create variations of the SVG, one variation at a time. "
+            "Whenever you output a variation, prefix it with a level 2 title (markdown prefix `## `) that names the variation, "
+            "followed by the respective code snippet.\n"
+            "In general, you may do the following: " + variation_scope_prompt + "\n\n"
+            "Here are the instructions for the first variation:\n"
+        )
+
+        variation_prompt_template = 'Create a variation corresponding to the description "%s".'
+
+        if isinstance(variation_description_sequence, VariationDescriptionSequence):
+            variation_descriptions = variation_description_sequence.value
+        else:
+            assert isinstance(variation_description_sequence, list)
+            variation_descriptions = variation_description_sequence
+
+        all_variations_dict = {}
+        for i, instruction in enumerate(variation_descriptions):
+            prompt = initial_variation_query if i == 0 else ""
+            prompt += variation_prompt_template % instruction
+            response = conversation.query(prompt)
+            variations_dict = response.get_variations_dict()
+            all_variations_dict.update(variations_dict)
+
+        return SVGVariations(self.svg, all_variations_dict, conversation)
