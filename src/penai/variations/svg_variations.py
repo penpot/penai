@@ -141,6 +141,24 @@ class SVGVariations:
         variations_dict = response.get_variations_dict()
         return SVGVariations(self.original_svg, variations_dict, conversation)
 
+    def write_results(self, result_writer: ResultWriter):
+        result_writer.write_text_file(
+            "full_conversation.txt",
+            self.conversation.get_full_conversation_string(),
+            content_description="full conversation",
+        )
+        result_writer.write_text_file(
+            "variations.html",
+            self.to_html(),
+            content_description="variations response as HTML",
+        )
+        for i, (name, svg_text) in enumerate(self.variations_dict.items(), start=1):
+            result_writer.write_text_file(
+                f"variation_{i}.svg",
+                svg_text,
+                content_description=f"variation '{name}' as SVG",
+            )
+
 
 class SVGVariationsGenerator:
     def __init__(
@@ -149,7 +167,7 @@ class SVGVariationsGenerator:
         semantics: str,
         verbose: bool = True,
         model: RegisteredLLM = RegisteredLLM.GPT4O,
-        persistence_base_dir: PathLike = Path("log") / "svg_variations",
+        persistence_base_dir: PathLike = Path(cfg.results_dir()) / "svg_variations",
         persistence_enabled: bool = True,
         persistence_add_timestamp: bool = True,
     ):
@@ -191,33 +209,13 @@ class SVGVariationsGenerator:
         variations_prompt: VariationsPrompt,
     ) -> SVGVariations:
         conversation = self._create_conversation()
-        refactoring_response = conversation.query_text(self.get_svg_refactoring_prompt())
+        conversation.query_text(self.get_svg_refactoring_prompt())
 
         variations_response = conversation.query(variations_prompt.text)
         variations_dict = variations_response.get_variations_dict()
         variations = SVGVariations(self.svg, variations_dict, conversation)
 
-        self.result_writer.write_text_file(
-            "response_refactoring.md",
-            refactoring_response,
-            content_description="SVG refactoring response",
-        )
-        self.result_writer.write_text_file(
-            "response_variations.md",
-            variations_response.text,
-            content_description="variations response",
-        )
-        self.result_writer.write_text_file(
-            "full_conversation.txt",
-            conversation.get_full_conversation_string(),
-            content_description="full conversation",
-        )
-        self.result_writer.write_text_file(
-            "response_variations.html",
-            variations.to_html(),
-            content_description="variations response as HTML",
-        )
-
+        variations.write_results(self.result_writer)
         return variations
 
     def create_variations(
@@ -276,4 +274,6 @@ class SVGVariationsGenerator:
             variations_dict = response.get_variations_dict()
             all_variations_dict.update(variations_dict)
 
-        return SVGVariations(self.svg, all_variations_dict, conversation)
+        variations = SVGVariations(self.svg, all_variations_dict, conversation)
+        variations.write_results(self.result_writer)
+        return variations
