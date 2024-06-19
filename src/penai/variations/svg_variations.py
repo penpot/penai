@@ -337,3 +337,18 @@ class SVGVariationsGenerator:
         variations = SVGVariations(self.svg, variations_dict, conversation)
         variations.write_results(self.result_writer)
         return variations
+
+    def create_variations_sequentially_from_example_1by1(
+        self,
+        example_variations: SVGVariations,
+    ) -> SVGVariations:
+        all_variations_dict = {}
+        example_variations_dict = example_variations.variations_dict
+        for name in example_variations_dict:
+            single_example_variations_dict = {name: example_variations_dict[name]}
+            single_example_variations = SVGVariations(
+                example_variations.original_svg, single_example_variations_dict
+            )
+            variations = self.create_variations_sequentially_from_example(single_example_variations)
+            all_variations_dict.update(variations.variations_dict)
+        return SVGVariations(self.svg, all_variations_dict)
