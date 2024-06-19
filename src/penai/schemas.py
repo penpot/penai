@@ -1,10 +1,32 @@
 from pathlib import Path
 from typing import Any, Self
 
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 
 from penai.types import PathLike, ValidUUID
 from penai.utils import read_json
+
+
+class PenpotTypographySchema(BaseModel):
+    textTransform: str
+    fontFamily: str
+    fontStyle: str
+    fontWeight: str
+    lineHeight: str
+    path: str
+    letterSpacing: str
+    name: str
+    fontVariantId: str
+    fontSize: str
+    fontId: str
+
+
+class PenpotTypographiesSchema(RootModel):
+    root: dict[str, PenpotTypographySchema]
+
+    @classmethod
+    def from_typographies_file(cls, typographies_file: PathLike) -> Self:
+        return cls(**read_json(typographies_file))
 
 
 class PenpotPageIndexItemSchema(BaseModel):
