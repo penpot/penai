@@ -1,6 +1,7 @@
 import logging
 import re
 import uuid
+from collections.abc import Sequence
 from enum import Enum, StrEnum
 from pathlib import Path
 from typing import Self
@@ -104,8 +105,18 @@ class SVGVariationsResponse(Response):
 
 
 class SVGVariationsConversation(Conversation[SVGVariationsResponse]):
-    def __init__(self, model: RegisteredLLM = RegisteredLLM.GPT4O, verbose: bool = True):
-        super().__init__(model, verbose=verbose, response_factory=SVGVariationsResponse)
+    def __init__(
+        self,
+        model: RegisteredLLM = RegisteredLLM.GPT4O,
+        verbose: bool = True,
+        system_prompt: str | None = None,
+    ):
+        super().__init__(
+            model,
+            verbose=verbose,
+            response_factory=SVGVariationsResponse,
+            system_prompt=system_prompt,
+        )
 
 
 class SVGVariations:
@@ -113,7 +124,7 @@ class SVGVariations:
         self,
         original_svg: SVG,
         variations_dict: dict[str, str],
-        conversation: SVGVariationsConversation,
+        conversation: SVGVariationsConversation | None = None,
     ):
         """:param original_svg: the original SVG
         :param variations_dict: a mapping from variation name to SVG code
@@ -136,17 +147,20 @@ class SVGVariations:
         return html
 
     def revise(self, prompt: str) -> "SVGVariations":
+        if self.conversation is None:
+            raise ValueError("Cannot revise without a conversation")
         conversation = self.conversation.clone()
         response = conversation.query(prompt)
         variations_dict = response.get_variations_dict()
         return SVGVariations(self.original_svg, variations_dict, conversation)
 
-    def write_results(self, result_writer: ResultWriter):
-        result_writer.write_text_file(
-            "full_conversation.txt",
-            self.conversation.get_full_conversation_string(),
-            content_description="full conversation",
-        )
+    def write_results(self, result_writer: ResultWriter) -> None:
+        if self.conversation is not None:
+            result_writer.write_text_file(
+                "full_conversation.txt",
+                self.conversation.get_full_conversation_string(),
+                content_description="full conversation",
+            )
         result_writer.write_text_file(
             "variations.html",
             self.to_html(),
@@ -192,7 +206,7 @@ class SVGVariationsGenerator:
             responses_dir = responses_dir / datetime_tag()
         self.result_writer = ResultWriter(responses_dir, enabled=persistence_enabled)
 
-    def _create_conversation(self) -> SVGVariationsConversation:
+    def _create_conversation(self, system_prompt: str | None = None) -> SVGVariationsConversation:
         return SVGVariationsConversation(verbose=self.verbose, model=self.model)
 
     def get_svg_refactoring_prompt(self) -> str:
@@ -236,7 +250,7 @@ class SVGVariationsGenerator:
         variation_scope: VariationInstructionSnippet
         | str = VariationInstructionSnippet.SPECIFIC_COLORS_SHAPES,
         variation_description_sequence: VariationDescriptionSequence
-        | list[str] = VariationDescriptionSequence.UI_ELEMENT_STATES,
+        | Sequence[str] = VariationDescriptionSequence.UI_ELEMENT_STATES,
     ) -> SVGVariations:
         """Generates variations sequentially, one at a time, accounting for limitations in response token count
         (~4K for GPT-4o, which is not enough for multiple variations at once).
@@ -260,6 +274,7 @@ class SVGVariationsGenerator:
 
         variation_prompt_template = 'Create a variation corresponding to the description "%s".'
 
+        variation_descriptions: Sequence[str]
         if isinstance(variation_description_sequence, VariationDescriptionSequence):
             variation_descriptions = variation_description_sequence.value
         else:
@@ -275,5 +290,50 @@ class SVGVariationsGenerator:
             all_variations_dict.update(variations_dict)
 
         variations = SVGVariations(self.svg, all_variations_dict, conversation)
+        variations.write_results(self.result_writer)
+        return variations
+
+    def create_variations_sequentially_from_example(
+        self,
+        example_variations: SVGVariations,
+    ) -> SVGVariations:
+        """Generates variations sequentially, one at a time, based on an example set of variations.
+
+        :param example_variations: the example variations to use as a basis
+        :return: the variations
+        """
+        system_prompt = (
+            "You are a design assistant tasked with creating variations of an SVG. "
+            "You will be presented with examples of variations of a UI element, and your task is to apply the same variation "
+            "principles to another UI element. "
+            "In each response you are to return a single variation. "
+        )
+
+        conversation = self._create_conversation(system_prompt=system_prompt)
+
+        example_prompt = (
+            "Here is an example of a UI element with variations:\n\n"
+            f"Original design:\n```{example_variations.original_svg.to_string()}```\n\n"
+        )
+        for name, svg in example_variations.variations_dict.items():
+            example_prompt += f"Variation '{name}':\n```{svg}```\n\n"
+
+        initial_instruction_prompt = (
+            example_prompt
+            + f"This is the SVG for which are now to generate variations:\n\n```{self.svg.to_string()}```\n\n"
+            "Here are the instructions for the first variation:\n"
+        )
+
+        variations_dict = {}
+        for i, name in enumerate(example_variations.variations_dict.keys()):
+            prompt = initial_instruction_prompt if i == 0 else ""
+            prompt += f"Based on the example, create the variation '{name}'."
+            response = conversation.query(prompt)
+            code_snippets = response.get_code_snippets()
+            if len(code_snippets) > 1:
+                log.warning("Received more than one code snippet in response; using the first one")
+            variations_dict[name] = code_snippets[0].code
+
+        variations = SVGVariations(self.svg, variations_dict, conversation)
         variations.write_results(self.result_writer)
         return variations
