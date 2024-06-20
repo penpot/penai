@@ -11,6 +11,7 @@ from sensai.util.logging import datetime_tag
 from penai.config import get_config
 from penai.llm.conversation import Conversation, Response
 from penai.llm.llm_model import RegisteredLLM
+from penai.models import PenpotColors
 from penai.svg import SVG, PenpotShapeElement
 from penai.types import PathLike
 from penai.utils.io import ResultWriter, fn_compatible
@@ -245,24 +246,49 @@ class SVGVariationsGenerator:
         )
         return self.create_variations_for_prompt(prompt)
 
+    def _create_colors_prompt(self, penpot_colors: PenpotColors) -> str:
+        colors = penpot_colors.get_colors()
+        prompt = ""
+        if len(colors) > 0:
+            prompt += "The design uses the following colors:\n"
+            for color in colors:
+                prompt += f"{color.name}: {color.color}\n"
+            prompt += (
+                "In the SVGs you create, use these colors where applicable "
+                "and make sure that any additional colors fit well with the existing color scheme."
+            )
+        return prompt
+
+    def _create_variation_scope_prompt(
+        self, variation_scope: VariationInstructionSnippet | str, colors: PenpotColors | None = None
+    ) -> str:
+        prompt = str(variation_scope)
+        if colors is not None:
+            colors_prompt = self._create_colors_prompt(colors)
+            if colors_prompt != "":
+                prompt += "\n" + colors_prompt
+        return prompt
+
     def create_variations_sequentially(
         self,
         variation_scope: VariationInstructionSnippet
         | str = VariationInstructionSnippet.SPECIFIC_COLORS_SHAPES,
         variation_description_sequence: VariationDescriptionSequence
         | Sequence[str] = VariationDescriptionSequence.UI_ELEMENT_STATES,
+        colors: PenpotColors | None = None,
     ) -> SVGVariations:
         """Generates variations sequentially, one at a time, accounting for limitations in response token count
         (~4K for GPT-4o, which is not enough for multiple variations at once).
 
         :param variation_scope: describes the scope of variations to apply in generation
         :param variation_description_sequence: a sequence of instructions describing what to do for each variation
+        :param colors: the colors used in the design, which shall be considered in the generation process
         :return: the variations
         """
         conversation = self._create_conversation()
         conversation.query(self.get_svg_refactoring_prompt())
 
-        variation_scope_prompt = str(variation_scope)
+        variation_scope_prompt = self._create_variation_scope_prompt(variation_scope, colors)
 
         initial_variation_query = (
             "In the following, your task is to create variations of the SVG, one variation at a time. "
@@ -293,13 +319,15 @@ class SVGVariationsGenerator:
         variations.write_results(self.result_writer)
         return variations
 
-    def create_variations_sequentially_from_example(
+    def create_variations_from_example_present_at_once(
         self,
         example_variations: SVGVariations,
     ) -> SVGVariations:
-        """Generates variations sequentially, one at a time, based on an example set of variations.
+        """Generates variations based on an example set of variations that are presented to the model initially.
+        Given the example variations (original, (variation_1, variation_2, ...)), the model is asked to generate,
+        the same kinds of variations for another UI element - one at atime, but in a single conversation.
 
-        :param example_variations: the example variations to use as a basis
+        :param example_variations: the example variations
         :return: the variations
         """
         system_prompt = (
@@ -338,18 +366,43 @@ class SVGVariationsGenerator:
         variations.write_results(self.result_writer)
         return variations
 
-    def create_variations_sequentially_from_example_1by1(
+    def create_variations_from_example(
         self,
         example_variations: SVGVariations,
     ) -> SVGVariations:
-        all_variations_dict = {}
-        example_variations_dict = example_variations.variations_dict
-        for name in example_variations_dict:
-            single_example_variations_dict = {name: example_variations_dict[name]}
-            single_example_variations = SVGVariations(
-                example_variations.original_svg,
-                single_example_variations_dict,
+        """Generates variations based on an example set of variations that are presented to the model one
+        at a time, i.e. in each conversation, the model is given one example (original, variation) and is
+        asked to create the same type of variation for another UI element.
+
+        :param example_variations: the example variations; if there are multiple variations, then there
+            will be a separate conversation for each variation asking the model to create that kind of variation
+        :return: the variations
+        """
+        system_prompt = (
+            "You are a design assistant tasked with creating a variation of an SVG. "
+            "You will be presented with an example, i.e. an original design and a variation thereof. "
+            "Your task is analyze the way in which the variation differs from the original "
+            "and then apply the same mechanisms to another UI element. "
+        )
+
+        variations_dict = {}
+        for _i, (name, svg_text) in enumerate(example_variations.variations_dict.items()):
+            conversation = self._create_conversation(system_prompt=system_prompt)
+            prompt = (
+                "Here is the example pair (original and variation):\n\n"
+                f"This is the original design:\n```{example_variations.original_svg.to_string()}```\n\n"
+                f"This is the variation '{name}':\n```{svg_text}```\n\n"
+                f"Based on this example, apply the same type of variation to this design:```{self.svg.to_string()}```\n"
             )
-            variations = self.create_variations_sequentially_from_example(single_example_variations)
-            all_variations_dict.update(variations.variations_dict)
-        return SVGVariations(self.svg, all_variations_dict)
+            response = conversation.query(prompt)
+            code_snippets = response.get_code_snippets()
+            if len(code_snippets) == 0:
+                log.warning(f"Received no code snippets for '{name}'")
+                continue
+            if len(code_snippets) > 1:
+                log.warning("Received more than one code snippet in response; using the first one")
+            variations_dict[name] = code_snippets[0].code
+
+        variations = SVGVariations(self.svg, variations_dict)
+        variations.write_results(self.result_writer)
+        return variations

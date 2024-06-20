@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -7,6 +8,7 @@ from uuid import UUID
 
 from lxml import etree
 from lxml.etree import Element
+from pydantic import BaseModel, Field, parse_obj_as
 
 from penai.errors import FontFetchError
 from penai.schemas import (
@@ -183,6 +185,37 @@ class PenpotComponentsSVG(SVG):
         )
 
 
+class PenpotColor(BaseModel):
+    id: str | None = Field(default_factory=lambda: None)
+    name: str
+    color: str
+    """
+    The color in hex format, e.g. '#ff0000' for red.
+    """
+    opacity: float
+    path: str
+
+
+class PenpotColors:
+    def __init__(self, colors_json_path: PathLike | None = None):
+        """:param colors_json_path: the path to an existing `colors.json` file containing the colors or None of no colors are available."""
+        self._colors_json_path = colors_json_path
+        self._colors: list[PenpotColor] | None = None
+
+    def get_colors(self) -> list[PenpotColor]:
+        """:return: the list of colors, which may be empty if no colors are defined"""
+        if self._colors is None:
+            self._colors = []
+            if self._colors_json_path is not None:
+                with open(self._colors_json_path) as f:
+                    colors_json = json.load(f)
+                color_map = parse_obj_as(dict[str, PenpotColor], colors_json)
+                for uuid, color in color_map.items():
+                    color.id = uuid
+                    self._colors.append(color)
+        return self._colors
+
+
 @dataclass
 class PenpotTypography(BaseStyleSupplier):
     name: str
@@ -227,10 +260,10 @@ class PenpotFile(BaseStyleSupplier):
     A page is in one to one correspondence to an svg file, and the page id is
     the filename without the '.svg' extension."""
     components: PenpotComponentDict
+    colors: PenpotColors
     typographies: PenpotTypographyDict
 
     # TODO: Implement when needed
-    # colors: list[PenpotColor]
     # mediaItems: list[PenpotMediaItem]
 
     @cached_property
@@ -265,6 +298,7 @@ class PenpotFile(BaseStyleSupplier):
             pages={},
             components=PenpotComponentDict(),
             typographies=PenpotTypographyDict(),
+            color=None
         )
 
         if schema.hasComponents:
@@ -280,6 +314,12 @@ class PenpotFile(BaseStyleSupplier):
                 penpot_file.typographies[typ_id] = PenpotTypography.from_schema(
                     typ_schema,
                 )
+
+        colors_json_path = Path(file_dir) / "colors.json"
+        if not colors_json_path.exists():
+            penpot_file.colors = PenpotColors(None)
+        else:
+            penpot_file.colors = PenpotColors(colors_json_path)
 
         for page_id in schema.pages:
             page_info = schema.pagesIndex[page_id]
