@@ -49,7 +49,9 @@ class InteractiveSVGHierarchyVisualizer:
     def hierarchy_highlight_element_id(hierarchy_element: HierarchyElement) -> str:
         return f"hierarchy_hl_{id(hierarchy_element)}"
 
-    def _inject_shape_visualization(self, hierarchy_element: HierarchyElement, inject_el: BetterElement) -> None:
+    def _inject_shape_visualization(
+        self, hierarchy_element: HierarchyElement, inject_el: BetterElement
+    ) -> None:
         interactive_group = etree.SubElement(
             inject_el,
             "g",
@@ -114,7 +116,9 @@ class InteractiveSVGHierarchyVisualizer:
         )
         svg_root.insert(0, style)
 
-    def _inject_hierarchy_visualization(self, hierarchy: HierarchyElement, root: BetterElement) -> None:
+    def _inject_hierarchy_visualization(
+        self, hierarchy: HierarchyElement, root: BetterElement
+    ) -> None:
         for hierarchy_element in hierarchy.flatten():
             if hierarchy_element is None:
                 continue
@@ -130,7 +134,7 @@ class InteractiveHTMLHierarchyVisualizer:
         self,
         svg_path: str,
         hierarchy_element: HierarchyElement,
-        title="Hierarchy Inspection",
+        title: str = "Hierarchy Inspection",
     ):
         with open(os.path.join(top_level_directory, "resources", "hierarchy.html")) as f:
             html_content = f.read()
