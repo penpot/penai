@@ -8,9 +8,9 @@ from sensai.util.cache import pickle_cached
 
 from penai.client import PenpotClient
 from penai.config import get_config, pull_from_remote
-from penai.models import PenpotPage, PenpotProject, PenpotShape
+from penai.models import PenpotPage, PenpotProject
 from penai.registries.web_drivers import RegisteredWebDriver
-from penai.svg import PenpotPageSVG
+from penai.svg import PenpotPageSVG, PenpotShapeElement
 
 log = logging.getLogger(__name__)
 cfg = get_config()
@@ -159,17 +159,27 @@ class SavedPenpotProject(Enum):
 
     def get_selected_shapes_for_experiments(
         self,
-    ) -> Iterable[tuple[PenpotShape, ShapeMetadata]]:
+    ) -> Iterable[tuple[PenpotShapeElement, ShapeMetadata]]:
         """Returns all shapes and their metadata that are selected for experiments in the selected project."""
         for page_name, shape_name_to_metadata in self._get_selected_pages_to_shapes_dict().items():
             page = self.load_page_svg_with_viewboxes(page_name)
             for shape_name, metadata in shape_name_to_metadata.items():
                 yield page.get_shape_by_name(shape_name), metadata
 
+    def get_num_selected_shapes_for_experiments(self) -> int:
+        result = 0
+        for shape_to_md in self._get_selected_pages_to_shapes_dict().values():
+            result += len(shape_to_md)
+        return result
+
+    @classmethod
+    def get_num_all_selected_shapes_for_experiments(cls) -> int:
+        return sum([project.get_num_selected_shapes_for_experiments() for project in cls])
+
     @classmethod
     def get_all_selected_shapes_for_experiments(
         cls,
-    ) -> Iterable[tuple[PenpotShape, ShapeMetadata]]:
+    ) -> Iterable[tuple[PenpotShapeElement, ShapeMetadata]]:
         """Iterates over the whole registry and retrieves all shapes and their metadata that are selected for experiments."""
         for project in cls:
             yield from project.get_selected_shapes_for_experiments()

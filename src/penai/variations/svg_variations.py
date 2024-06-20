@@ -155,21 +155,21 @@ class SVGVariations:
         variations_dict = response.get_variations_dict()
         return SVGVariations(self.original_svg, variations_dict, conversation)
 
-    def write_results(self, result_writer: ResultWriter) -> None:
+    def write_results(self, result_writer: ResultWriter, file_prefix: str = "") -> None:
         if self.conversation is not None:
             result_writer.write_text_file(
-                "full_conversation.txt",
+                f"{file_prefix}full_conversation.txt",
                 self.conversation.get_full_conversation_string(),
                 content_description="full conversation",
             )
         result_writer.write_text_file(
-            "variations.html",
+            f"{file_prefix}variations.html",
             self.to_html(),
             content_description="variations response as HTML",
         )
         for i, (name, svg_text) in enumerate(self.variations_dict.items(), start=1):
             result_writer.write_text_file(
-                f"variation_{i}.svg",
+                f"{file_prefix}variation_{i}.svg",
                 svg_text,
                 content_description=f"variation '{name}' as SVG",
             )
@@ -207,6 +207,10 @@ class SVGVariationsGenerator:
         if persistence_add_timestamp:
             responses_dir = responses_dir / datetime_tag()
         self.result_writer = ResultWriter(responses_dir, enabled=persistence_enabled)
+
+    @property
+    def persistence_dir(self) -> Path:
+        return Path(self.result_writer.result_dir).absolute()
 
     def _create_conversation(self, system_prompt: str | None = None) -> SVGVariationsConversation:
         return SVGVariationsConversation(verbose=self.verbose, model=self.model)
@@ -247,6 +251,18 @@ class SVGVariationsGenerator:
             .build()
         )
         return self.create_variations_for_prompt(prompt)
+
+    def revise_variations(
+        self,
+        variations: SVGVariations,
+        revision_prompt: str = "Modify these variations such that they all consider shape changes.",
+    ) -> SVGVariations:
+        """Generates revised variations based on the given variations. If persistence is enabled, the saved files will
+        have the prefix `revised_`.
+        """
+        revised_variations = variations.revise(revision_prompt)
+        revised_variations.write_results(self.result_writer, file_prefix="revised_")
+        return revised_variations
 
     def _create_colors_prompt(self, penpot_colors: PenpotColors) -> str:
         colors = penpot_colors.get_colors()
