@@ -260,8 +260,8 @@ class PenpotFile(BaseStyleSupplier):
     A page is in one to one correspondence to an svg file, and the page id is
     the filename without the '.svg' extension."""
     components: PenpotComponentDict
-    colors: PenpotColors
     typographies: PenpotTypographyDict
+    colors: PenpotColors
 
     # TODO: Implement when needed
     # mediaItems: list[PenpotMediaItem]
@@ -292,13 +292,15 @@ class PenpotFile(BaseStyleSupplier):
         if not file_dir.is_dir():
             raise ValueError(f"{file_dir=} is not a valid directory.")
 
+        colors_json_path = Path(file_dir) / "colors.json"
+
         penpot_file = cls(
             id=file_dir.stem,
             name=schema.name,
             pages={},
             components=PenpotComponentDict(),
             typographies=PenpotTypographyDict(),
-            color=None
+            colors=PenpotColors(colors_json_path if colors_json_path.exists() else None),
         )
 
         if schema.hasComponents:
@@ -314,12 +316,6 @@ class PenpotFile(BaseStyleSupplier):
                 penpot_file.typographies[typ_id] = PenpotTypography.from_schema(
                     typ_schema,
                 )
-
-        colors_json_path = Path(file_dir) / "colors.json"
-        if not colors_json_path.exists():
-            penpot_file.colors = PenpotColors(None)
-        else:
-            penpot_file.colors = PenpotColors(colors_json_path)
 
         for page_id in schema.pages:
             page_info = schema.pagesIndex[page_id]
