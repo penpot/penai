@@ -61,10 +61,13 @@ class CustomElement(Element):
 class BetterElement(CustomElement):
     """Simplifies handling of namespaces in ElementTree."""
 
-    @cached_property
+    @property
     def query_compatible_nsmap(self) -> dict[str, str]:
         nsmap = dict(self.nsmap)
-        nsmap[""] = nsmap.pop(None)
+
+        if None in nsmap:
+            nsmap["default"] = nsmap.pop(None)
+
         return nsmap
 
     @override
@@ -82,12 +85,11 @@ class BetterElement(CustomElement):
         namespaces: dict[str, str] | None = None,
         **kwargs: dict[str, Any],
     ) -> list[Self]:
-        namespaces = namespaces or self.query_compatible_nsmap
-
-        # xpath() does not support empty namespaces (applies to both None and empty string)
-        namespaces.pop("", None)
-
-        return super().xpath(path, namespaces=namespaces, **kwargs)
+        return super().xpath(
+            path,
+            namespaces=namespaces or self.query_compatible_nsmap,
+            **kwargs,
+        )
 
     @overload
     def get_namespaced_key(self, key: str) -> str:

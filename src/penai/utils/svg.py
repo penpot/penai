@@ -76,6 +76,8 @@ def temp_file_for_content(
     # The code below is essentially equivalent to `with open()...write`
     with NamedTemporaryFile(prefix="penai_", suffix=extension, mode=mode, delete=False) as file:
         file.write(content)
+        file.flush()
+
         path = Path(file.name)
     yield path
 

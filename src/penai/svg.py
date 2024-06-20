@@ -14,6 +14,7 @@ from pydantic.dataclasses import dataclass
 from selenium.webdriver.remote.webdriver import WebDriver
 from tqdm import tqdm
 
+from penai import utils
 from penai.registries.web_drivers import RegisteredWebDriver, get_web_driver_for_html
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys
@@ -305,6 +306,33 @@ def _el_is_group(el: Element) -> bool:
     return el.tag == el.get_namespaced_key("g")
 
 
+def _el_has_visible_content(el: Element) -> bool:
+    children = el.getchildren()
+
+    # Note: Not sure if this is really true
+    # A <g> might have a class set that will set some fill / bg color and thus make it visible
+    if not children:
+        return False
+
+    if len(children) == 1 and children[0].tag == el.get_namespaced_key(
+        "path",
+    ):
+        css_parser = utils.get_css_parser()
+
+        path = children[0]
+        path_style = css_parser.parseStyle(path.get("style", ""))
+
+        if path_style.getPropertyValue("opacity") == "0":
+            return False
+
+        if not path.getchildren() and (
+            path.get("fill") == "none" or path_style.getPropertyValue("fill") in ["none"]
+        ):
+            return False
+
+    return True
+
+
 _PenpotShapeDictEntry = dict["PenpotShapeElement", "_PenpotShapeDictEntry"]
 
 
@@ -575,6 +603,22 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     def is_primitive_type(self) -> bool:
         return self._shape_type.value.category == PenpotShapeTypeCategory.PRIMITIVE
 
+    def check_for_visible_content(self) -> bool:
+        if self.type == PenpotShapeType.GROUP:
+            return any(child.check_for_visible_content() for child in self.child_shapes)
+
+        inner_groups = self.get_inner_g_elements()
+
+        if not inner_groups:
+            return False
+
+        assert len(inner_groups), (
+            f"Found no inner <g>-elements (i.e. content elements) for shape with id {self.shape_id} while expecting at least one such element. "
+            f"Tree: {etree.tostring(self.get_containing_g_element(), pretty_print=True)}"
+        )
+
+        return any(_el_has_visible_content(group) for group in inner_groups)
+
     def get_parent_shape(self) -> Self | None:
         g_containing_par_shape_candidate = self.get_containing_g_element().getparent()
         while g_containing_par_shape_candidate is not None:
@@ -597,6 +641,12 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         See docstring of the class for more info on the relation between <g> and <penpot:shape> tags.
         """
         return self.getparent()
+
+    def get_inner_g_elements(self) -> list[BetterElement]:
+        return self.get_containing_g_element().xpath(
+            "default:g[not(starts-with(@id, 'shape-'))]",
+            empty_namespace_name="svg",
+        )
 
     def is_leave(self) -> bool:
         return not self.get_direct_children_shapes()
@@ -672,20 +722,20 @@ class PenpotPageSVG(SVG):
         style_supplier: BaseStyleSupplier | None = None,
     ):
         super().__init__(dom)
+        (
+            self._shape_elements,
+            self._depth_to_shape_el,
+            self._shape_el_to_depth,
+        ) = find_all_penpot_shapes(self.dom, style_supplier=style_supplier)
 
-        shape_els, depth_to_shape_el, shape_el_to_depth = find_all_penpot_shapes(
-            dom,
-            style_supplier,
-        )
-        self._depth_to_shape_el = depth_to_shape_el
-        self._shape_el_to_depth = shape_el_to_depth
-        if depth_to_shape_el:
-            self._max_shape_depth = max(depth_to_shape_el.keys())
-        else:
-            self._max_shape_depth = 0
+        self._style_supplier = style_supplier
 
-        self.style_supplier = style_supplier
-        self.penpot_shape_elements = shape_els
+    def _reset_state(self) -> None:
+        (
+            self._shape_elements,
+            self._depth_to_shape_el,
+            self._shape_el_to_depth,
+        ) = find_all_penpot_shapes(self.dom)
 
     @overload
     def _get_shapes_by_attr(
@@ -741,8 +791,15 @@ class PenpotPageSVG(SVG):
         return self._get_shapes_by_attr("shape_id", shape_id, should_be_unique=True)
 
     @property
+    def penpot_shape_elements(self) -> list[PenpotShapeElement]:
+        return self._shape_elements
+
+    @property
     def max_shape_depth(self) -> int:
-        return self._max_shape_depth
+        if self._depth_to_shape_el:
+            return max(self._depth_to_shape_el.keys())
+        else:
+            return 0
 
     def get_shape_elements_at_depth(self, depth: int) -> list[PenpotShapeElement]:
         return self._depth_to_shape_el.get(depth, [])
@@ -750,6 +807,52 @@ class PenpotPageSVG(SVG):
     def pprint_hierarchy(self, horizontal: bool = True) -> None:
         for shape in self.get_shape_elements_at_depth(0):
             shape.pprint_hierarchy(horizontal=horizontal)
+
+    def _remove_shape_from_tree(self, shape_id: str) -> None:
+        shape = self.get_shape_by_id(shape_id)
+
+        container_g = shape.get_containing_g_element()
+        container_g.getparent().remove(container_g)
+
+    def remove_shape(self, shape_id: str) -> None:
+        self._remove_shape_from_tree(shape_id)
+        self._reset_state()
+
+        try:
+            self.get_shape_by_id(shape_id)
+        except KeyError:
+            return
+
+        raise AssertionError(f"Shape with id {shape_id} was not removed correctly.")
+
+    def remove_elements_with_no_visible_content(self) -> None:
+        # Sort the shapes by descending depth in the shape hierarchy, so that we start with the deepest shapes.
+        # Otherwise we may delete a parent shape before its children, thus decouple the children from the tree
+        # which will lead to weird behavior (i.e. lxml will assign arbitrary namespace names) and errors.
+        # We could, of course, also detect these relationships and only remove invisible parents,
+        # but just sorting the shapes is easier and should be fine for now.
+        shapes = sorted(
+            self.penpot_shape_elements,
+            key=lambda shape: shape.depth_in_shapes,
+            reverse=True,
+        )
+
+        removed_ids = []
+
+        for shape in shapes:
+            if not shape.check_for_visible_content():
+                self._remove_shape_from_tree(shape.shape_id)
+                removed_ids.append(shape.shape_id)
+
+        self._reset_state()
+
+        for shape_id in removed_ids:
+            try:
+                self.get_shape_by_id(shape_id)
+            except KeyError:
+                continue
+
+            raise AssertionError(f"Shape with id {shape_id} was not removed correctly.")
 
     def retrieve_and_set_view_boxes_for_shape_elements(
         self,
