@@ -68,12 +68,6 @@ class BetterElement(CustomElement):
         if None in nsmap:
             nsmap["default"] = nsmap.pop(None)
 
-        for key, _val in nsmap.items():
-            if key.startswith("ns"):
-                from lxml import etree
-
-                print(etree.tostring(self))
-
         return nsmap
 
     @override
