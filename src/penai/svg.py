@@ -304,6 +304,9 @@ class SVG:
         style_el.text = style
         self.dom.getroot().insert(0, style_el)
 
+    def to_file(self, path: PathLike, pretty: bool = False) -> None:
+        self.dom.write(path, pretty_print=pretty)
+
     def to_string(self, pretty: bool = True) -> str:
         return etree.tostring(self.dom, pretty_print=pretty).decode()
 
@@ -806,7 +809,7 @@ class PenpotPageSVG(SVG):
             self._shape_elements,
             self._depth_to_shape_el,
             self._shape_el_to_depth,
-        ) = find_all_penpot_shapes(self.dom)
+        ) = find_all_penpot_shapes(self.dom, style_supplier=self._style_supplier)
 
     @overload
     def _get_shapes_by_attr(
@@ -927,7 +930,7 @@ class PenpotPageSVG(SVG):
 
     def retrieve_and_set_view_boxes_for_shape_elements(
         self,
-        web_driver: WebDriver | RegisteredWebDriver,
+        web_driver: WebDriver | RegisteredWebDriver = RegisteredWebDriver.CHROME,
         selected_shape_elements: Iterable[PenpotShapeElement] | None = None,
         respect_clip_masks: bool = True,
         show_progress: bool = True,
