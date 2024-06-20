@@ -213,7 +213,7 @@ class PenpotTypography(BaseStyleSupplier):
 
 @dataclass
 class PenpotTypographyDict(dict[str, PenpotTypography], BaseStyleSupplier):
-    def get_style(self, ignore_errors: bool = False) -> str:
+    def get_style(self, raise_errors: bool = True) -> str:
         css = []
 
         for typography in self.values():
@@ -221,10 +221,10 @@ class PenpotTypographyDict(dict[str, PenpotTypography], BaseStyleSupplier):
                 if (style := typography.get_style()) is not None:
                     css.append(style)
             except FontFetchError as e:
-                if ignore_errors:
-                    print(f"Error fetching font {typography.font_family}:", e)
-                else:
+                if raise_errors:
                     raise e
+
+                print(f"Error fetching font {typography.font_family}:", e)
 
         return "\n".join(css)
 
@@ -307,7 +307,7 @@ class PenpotFile(BaseStyleSupplier):
         if not self.typographies:
             return None
 
-        return self.typographies.get_style(ignore_errors=True)
+        return self.typographies.get_style(raise_errors=False)
 
 
 @dataclass
