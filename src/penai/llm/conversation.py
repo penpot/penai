@@ -1,18 +1,51 @@
 import base64
+import re
 from collections.abc import Callable
 from copy import copy, deepcopy
 from functools import cached_property
 from io import BytesIO
 from typing import Any, Generic, Self, TypeAlias, TypeVar
 
+import bs4
 import httpx
 import markdown
 from bs4 import BeautifulSoup
 from langchain.memory import ConversationBufferMemory
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from PIL.Image import Image
 
 from penai.llm.llm_model import RegisteredLLM
+
+
+class CodeSnippet:
+    def __init__(self, code_tag: bs4.element.Tag):
+        code = code_tag.text
+        language_match = re.match(r"(\w+)\s*", code)
+        if language_match:
+            language = language_match.group(1)
+            code = code[len(language_match.group(0)) :]
+        else:
+            language = None
+
+        self.code: str = code
+        """
+        the actual code snippet
+        """
+        self.code_tag = code_tag
+        """
+        the HTML code tag from the parsed LLM response in which the code snippet is embedded
+        """
+        self.language: str | None = language
+        """
+        the language that was declared in the LLM's markdown response (succeeding the triple backtick code delimiter), if any
+        """
+
+    def get_preceding_heading(self, heading_level: int) -> str | None:
+        heading = self.code_tag.find_previous(f"h{heading_level}")
+        if heading is None:
+            return None
+        else:
+            return heading.text
 
 
 class Response:
@@ -27,18 +60,30 @@ class Response:
     def soup(self) -> BeautifulSoup:
         return BeautifulSoup(self.html, features="html.parser")
 
-    def get_code_in_sections(self, heading_level: int) -> dict[str, str]:
+    def get_code_snippets(self) -> list[CodeSnippet]:
+        """Retrieves all (multi-line) code snippets in the response.
+
+        :return: the list of code snippets
+        """
+        code_snippets = []
+        for code_tag in self.soup.find_all("code"):
+            if "\n" not in code_tag.text:  # skip inline code snippets
+                continue
+            code_snippets.append(CodeSnippet(code_tag))
+        return code_snippets
+
+    def get_code_in_sections(self, heading_level: int) -> dict[str, CodeSnippet]:
         """Retrieves code snippets in the response that appear under a certain heading level.
 
         :param heading_level: the heading level (e.g. 2 for markdown prefix "## ")
         :return: a mapping from heading captions to code snippets
         """
         result = {}
-        for code in self.soup.find_all("code"):
-            heading = code.find_previous(f"h{heading_level}")
+        for code_snippet in self.get_code_snippets():
+            heading = code_snippet.get_preceding_heading(heading_level)
             if heading is None:
                 continue
-            result[heading.text] = code.text
+            result[heading] = code_snippet
         return result
 
 
@@ -52,11 +97,17 @@ class Conversation(Generic[TResponse]):
         model: RegisteredLLM = RegisteredLLM.GPT4O,
         verbose: bool = True,
         response_factory: Callable[[str], TResponse] = Response,  # type: ignore
+        system_prompt: str | None = None,
+        require_json: bool = False,
     ):
         self.memory = ConversationBufferMemory()
-        self.llm = model.create_model()
+        self.llm = model.create_model(require_json=require_json)
         self.verbose = verbose
         self.response_factory = response_factory
+        if system_prompt is not None:
+            self.memory.chat_memory.add_message(
+                SystemMessage(content=system_prompt),
+            )
 
     def get_full_conversation_string(
         self,

@@ -64,7 +64,10 @@ class __Configuration(DefaultDataConfiguration):
     @property
     def cache_dir(self) -> str:
         """:return: absolute path to directory where cache files are stored"""
-        return self._get_existing_path("cache")
+        return self._get_existing_path("cache", create=True)
+
+    def results_dir(self) -> str:
+        return self._get_existing_path("results", create=True)
 
 
 class ConfigProvider(ConfigProviderBase[__Configuration]):

@@ -9,6 +9,81 @@ from transit.transit_types import Keyword, TaggedValue, frozendict
 from penai.config import get_config
 
 SERVER_URL_DEFAULT = "https://design.penpot.app"
+LOCAL_FONTS = [
+    {
+        "id": "sourcesanspro",
+        "name": "Source Sans Pro",
+        "family": "sourcesanspro",
+        "variants": [
+            {
+                "id": "200",
+                "name": "200",
+                "weight": "200",
+                "style": "normal",
+                "suffix": "extralight",
+            },
+            {
+                "id": "200italic",
+                "name": "200 (italic)",
+                "weight": "200",
+                "style": "italic",
+                "suffix": "extralightitalic",
+            },
+            {"id": "300", "name": "300", "weight": "300", "style": "normal", "suffix": "light"},
+            {
+                "id": "300italic",
+                "name": "300 (italic)",
+                "weight": "300",
+                "style": "italic",
+                "suffix": "lightitalic",
+            },
+            {"id": "regular", "name": "regular", "weight": "400", "style": "normal"},
+            {"id": "italic", "name": "italic", "weight": "400", "style": "italic"},
+            {"id": "bold", "name": "bold", "weight": "bold", "style": "normal"},
+            {"id": "bolditalic", "name": "bold (italic)", "weight": "bold", "style": "italic"},
+            {"id": "black", "name": "black", "weight": "900", "style": "normal"},
+            {"id": "blackitalic", "name": "black (italic)", "weight": "900", "style": "italic"},
+        ],
+    },
+]
+
+
+def find_local_font(family: str) -> dict | None:
+    """Finds a local font by family name.
+
+    :param family: the family name
+    :return: the font data or None
+    """
+    for font in LOCAL_FONTS:
+        if font["id"] == family:
+            return font
+    return None
+
+
+class FileTypographies:
+    def __init__(self, data: dict | None, client: "PenpotClient"):
+        self.client = client
+        self.data = data
+
+    def to_css(self) -> str:
+        if not self.data:
+            return ""
+
+        css = ""
+        for _k, v in self.data.items():
+            css += self._create_css(v)
+        return css
+
+    def _create_css(self, typography: dict) -> str:
+        font_family = typography[Keyword("font-family")]
+        font_variant = typography[Keyword("font-variant-id")]
+        # font_style = typography[Keyword('font-style')]
+        # font_weight = typography[Keyword('font-weight')]
+        font = find_local_font(font_family)
+        if not font:
+            return self.client.get_google_font_css(font_family, font_variant)
+        else:
+            return ""
 
 
 class PenpotClient:
@@ -80,6 +155,10 @@ class PenpotClient:
             # data["~:data"]["~:pages-index"][k] = fragment["~:content"]
         return page
 
+    def get_file_typographies(self, project_id: str, file_id: str) -> FileTypographies:
+        file = self.get_file(project_id, file_id)
+        return FileTypographies(file[Keyword("data")][Keyword("typographies")], self)
+
     def get_shape(self, project_id: str, file_id: str, page_id: str, shape_id: str) -> TaggedValue:
         page = self.get_page(project_id, file_id, page_id)
         objects = page[Keyword("objects")]
@@ -115,6 +194,15 @@ class PenpotClient:
             return shape_dict
 
         return py_shape(shape_id)
+
+    def get_google_font_css(self, font_family: str, font_variant: str) -> str:
+        url = f"{self.server_url}/internal/gfonts/css"
+        params = {
+            "family": f"{font_family}:{font_variant}",
+            "display": "block",
+        }
+        resp = requests.get(url=url, params=params)
+        return resp.text
 
 
 def transit_to_py(obj: Any) -> Any:
