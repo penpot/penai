@@ -23,13 +23,24 @@ class ShapeType(StrEnum):
 
 
 @dataclass(kw_only=True)
-class ManualShapeMetadata:
-    description: str | None = None
+class ShapeMetadata:
+    """Usually set manually in the context of a registry."""
+
+    description: str
+    overlayed_text: str | None = None
     subtext: str | None = None
     shape_type: ShapeType = ShapeType.ICON
 
+    def to_semantics_string(self) -> str:
+        result = f"of type '{self.shape_type}' depicting a " + self.description
+        if self.overlayed_text:
+            result += f" with overlayed text: '{self.overlayed_text}'"
+        if self.subtext:
+            result += f" with subtext: '{self.subtext}'"
+        return result + "."
 
-_MD = ManualShapeMetadata
+
+_MD = ShapeMetadata
 
 
 class SavedPenpotProject(Enum):
@@ -119,7 +130,7 @@ class SavedPenpotProject(Enum):
 
         return load_main_file_typographies_css(self)
 
-    def _get_selected_pages_to_shapes_dict(self) -> dict[str, dict[str, ManualShapeMetadata]]:
+    def _get_selected_pages_to_shapes_dict(self) -> dict[str, dict[str, ShapeMetadata]]:
         """Returns the selected shapes for experiments for the project."""
         match self:
             case SavedPenpotProject.INTERACTIVE_MUSIC_APP:
@@ -130,8 +141,16 @@ class SavedPenpotProject(Enum):
                         "Group-6": _MD(description="Compass icon", subtext="Explore"),
                         "Group-7": _MD(description="Music library icon", subtext="Music library"),
                         "btn-primary-1": _MD(
-                            description="Play button", shape_type=ShapeType.BUTTON
+                            description="Play button",
+                            shape_type=ShapeType.BUTTON,
+                            overlayed_text="Play",
                         ),
+                        "btn-secondary": _MD(
+                            description="Shuffle button",
+                            shape_type=ShapeType.BUTTON,
+                            overlayed_text="Shuffle",
+                        ),
+                        "ic_supervisor_account_48px": _MD(description="User icon"),
                     },
                 }
             case _:
@@ -140,7 +159,7 @@ class SavedPenpotProject(Enum):
 
     def get_selected_shapes_for_experiments(
         self,
-    ) -> Iterable[tuple[PenpotShape, ManualShapeMetadata]]:
+    ) -> Iterable[tuple[PenpotShape, ShapeMetadata]]:
         """Returns all shapes and their metadata that are selected for experiments in the selected project."""
         for page_name, shape_name_to_metadata in self._get_selected_pages_to_shapes_dict().items():
             page = self.load_page_svg_with_viewboxes(page_name)
@@ -150,7 +169,7 @@ class SavedPenpotProject(Enum):
     @classmethod
     def get_all_selected_shapes_for_experiments(
         cls,
-    ) -> Iterable[tuple[PenpotShape, ManualShapeMetadata]]:
+    ) -> Iterable[tuple[PenpotShape, ShapeMetadata]]:
         """Iterates over the whole registry and retrieves all shapes and their metadata that are selected for experiments."""
         for project in cls:
             yield from project.get_selected_shapes_for_experiments()
