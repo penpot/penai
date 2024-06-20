@@ -128,6 +128,7 @@ class TestPenpotPage:
 
         fig.savefig(save_path, bbox_inches="tight", dpi=400)
 
+    @pytest.mark.skip(reason="too heavy for us CI credits poor souls")
     def test_removing_shapes_without_content(
         self,
         example_project: SavedPenpotProject,
@@ -167,6 +168,7 @@ class TestPenpotPage:
                     f"Images do not match. Max diff of {np.max(diff)} between the two versions. Saved to file://{save_path} for visual inspection.",
                 )
 
+    @pytest.mark.skip(reason="too heavy for us CI credits poor souls")
     def test_removal_of_visible_elements_test(
         self,
         example_project: SavedPenpotProject,
