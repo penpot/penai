@@ -218,7 +218,8 @@ class PenpotTypographyDict(dict[str, PenpotTypography], BaseStyleSupplier):
 
         for typography in self.values():
             try:
-                css.append(typography.get_style())
+                if (style := typography.get_style()) is not None:
+                    css.append(style)
             except FontFetchError as e:
                 if ignore_errors:
                     print(f"Error fetching font {typography.font_family}:", e)
