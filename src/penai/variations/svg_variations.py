@@ -347,7 +347,8 @@ class SVGVariationsGenerator:
         for name in example_variations_dict:
             single_example_variations_dict = {name: example_variations_dict[name]}
             single_example_variations = SVGVariations(
-                example_variations.original_svg, single_example_variations_dict
+                example_variations.original_svg,
+                single_example_variations_dict,
             )
             variations = self.create_variations_sequentially_from_example(single_example_variations)
             all_variations_dict.update(variations.variations_dict)
