@@ -463,7 +463,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     def get_clip_rect(self) -> BoundingBox | None:
         """Objects (maybe only groups?) in SVG can have a `clip-path` attribute that sets the clip mask.
 
-        For Penpot shape, this attribute will typically be set on the main group element of the shape
+        For Penpot shapes, this attribute will typically be set on the main group element of the shape
         and reference a <clipPath> element that contains a <rect>-element, defining the clip mask, defined
         in the <defs>-section of that shape.
 
@@ -483,19 +483,35 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                     f"Expected clip-path to be in the format 'url(#id)', but got '{clip_path}'",
                 )
 
+            defs = parent_group.find("./defs")
+
             # Note: <clipPath> defines the clip _mask_ which can be a rect in the simplest case but potentially
             # also more complex compositions.
             # For the sake of sanity, we assume that the clip-path is a simple rect for now and will throw an error
-            # if a <rect>-element can't be found within the <clipPath>.
-            clip_rect = self.get_containing_g_element().find(
-                f'.//clipPath[@id="{clip_path_id}"]/rect',
-            )
+            # if a <rect>-element or path with x, y, width and height attributes can't be found within the <clipPath>.
+            for tag in ["rect", "path"]:
+                clip_el = defs.find(
+                    f'./clipPath[@id="{clip_path_id}"]/{tag}',
+                )
 
-            assert clip_rect is not None, (
-                f"Expected to find <clipPath> with containing <rect> element with id {clip_path_id} as it was "
-                "referenced in the element's main group element, but didn't, which is, you know, like unexpected."
+                if clip_el is None:
+                    continue
+
+                assert set(clip_el.keys()) >= {
+                    "x",
+                    "y",
+                    "width",
+                    "height",
+                }, f"Expected clip element to have attributes 'x', 'y', 'width', 'height', but got {clip_el.keys()}"
+
+                return BoundingBox.from_clip_rect(clip_el)
+
+            print(etree.tostring(parent_group))
+
+            raise AssertionError(
+                f"Expected to find <clipPath> with containing <rect> or <path> element with id {clip_path_id} as it was "
+                "referenced in the element's main group element, but didn't, which is, you know, like unexpected.",
             )
-            return BoundingBox.from_clip_rect(clip_rect)
         return None
 
     def get_default_view_box(
