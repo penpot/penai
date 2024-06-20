@@ -142,7 +142,7 @@ class InteractiveHTMLHierarchyVisualizer:
         self.html_content = (
             html_content.replace("$$title", title)
             .replace("$$svgFile", svg_path)
-            .replace("$$data", json.dumps(jstree_data_dict))
+            .replace("$$hierarchyData", json.dumps(jstree_data_dict))
         )
 
     def _create_jstree_data_dict(self, hierarchy_element: HierarchyElement) -> dict:
