@@ -1,17 +1,35 @@
 import logging
 import os
-from enum import Enum
+from collections.abc import Iterable
+from dataclasses import dataclass
+from enum import Enum, StrEnum
 
 from sensai.util.cache import pickle_cached
 
 from penai.client import PenpotClient
 from penai.config import get_config, pull_from_remote
-from penai.models import PenpotPage, PenpotProject
+from penai.models import PenpotPage, PenpotProject, PenpotShape
 from penai.registries.web_drivers import RegisteredWebDriver
 from penai.svg import PenpotPageSVG
 
 log = logging.getLogger(__name__)
 cfg = get_config()
+
+
+class ShapeType(StrEnum):
+    BUTTON = "button"
+    ICON = "icon"
+    TEXT = "text"
+
+
+@dataclass(kw_only=True)
+class ManualShapeMetadata:
+    description: str | None = None
+    subtext: str | None = None
+    shape_type: ShapeType = ShapeType.ICON
+
+
+_MD = ManualShapeMetadata
 
 
 class SavedPenpotProject(Enum):
@@ -100,3 +118,39 @@ class SavedPenpotProject(Enum):
             return typographies.to_css()
 
         return load_main_file_typographies_css(self)
+
+    def _get_selected_pages_to_shapes_dict(self) -> dict[str, dict[str, ManualShapeMetadata]]:
+        """Returns the selected shapes for experiments for the project."""
+        match self:
+            case SavedPenpotProject.INTERACTIVE_MUSIC_APP:
+                return {
+                    "Interactive music app": {
+                        "ic_equalizer_48px-1": _MD(description="Equalizer icon"),
+                        "Group-5": _MD(description="Home icon", subtext="Home"),
+                        "Group-6": _MD(description="Compass icon", subtext="Explore"),
+                        "Group-7": _MD(description="Music library icon", subtext="Music library"),
+                        "btn-primary-1": _MD(
+                            description="Play button", shape_type=ShapeType.BUTTON
+                        ),
+                    },
+                }
+            case _:
+                log.debug(f"No selected shapes for experiments for project {self.value}")
+                return {}
+
+    def get_selected_shapes_for_experiments(
+        self,
+    ) -> Iterable[tuple[PenpotShape, ManualShapeMetadata]]:
+        """Returns all shapes and their metadata that are selected for experiments in the selected project."""
+        for page_name, shape_name_to_metadata in self._get_selected_pages_to_shapes_dict().items():
+            page = self.load_page_svg_with_viewboxes(page_name)
+            for shape_name, metadata in shape_name_to_metadata.items():
+                yield page.get_shape_by_name(shape_name), metadata
+
+    @classmethod
+    def get_all_selected_shapes_for_experiments(
+        cls,
+    ) -> Iterable[tuple[PenpotShape, ManualShapeMetadata]]:
+        """Iterates over the whole registry and retrieves all shapes and their metadata that are selected for experiments."""
+        for project in cls:
+            yield from project.get_selected_shapes_for_experiments()
