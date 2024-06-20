@@ -9,6 +9,7 @@ from penai.config import top_level_directory
 from penai.hierarchy_generation.inference import HierarchyElement
 from penai.svg import BoundingBox, PenpotShapeElement
 from penai.types import PathLike
+from penai.xml import BetterElement
 
 color_by_hierarchy_level = [
     "#984447",
@@ -25,13 +26,15 @@ color_by_hierarchy_level = [
 
 class InteractiveSVGHierarchyVisualizer:
     def __init__(self, hierarchy_element: HierarchyElement, shape: PenpotShapeElement) -> None:
+        svg = shape.to_svg()
+        root = svg.dom.getroot()
+
         # augment hierarchy
-        self._inject_hierarchy_visualization(hierarchy_element)
+        self._inject_hierarchy_visualization(hierarchy_element, root)
         self.hierarchy_element = hierarchy_element
 
         # create SVG with interactive elements
-        svg = shape.to_svg()
-        self._inject_stylesheet(svg.dom.getroot())
+        self._inject_stylesheet(root)
         self.svg = svg
 
     def _bbox_to_svg_attribs(self, bbox: BoundingBox) -> dict[str, str]:
@@ -46,11 +49,9 @@ class InteractiveSVGHierarchyVisualizer:
     def hierarchy_highlight_element_id(hierarchy_element: HierarchyElement) -> str:
         return f"hierarchy_hl_{id(hierarchy_element)}"
 
-    def _inject_shape_visualization(self, hierarchy_element: HierarchyElement) -> None:
-        root = hierarchy_element.shape.get_containing_g_element()
-
+    def _inject_shape_visualization(self, hierarchy_element: HierarchyElement, inject_el: BetterElement) -> None:
         interactive_group = etree.SubElement(
-            root,
+            inject_el,
             "g",
             attrib={
                 "class": "interactive",
@@ -113,12 +114,12 @@ class InteractiveSVGHierarchyVisualizer:
         )
         svg_root.insert(0, style)
 
-    def _inject_hierarchy_visualization(self, hierarchy: HierarchyElement) -> None:
+    def _inject_hierarchy_visualization(self, hierarchy: HierarchyElement, root: BetterElement) -> None:
         for hierarchy_element in hierarchy.flatten():
             if hierarchy_element is None:
                 continue
 
-            self._inject_shape_visualization(hierarchy_element)
+            self._inject_shape_visualization(hierarchy_element, root)
 
     def write_svg(self, path: PathLike) -> None:
         self.svg.to_file(path)
