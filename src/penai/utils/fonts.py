@@ -1,7 +1,7 @@
 import cssutils
-import requests
 
 from penai.errors import FontFetchError
+from penai.utils import get_cached_requests_session
 
 
 def get_css_for_google_font(font_family: str, font_weight: str | None = None) -> str:
@@ -11,7 +11,9 @@ def get_css_for_google_font(font_family: str, font_weight: str | None = None) ->
     if font_weight:
         font_query += f":{font_weight}"
 
-    rsp = requests.get(
+    session = get_cached_requests_session("google-fonts")
+
+    rsp = session.get(
         "https://fonts.googleapis.com/css",
         params={"family": font_query},
     )
