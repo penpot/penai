@@ -686,7 +686,7 @@ class PenpotPageSVG(SVG):
             self._shape_el_to_depth,
         ) = find_all_penpot_shapes(self.dom)
 
-    def _update_state(self) -> None:
+    def _reset_state(self) -> None:
         (
             self._shape_elements,
             self._depth_to_shape_el,
@@ -760,13 +760,15 @@ class PenpotPageSVG(SVG):
         for shape in self.get_shape_elements_at_depth(0):
             shape.pprint_hierarchy(horizontal=horizontal)
 
-    def remove_shape(self, shape_id: str) -> None:
+    def _remove_shape_from_tree(self, shape_id: str) -> None:
         shape = self.get_shape_by_id(shape_id)
 
         container_g = shape.get_containing_g_element()
         container_g.getparent().remove(container_g)
 
-        self._update_state()
+    def remove_shape(self, shape_id: str) -> None:
+        self._remove_shape_from_tree(shape_id)
+        self._reset_state()
 
         try:
             self.get_shape_by_id(shape_id)
@@ -787,9 +789,22 @@ class PenpotPageSVG(SVG):
             reverse=True,
         )
 
+        removed_ids = []
+
         for shape in shapes:
             if not shape.check_for_visible_content():
-                self.remove_shape(shape.shape_id)
+                self._remove_shape_from_tree(shape.shape_id)
+                removed_ids.append(shape.shape_id)
+
+        self._reset_state()
+
+        for shape_id in removed_ids:
+            try:
+                self.get_shape_by_id(shape_id)
+            except KeyError:
+                continue
+
+            raise AssertionError(f"Shape with id {shape_id} was not removed correctly.")
 
     def retrieve_and_set_view_boxes_for_shape_elements(
         self,
