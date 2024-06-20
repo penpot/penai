@@ -566,17 +566,19 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     def is_primitive_type(self) -> bool:
         return self._shape_type.value.category == PenpotShapeTypeCategory.PRIMITIVE
 
-    @property
-    def produces_visible_content(self) -> bool:
+    def check_for_visible_content(self) -> bool:
         if self.type == PenpotShapeType.GROUP:
-            return any(child.produces_visible_content for child in self.child_shapes)
+            return any(child.check_for_visible_content() for child in self.child_shapes)
 
         inner_groups = self.get_inner_g_elements()
 
         if not inner_groups:
             return False
 
-        assert len(inner_groups), etree.tostring(self.get_containing_g_element(), pretty_print=True)
+        assert len(inner_groups), (
+            f"Found no inner <g>-elements (i.e. content elements) for shape with id {self.shape_id} while expecting at least one such element. "
+            f"Tree: {etree.tostring(self.get_containing_g_element(), pretty_print=True)}"
+        )
 
         return any(_el_has_visible_content(group) for group in inner_groups)
 
@@ -786,7 +788,7 @@ class PenpotPageSVG(SVG):
         )
 
         for shape in shapes:
-            if not shape.produces_visible_content:
+            if not shape.check_for_visible_content():
                 self.remove_shape(shape.shape_id)
 
     def retrieve_and_set_view_boxes_for_shape_elements(

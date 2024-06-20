@@ -182,7 +182,7 @@ class TestPenpotPage:
                 # Choose a random visible top-level shape to remove
                 top_level_shapes = page.svg.get_shape_elements_at_depth(0)
                 visible_shape = random.choice(
-                    [shape for shape in top_level_shapes if shape.produces_visible_content],
+                    [shape for shape in top_level_shapes if shape.check_for_visible_content()],
                 )
             except IndexError:
                 return False
