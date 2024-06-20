@@ -102,7 +102,7 @@ class TestPenpotPage:
             for page in file.pages.values():
                 shapes_before = list(page.svg.penpot_shape_elements)
 
-                img_before = renderer.render_svg(page.svg, width=self.RENDER_WIDTH)
+                img_before = renderer.render_svg(page.svg, width=self.RENDER_WIDTH).image
 
                 if hook(file, page) is False:
                     continue
@@ -111,7 +111,7 @@ class TestPenpotPage:
 
                 assert len(shapes_before) >= len(shapes_after)
 
-                img_after = renderer.render_svg(page.svg, width=self.RENDER_WIDTH)
+                img_after = renderer.render_svg(page.svg, width=self.RENDER_WIDTH).image
 
                 img_before_arr = np.array(img_before) / 255.0
                 img_after_arr = np.array(img_after) / 255.0
