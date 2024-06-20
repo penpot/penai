@@ -11,6 +11,7 @@ from sensai.util.logging import datetime_tag
 from penai.config import get_config
 from penai.llm.conversation import Conversation, Response
 from penai.llm.llm_model import RegisteredLLM
+from penai.models import PenpotColors
 from penai.svg import SVG, PenpotShapeElement
 from penai.types import PathLike
 from penai.utils.io import ResultWriter, fn_compatible
@@ -245,24 +246,49 @@ class SVGVariationsGenerator:
         )
         return self.create_variations_for_prompt(prompt)
 
+    def _create_colors_prompt(self, penpot_colors: PenpotColors) -> str:
+        colors = penpot_colors.get_colors()
+        prompt = ""
+        if len(colors) > 0:
+            prompt += "The design uses the following colors:\n"
+            for color in colors:
+                prompt += f"{color.name}: {color.color}\n"
+            prompt += (
+                "In the SVGs you create, use these colors where applicable "
+                "and make sure that any additional colors fit well with the existing color scheme."
+            )
+        return prompt
+
+    def _create_variation_scope_prompt(
+        self, variation_scope: VariationInstructionSnippet | str, colors: PenpotColors | None = None
+    ) -> str:
+        prompt = str(variation_scope)
+        if colors is not None:
+            colors_prompt = self._create_colors_prompt(colors)
+            if colors_prompt != "":
+                prompt += "\n" + colors_prompt
+        return prompt
+
     def create_variations_sequentially(
         self,
         variation_scope: VariationInstructionSnippet
         | str = VariationInstructionSnippet.SPECIFIC_COLORS_SHAPES,
         variation_description_sequence: VariationDescriptionSequence
         | Sequence[str] = VariationDescriptionSequence.UI_ELEMENT_STATES,
+        colors: PenpotColors | None = None,
     ) -> SVGVariations:
         """Generates variations sequentially, one at a time, accounting for limitations in response token count
         (~4K for GPT-4o, which is not enough for multiple variations at once).
 
         :param variation_scope: describes the scope of variations to apply in generation
         :param variation_description_sequence: a sequence of instructions describing what to do for each variation
+        :param colors: the colors used in the design, which shall be considered in the generation process
         :return: the variations
         """
         conversation = self._create_conversation()
         conversation.query(self.get_svg_refactoring_prompt())
 
-        variation_scope_prompt = str(variation_scope)
+        variation_scope_prompt = self._create_variation_scope_prompt(variation_scope, colors)
 
         initial_variation_query = (
             "In the following, your task is to create variations of the SVG, one variation at a time. "

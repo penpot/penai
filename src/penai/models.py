@@ -158,6 +158,9 @@ class PenpotColor(BaseModel):
     id: str | None = Field(default_factory=lambda: None)
     name: str
     color: str
+    """
+    The color in hex format, e.g. '#ff0000' for red.
+    """
     opacity: float
     path: str
 
