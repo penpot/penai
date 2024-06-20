@@ -67,7 +67,9 @@ class TestSVGRenderers:
             )
 
     def test_size_inference(
-        self, renderer: BaseSVGRenderer, example_svg_path: Path,
+        self,
+        renderer: BaseSVGRenderer,
+        example_svg_path: Path,
     ) -> None:
         img = renderer.render_svg_file(example_svg_path).image
 
@@ -76,7 +78,9 @@ class TestSVGRenderers:
         assert img.size == (view_box.width, view_box.height)
 
     def test_explicit_size_specification(
-        self, renderer: BaseSVGRenderer, example_svg_path: Path,
+        self,
+        renderer: BaseSVGRenderer,
+        example_svg_path: Path,
     ) -> None:
         orig_aspect_ratio = SVG.from_file(example_svg_path).get_view_box().aspect_ratio
 
@@ -85,10 +89,12 @@ class TestSVGRenderers:
 
         img = renderer.render_svg_file(example_svg_path, width=100).image
         assert img.size[0] == 100
-        assert img.size[0] >= img.size[1] if orig_aspect_ratio > 1 else img.size[0] <= img.size[1], \
-            f"Original aspect ratio: {orig_aspect_ratio}, new size: {img.size}"
+        assert (
+            img.size[0] >= img.size[1] if orig_aspect_ratio > 1 else img.size[0] <= img.size[1]
+        ), f"Original aspect ratio: {orig_aspect_ratio}, new size: {img.size}"
 
         img = renderer.render_svg_file(example_svg_path, height=100).image
         assert img.size[1] == 100
-        assert img.size[0] >= img.size[1] if orig_aspect_ratio > 1 else img.size[0] <= img.size[1], \
-            f"Original aspect ratio: {orig_aspect_ratio}, new size: {img.size}"
+        assert (
+            img.size[0] >= img.size[1] if orig_aspect_ratio > 1 else img.size[0] <= img.size[1]
+        ), f"Original aspect ratio: {orig_aspect_ratio}, new size: {img.size}"

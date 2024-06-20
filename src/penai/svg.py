@@ -633,19 +633,18 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     def is_primitive_type(self) -> bool:
         return self._shape_type.value.category == PenpotShapeTypeCategory.PRIMITIVE
 
-    @property
-    def produces_visible_content(self) -> bool:
+    def check_for_visible_content(self) -> bool:
         if self.type == PenpotShapeType.GROUP:
-            return any(child.produces_visible_content for child in self.child_shapes)
+            return any(child.check_for_visible_content() for child in self.child_shapes)
 
         inner_groups = self.get_inner_g_elements()
 
         if not inner_groups:
             return False
 
-        assert len(inner_groups), etree.tostring(
-            self.get_containing_g_element(),
-            pretty_print=True,
+        assert len(inner_groups), (
+            f"Found no inner <g>-elements (i.e. content elements) for shape with id {self.shape_id} while expecting at least one such element. "
+            f"Tree: {etree.tostring(self.get_containing_g_element(), pretty_print=True)}"
         )
 
         return any(_el_has_visible_content(group) for group in inner_groups)
@@ -761,7 +760,7 @@ class PenpotPageSVG(SVG):
             self._shape_el_to_depth,
         ) = find_all_penpot_shapes(self.dom)
 
-    def _update_state(self) -> None:
+    def _reset_state(self) -> None:
         (
             self._shape_elements,
             self._depth_to_shape_el,
@@ -835,13 +834,15 @@ class PenpotPageSVG(SVG):
         for shape in self.get_shape_elements_at_depth(0):
             shape.pprint_hierarchy(horizontal=horizontal)
 
-    def remove_shape(self, shape_id: str) -> None:
+    def _remove_shape_from_tree(self, shape_id: str) -> None:
         shape = self.get_shape_by_id(shape_id)
 
         container_g = shape.get_containing_g_element()
         container_g.getparent().remove(container_g)
 
-        self._update_state()
+    def remove_shape(self, shape_id: str) -> None:
+        self._remove_shape_from_tree(shape_id)
+        self._reset_state()
 
         try:
             self.get_shape_by_id(shape_id)
@@ -851,7 +852,7 @@ class PenpotPageSVG(SVG):
         raise AssertionError(f"Shape with id {shape_id} was not removed correctly.")
 
     def remove_elements_with_no_visible_content(self) -> None:
-        # Sort the shapes by depth in shapes, so that we start with the deepest shapes.
+        # Sort the shapes by descending depth in the shape hierarchy, so that we start with the deepest shapes.
         # Otherwise we may delete a parent shape before its children, thus decouple the children from the tree
         # which will lead to weird behavior (i.e. lxml will assign arbitrary namespace names) and errors.
         # We could, of course, also detect these relationships and only remove invisible parents,
@@ -862,9 +863,22 @@ class PenpotPageSVG(SVG):
             reverse=True,
         )
 
+        removed_ids = []
+
         for shape in shapes:
-            if not shape.produces_visible_content:
-                self.remove_shape(shape.shape_id)
+            if not shape.check_for_visible_content():
+                self._remove_shape_from_tree(shape.shape_id)
+                removed_ids.append(shape.shape_id)
+
+        self._reset_state()
+
+        for shape_id in removed_ids:
+            try:
+                self.get_shape_by_id(shape_id)
+            except KeyError:
+                continue
+
+            raise AssertionError(f"Shape with id {shape_id} was not removed correctly.")
 
     def retrieve_and_set_view_boxes_for_shape_elements(
         self,
