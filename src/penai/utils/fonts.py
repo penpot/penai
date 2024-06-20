@@ -1,5 +1,6 @@
 import cssutils
 
+from penai.constants import PENPOT_FONT_MAPPING
 from penai.errors import FontFetchError
 from penai.utils import get_cached_requests_session
 
@@ -36,3 +37,22 @@ def replace_font_families(css: str, mapping: dict[str, str]) -> str:
                     property.value = f'"{mapping[font_family]}"'
 
     return sheet.cssText.decode("utf-8")
+
+
+def get_css_for_penpot_font(font_family: str, font_weight: str | None = None) -> str:
+    """Return the CSS for a given font family as in Penpot.
+
+    This will take care of handling naming differences between Google Fonts names and
+    some Penpot-specific legacy font names.
+    """
+    original_font_family = font_family
+
+    if font_family in PENPOT_FONT_MAPPING:
+        font_family = PENPOT_FONT_MAPPING[font_family]
+
+    css = get_css_for_google_font(font_family, font_weight)
+
+    if font_family != original_font_family:
+        css = replace_font_families(css, {font_family: original_font_family})
+
+    return css

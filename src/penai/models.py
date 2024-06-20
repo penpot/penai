@@ -8,7 +8,6 @@ from uuid import UUID
 from lxml import etree
 from lxml.etree import Element
 
-from penai.constants import PENPOT_FONT_MAPPING
 from penai.errors import FontFetchError
 from penai.schemas import (
     PenpotFileDetailsSchema,
@@ -24,7 +23,9 @@ from penai.svg import (
     PenpotShapeElement,
 )
 from penai.types import PathLike
-from penai.utils.fonts import get_css_for_google_font, replace_font_families
+from penai.utils.fonts import (
+    get_css_for_penpot_font,
+)
 from penai.xml import BetterElement
 
 
@@ -197,21 +198,9 @@ class PenpotTypography(BaseStyleSupplier):
         )
 
     def get_style(self) -> str | None:
-        original_font_family = self.font_family
-        font_family = self.font_family
-
-        if self.font_family in PENPOT_FONT_MAPPING:
-            font_family = PENPOT_FONT_MAPPING[self.font_family]
-
-        css = get_css_for_google_font(font_family, self.font_variant_id)
-
-        if font_family != original_font_family:
-            css = replace_font_families(css, {font_family: original_font_family})
-
-        return css
+        return get_css_for_penpot_font(self.font_family, self.font_variant_id)
 
 
-@dataclass
 class PenpotTypographyDict(dict[str, PenpotTypography], BaseStyleSupplier):
     def get_style(self, raise_errors: bool = True) -> str:
         css = []
