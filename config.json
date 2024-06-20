@@ -7,6 +7,7 @@
   "artifacts": "./data/artifacts",
   "temp": "./temp",
   "cache": "./temp/cache",
+  "results": "./results",
   "data": "./data",
   "openai_api_key": "env:OPENAI_API_KEY",
   "remote_storage_config": {

@@ -20,10 +20,10 @@ from penai.llm.llm_model import RegisteredLLM
 class CodeSnippet:
     def __init__(self, code_tag: bs4.element.Tag):
         code = code_tag.text
-        language_match = re.match(r"\w+", code)
+        language_match = re.match(r"(\w+)\s*", code)
         if language_match:
-            language = language_match.group(0)
-            code = code[len(language) :]
+            language = language_match.group(1)
+            code = code[len(language_match.group(0)) :]
         else:
             language = None
 
@@ -61,7 +61,16 @@ class Response:
         return BeautifulSoup(self.html, features="html.parser")
 
     def get_code_snippets(self) -> list[CodeSnippet]:
-        return [CodeSnippet(code_tag) for code_tag in self.soup.find_all("code")]
+        """Retrieves all (multi-line) code snippets in the response.
+
+        :return: the list of code snippets
+        """
+        code_snippets = []
+        for code_tag in self.soup.find_all("code"):
+            if "\n" not in code_tag.text:  # skip inline code snippets
+                continue
+            code_snippets.append(CodeSnippet(code_tag))
+        return code_snippets
 
     def get_code_in_sections(self, heading_level: int) -> dict[str, CodeSnippet]:
         """Retrieves code snippets in the response that appear under a certain heading level.
