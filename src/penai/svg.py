@@ -730,8 +730,12 @@ class PenpotPageSVG(SVG):
             )
         return matched_shapes[0]
 
-    def get_shape_by_name(self, name: str) -> PenpotShapeElement:
-        return self._get_shapes_by_attr("name", name, should_be_unique=True)
+    def get_shape_by_name(self, name: str, require_unique: bool = True) -> PenpotShapeElement:
+        result = self._get_shapes_by_attr("name", name, should_be_unique=require_unique)  # type: ignore
+        if not require_unique and isinstance(result, list):
+            return result[0]
+        else:
+            return result
 
     def get_shape_by_id(self, shape_id: str) -> PenpotShapeElement:
         return self._get_shapes_by_attr("shape_id", shape_id, should_be_unique=True)

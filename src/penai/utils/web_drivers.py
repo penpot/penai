@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
@@ -8,11 +9,14 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.remote.webdriver import WebDriver
 from webdriver_manager.chrome import ChromeDriverManager
 
+log = logging.getLogger(__name__)
+
 
 @contextmanager
 def create_chrome_web_driver(headless: bool = True) -> Generator[WebDriver, Any, Any]:
     """Helper function to instantiate a Chrome WebDriver instance with all options we need."""
     driver = None
+    log.info("Starting Chrome WebDriver")
 
     try:
         chrome_options = Options()
@@ -47,4 +51,5 @@ def create_chrome_web_driver(headless: bool = True) -> Generator[WebDriver, Any,
         yield driver
     finally:
         if driver is not None:
+            log.info("Quitting Chrome WebDriver")
             driver.quit()

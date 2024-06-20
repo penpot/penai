@@ -147,3 +147,6 @@ data/
 
 # Penpot stuff
 scripts/gfonts.*
+
+# generated files
+/results
