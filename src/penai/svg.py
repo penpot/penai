@@ -705,10 +705,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
 
     def remove_clip_paths(self) -> bool:
         groups = self.get_inner_g_elements()
-        return any(
-            group.attrib.pop("clip-path", None) is not None
-            for group in groups
-        )
+        return any(group.attrib.pop("clip-path", None) is not None for group in groups)
 
     def pprint_hierarchy(self, horizontal: bool = True) -> None:
         print_tree(
