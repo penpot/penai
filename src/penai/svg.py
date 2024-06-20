@@ -203,10 +203,12 @@ class SVG:
             root.attrib["height"] = str(round(width / aspect_ratio))
 
     @classmethod
+    # type: ignore
     def from_file(cls, path: PathLike, **kwargs) -> Self:
         return cls(dom=BetterElement.parse_file(path), **kwargs)
 
     @classmethod
+    # type: ignore
     def from_string(cls, string: str, **kwargs) -> Self:
         return cls(dom=BetterElement.parse_string(string), **kwargs)
 
