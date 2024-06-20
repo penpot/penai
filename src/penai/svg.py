@@ -506,8 +506,6 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
 
                 return BoundingBox.from_clip_rect(clip_el)
 
-            print(etree.tostring(parent_group))
-
             raise AssertionError(
                 f"Expected to find <clipPath> with containing <rect> or <path> element with id {clip_path_id} as it was "
                 "referenced in the element's main group element, but didn't, which is, you know, like unexpected.",
