@@ -152,8 +152,6 @@ class TestPenpotPage:
             renderer,
             hook,
         ):
-            # Even though the underlying SVGs have the perfectly same visible content, they still
-            # might produc
             if not np.allclose(img_before, img_after, atol=0.02):
                 self._save_diff_fig(
                     img_before,
