@@ -202,6 +202,7 @@ class SVGVariationsGenerator:
         self.svg.strip_penpot_tags()
         self.verbose = verbose
         self.model = model
+        persistence_base_dir = Path(persistence_base_dir)
         responses_dir = Path(persistence_base_dir / fn_compatible(shape.name))
         if persistence_add_timestamp:
             responses_dir = responses_dir / datetime_tag()
@@ -236,8 +237,9 @@ class SVGVariationsGenerator:
     def create_variations(
         self,
         num_variations: int = 5,
-        variation_logic: str
-        | VariationInstructionSnippet = VariationInstructionSnippet.SHAPES_COLORS_POSITIONS,
+        variation_logic: (
+            str | VariationInstructionSnippet
+        ) = VariationInstructionSnippet.SHAPES_COLORS_POSITIONS,
     ) -> SVGVariations:
         prompt = (
             VariationsPromptBuilder(num_variations)
@@ -271,10 +273,12 @@ class SVGVariationsGenerator:
 
     def create_variations_sequentially(
         self,
-        variation_scope: VariationInstructionSnippet
-        | str = VariationInstructionSnippet.SPECIFIC_COLORS_SHAPES,
-        variation_description_sequence: VariationDescriptionSequence
-        | Sequence[str] = VariationDescriptionSequence.UI_ELEMENT_STATES,
+        variation_scope: (
+            VariationInstructionSnippet | str
+        ) = VariationInstructionSnippet.SPECIFIC_COLORS_SHAPES,
+        variation_description_sequence: (
+            VariationDescriptionSequence | Sequence[str]
+        ) = VariationDescriptionSequence.UI_ELEMENT_STATES,
         colors: PenpotColors | None = None,
     ) -> SVGVariations:
         """Generates variations sequentially, one at a time, accounting for limitations in response token count
@@ -298,7 +302,7 @@ class SVGVariationsGenerator:
             "Here are the instructions for the first variation:\n"
         )
 
-        variation_prompt_template = 'Create a variation corresponding to the description "%s".'
+        variation_prompt_template = 'Create a variation corresponding to the description: "%s".'
 
         variation_descriptions: Sequence[str]
         if isinstance(variation_description_sequence, VariationDescriptionSequence):
