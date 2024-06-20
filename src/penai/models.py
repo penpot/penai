@@ -1,3 +1,4 @@
+import json
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -7,6 +8,7 @@ from uuid import UUID
 
 from lxml import etree
 from lxml.etree import Element
+from pydantic import BaseModel, Field, parse_obj_as
 
 from penai.schemas import PenpotFileDetailsSchema, PenpotProjectManifestSchema
 from penai.svg import SVG, PenpotComponentSVG, PenpotPageSVG, PenpotShapeElement
@@ -152,6 +154,34 @@ class PenpotComponentsSVG(SVG):
         )
 
 
+class PenpotColor(BaseModel):
+    id: str | None = Field(default_factory=lambda: None)
+    name: str
+    color: str
+    opacity: float
+    path: str
+
+
+class PenpotColors:
+    def __init__(self, colors_json_path: PathLike | None = None):
+        """:param colors_json_path: the path to an existing `colors.json` file containing the colors or None of no colors are available."""
+        self._colors_json_path = colors_json_path
+        self._colors: list[PenpotColor] | None = None
+
+    def get_colors(self) -> list[PenpotColor]:
+        """:return: the list of colors, which may be empty if no colors are defined"""
+        if self._colors is None:
+            self._colors = []
+            if self._colors_json_path is not None:
+                with open(self._colors_json_path) as f:
+                    colors_json = json.load(f)
+                color_map = parse_obj_as(dict[str, PenpotColor], colors_json)
+                for uuid, color in color_map.items():
+                    color.id = uuid
+                    self._colors.append(color)
+        return self._colors
+
+
 @dataclass
 class PenpotFile:
     id: str
@@ -161,9 +191,9 @@ class PenpotFile:
     A page is in one to one correspondence to an svg file, and the page id is
     the filename without the '.svg' extension."""
     components: PenpotComponentDict
+    colors: PenpotColors
 
     # TODO: Implement when needed
-    # colors: list[PenpotColor]
     # mediaItems: list[PenpotMediaItem]
     # typography: list[PenpotTypography]
 
@@ -199,7 +229,20 @@ class PenpotFile:
         if schema.hasComponents:
             components_svg = PenpotComponentsSVG.from_penpot_file_dir(file_dir)
             components = components_svg.get_penpot_component_dict()
-        return cls(id=file_dir.stem, name=schema.name, pages=pages, components=components)
+
+        colors_json_path = Path(file_dir) / "colors.json"
+        if not colors_json_path.exists():
+            colors = PenpotColors(None)
+        else:
+            colors = PenpotColors(colors_json_path)
+
+        return cls(
+            id=file_dir.stem,
+            name=schema.name,
+            pages=pages,
+            components=components,
+            colors=colors,
+        )
 
 
 @dataclass

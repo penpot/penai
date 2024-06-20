@@ -296,8 +296,10 @@ class SVGVariationsGenerator:
     def create_variations_sequentially_from_example(
         self,
         example_variations: SVGVariations,
+        write_results: bool = True,
     ) -> SVGVariations:
-        """Generates variations sequentially, one at a time, based on an example set of variations.
+        """Generates variations sequentially, one at a time, based on an example set of variations
+        that are presented to the model at once.
 
         :param example_variations: the example variations to use as a basis
         :return: the variations
@@ -335,13 +337,16 @@ class SVGVariationsGenerator:
             variations_dict[name] = code_snippets[0].code
 
         variations = SVGVariations(self.svg, variations_dict, conversation)
-        variations.write_results(self.result_writer)
+        if write_results:
+            variations.write_results(self.result_writer)
         return variations
 
     def create_variations_sequentially_from_example_1by1(
         self,
         example_variations: SVGVariations,
     ) -> SVGVariations:
+        # This applies the function create_variations_sequentially_from_example multiple times
+        # such that the model is presented with only a single example in each conversation
         all_variations_dict = {}
         example_variations_dict = example_variations.variations_dict
         for name in example_variations_dict:
@@ -349,6 +354,44 @@ class SVGVariationsGenerator:
             single_example_variations = SVGVariations(
                 example_variations.original_svg, single_example_variations_dict
             )
-            variations = self.create_variations_sequentially_from_example(single_example_variations)
+            variations = self.create_variations_sequentially_from_example(
+                single_example_variations, write_results=False
+            )
             all_variations_dict.update(variations.variations_dict)
         return SVGVariations(self.svg, all_variations_dict)
+
+    def create_variations_from_example(
+        self,
+        example_variations: SVGVariations,
+    ) -> SVGVariations:
+        # This is a dedicated solution for the "from example" use case, where the model is to generate
+        # one variation at a time based on a single example
+
+        system_prompt = (
+            "You are a design assistant tasked with creating a variation of an SVG. "
+            "You will be presented with an example, i.e. an original design and a variation thereof. "
+            "Your task is analyze the way in which the variation differs from the original "
+            "and then apply the same mechanisms to another UI element. "
+        )
+
+        variations_dict = {}
+        for _i, (name, svg_text) in enumerate(example_variations.variations_dict.items()):
+            conversation = self._create_conversation(system_prompt=system_prompt)
+            prompt = (
+                "Here is the example pair (original and variation):\n\n"
+                f"This is the original design:\n```{example_variations.original_svg.to_string()}```\n\n"
+                f"This is the variation '{name}':\n```{svg_text}```\n\n"
+                f"Based on this example, apply the same type of variation to this design:```{self.svg.to_string()}```\n"
+            )
+            response = conversation.query(prompt)
+            code_snippets = response.get_code_snippets()
+            if len(code_snippets) == 0:
+                log.warning(f"Received no code snippets for '{name}'")
+                continue
+            if len(code_snippets) > 1:
+                log.warning("Received more than one code snippet in response; using the first one")
+            variations_dict[name] = code_snippets[0].code
+
+        variations = SVGVariations(self.svg, variations_dict)
+        variations.write_results(self.result_writer)
+        return variations

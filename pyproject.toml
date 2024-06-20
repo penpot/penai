@@ -134,6 +134,7 @@ select = [
     "YTT",
 ]
 ignore = [
+    "COM812",  # requires trailing commas and can cause undesirable reformats when calling `poe format` multiple times
     "E501", # line too long. black does a good enough job
     "E741", # variable names like "l". this isn't a huge problem
     "B008", # do not perform function calls in argument defaults. we do this sometimes
