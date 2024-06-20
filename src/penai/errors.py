@@ -1,0 +1,2 @@
+class FontFetchError(Exception):
+    pass
