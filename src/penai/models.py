@@ -10,9 +10,24 @@ from lxml import etree
 from lxml.etree import Element
 from pydantic import BaseModel, Field, parse_obj_as
 
-from penai.schemas import PenpotFileDetailsSchema, PenpotProjectManifestSchema
-from penai.svg import SVG, PenpotComponentSVG, PenpotPageSVG, PenpotShapeElement
+from penai.errors import FontFetchError
+from penai.schemas import (
+    PenpotFileDetailsSchema,
+    PenpotProjectManifestSchema,
+    PenpotTypographiesSchema,
+    PenpotTypographySchema,
+)
+from penai.svg import (
+    SVG,
+    BaseStyleSupplier,
+    PenpotComponentSVG,
+    PenpotPageSVG,
+    PenpotShapeElement,
+)
 from penai.types import PathLike
+from penai.utils.fonts import (
+    get_css_for_penpot_font,
+)
 from penai.xml import BetterElement
 
 
@@ -38,18 +53,34 @@ class PenpotComposition(Generic[TSVG]):
 @dataclass
 class PenpotPage(PenpotComposition[PenpotPageSVG]):
     @classmethod
-    def from_file(cls, path: PathLike, name: str) -> Self:
+    def from_file(
+        cls,
+        path: PathLike,
+        name: str,
+        style_supplier: BaseStyleSupplier | None = None,
+    ) -> Self:
         path = Path(path)
+        svg = PenpotPageSVG.from_file(path, style_supplier=style_supplier)
+
+        if style_supplier is not None:
+            svg.inject_style(style_supplier.get_style())
+
         return cls(
             id=path.stem,
             name=name,
-            svg=PenpotPageSVG.from_file(path),
+            svg=svg,
         )
 
     @classmethod
-    def from_dir(cls, page_id: str | UUID, name: str, file_root: Path) -> Self:
+    def from_dir(
+        cls,
+        page_id: str | UUID,
+        name: str,
+        file_root: Path,
+        style_supplier: BaseStyleSupplier | None = None,
+    ) -> Self:
         page_path = (file_root / str(page_id)).with_suffix(".svg")
-        return cls.from_file(page_path, name)
+        return cls.from_file(page_path, name, style_supplier=style_supplier)
 
 
 @dataclass
@@ -158,6 +189,9 @@ class PenpotColor(BaseModel):
     id: str | None = Field(default_factory=lambda: None)
     name: str
     color: str
+    """
+    The color in hex format, e.g. '#ff0000' for red.
+    """
     opacity: float
     path: str
 
@@ -183,7 +217,42 @@ class PenpotColors:
 
 
 @dataclass
-class PenpotFile:
+class PenpotTypography(BaseStyleSupplier):
+    name: str
+    font_family: str
+    font_variant_id: str
+
+    @classmethod
+    def from_schema(cls, schema: PenpotTypographySchema) -> Self:
+        return cls(
+            name=schema.name,
+            font_family=schema.fontFamily,
+            font_variant_id=schema.fontVariantId,
+        )
+
+    def get_style(self) -> str | None:
+        return get_css_for_penpot_font(self.font_family, self.font_variant_id)
+
+
+class PenpotTypographyDict(dict[str, PenpotTypography], BaseStyleSupplier):
+    def get_style(self, raise_errors: bool = True) -> str:
+        css = []
+
+        for typography in self.values():
+            try:
+                if (style := typography.get_style()) is not None:
+                    css.append(style)
+            except FontFetchError as e:
+                if raise_errors:
+                    raise e
+
+                print(f"Error fetching font {typography.font_family}:", e)
+
+        return "\n".join(css)
+
+
+@dataclass
+class PenpotFile(BaseStyleSupplier):
     id: str
     name: str
     pages: dict[str, PenpotPage]
@@ -191,11 +260,11 @@ class PenpotFile:
     A page is in one to one correspondence to an svg file, and the page id is
     the filename without the '.svg' extension."""
     components: PenpotComponentDict
+    typographies: PenpotTypographyDict
     colors: PenpotColors
 
     # TODO: Implement when needed
     # mediaItems: list[PenpotMediaItem]
-    # typography: list[PenpotTypography]
 
     @cached_property
     def page_names(self) -> list[str]:
@@ -214,35 +283,56 @@ class PenpotFile:
             ) from e
 
     @classmethod
-    def from_schema_and_dir(cls, schema: PenpotFileDetailsSchema, file_dir: PathLike) -> Self:
+    def from_schema_and_dir(
+        cls,
+        schema: PenpotFileDetailsSchema,
+        file_dir: PathLike,
+    ) -> Self:
         file_dir = Path(file_dir)
         if not file_dir.is_dir():
             raise ValueError(f"{file_dir=} is not a valid directory.")
 
-        pages = {}
-        components = PenpotComponentDict()
+        colors_json_path = Path(file_dir) / "colors.json"
 
-        for page_id in schema.pages:
-            page_info = schema.pagesIndex[page_id]
-            pages[page_id] = PenpotPage.from_dir(page_id, page_info.name, file_dir)
+        penpot_file = cls(
+            id=file_dir.stem,
+            name=schema.name,
+            pages={},
+            components=PenpotComponentDict(),
+            typographies=PenpotTypographyDict(),
+            colors=PenpotColors(colors_json_path if colors_json_path.exists() else None),
+        )
 
         if schema.hasComponents:
             components_svg = PenpotComponentsSVG.from_penpot_file_dir(file_dir)
-            components = components_svg.get_penpot_component_dict()
+            penpot_file.components.update(components_svg.get_penpot_component_dict())
 
-        colors_json_path = Path(file_dir) / "colors.json"
-        if not colors_json_path.exists():
-            colors = PenpotColors(None)
-        else:
-            colors = PenpotColors(colors_json_path)
+        if schema.hasTypographies:
+            typographies_def = PenpotTypographiesSchema.from_typographies_file(
+                file_dir / "typographies.json",
+            )
 
-        return cls(
-            id=file_dir.stem,
-            name=schema.name,
-            pages=pages,
-            components=components,
-            colors=colors,
-        )
+            for typ_id, typ_schema in typographies_def.root.items():
+                penpot_file.typographies[typ_id] = PenpotTypography.from_schema(
+                    typ_schema,
+                )
+
+        for page_id in schema.pages:
+            page_info = schema.pagesIndex[page_id]
+            penpot_file.pages[page_id] = PenpotPage.from_dir(
+                page_id,
+                page_info.name,
+                file_dir,
+                style_supplier=penpot_file,
+            )
+
+        return penpot_file
+
+    def get_style(self) -> str | None:
+        if not self.typographies:
+            return None
+
+        return self.typographies.get_style(raise_errors=False)
 
 
 @dataclass
@@ -266,6 +356,10 @@ class PenpotProject:
             lines += ["  Components: (name, id)"]
             for component in file.components.values():
                 lines += [f"  - {component.name} ({component.id})"]
+
+            lines += ["  Typographies: (name, id)"]
+            for typography_id, typography in file.typographies.items():
+                lines += [f"  - {typography.name} ({typography_id})"]
 
         return "\n".join(lines)
 
