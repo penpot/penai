@@ -889,6 +889,11 @@ class PenpotPageSVG(SVG):
         container_g.getparent().remove(container_g)
 
     def remove_shape(self, shape_id: str) -> None:
+        """Removes a shape (and its sub-shapes) given by its ID from the SVG tree.
+
+        The state of the PenpotPageSVG object is reset after the shape is removed, i.e.
+        the shape elements are re-extracted from the tree.
+        """
         self._remove_shape_from_tree(shape_id)
         self._reset_state()
 
