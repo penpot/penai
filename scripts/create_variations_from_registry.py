@@ -5,7 +5,7 @@ from jsonargparse import CLI
 from regex import W
 from sensai.util import logging
 
-from penai.registries.projects import SavedPenpotProject
+from penai.registries.projects import SavedPenpotProject, ShapeCollection
 from penai.variations.svg_variations import SVGVariationsGenerator
 from tqdm import tqdm
 from termcolor import colored
@@ -101,7 +101,8 @@ def main(num_variations: int = 2, max_shapes: int = 2, report_output_dir: str = 
     ):
         if i >= max_shapes:
             break
-        semantics = metadata.to_semantics_string()
+        shape = shape_for_exp.get_shape()
+        semantics = shape_for_exp.metadata.to_semantics_string()
         var_gen = SVGVariationsGenerator(shape=shape, semantics=semantics)
         shape_name_to_persistence_dir_and_semantics[shape.name] = (
             var_gen.persistence_dir,

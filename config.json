@@ -6,7 +6,8 @@
   "visualizations": "./data/visualizations",
   "artifacts": "./data/artifacts",
   "temp": "./temp",
-  "cache": "./temp/cache",
+  "cache": "./data/cache",
+  "temp_cache": "./temp/cache",
   "results": "./results",
   "data": "./data",
   "openai_api_key": "env:OPENAI_API_KEY",
@@ -25,5 +26,6 @@
   "penpot_backend": {
     "user": "mischa.panch@gmail.com",
     "password": "env:PP_BACKEND_PASSWORD"
-  }
+  },
+  "llm_responses_cache_filename": "llm_responses_cache.sqlite"
 }

@@ -4,7 +4,6 @@ from collections.abc import Callable
 from copy import copy, deepcopy
 from functools import cached_property
 from io import BytesIO
-from pathlib import Path
 from typing import Any, Generic, Self, TypeAlias, TypeVar
 
 import bs4
@@ -17,7 +16,7 @@ from langchain.memory import ConversationBufferMemory
 from langchain_core.messages import HumanMessage, SystemMessage
 from PIL.Image import Image
 
-from penai.config import get_config
+from penai.config import default_remote_storage, get_config
 from penai.llm.llm_model import RegisteredLLM
 
 USE_LLM_CACHE_DEFAULT = True
@@ -108,11 +107,14 @@ class Conversation(Generic[TResponse]):
         system_prompt: str | None = None,
         require_json: bool = False,
         use_cache: bool = USE_LLM_CACHE_DEFAULT,
+        force_pull_cache_from_remote: bool = True,
     ):
         global _is_cache_enabled
         if use_cache:
             if not _is_cache_enabled:
-                cache = SQLiteCache(database_path=Path(cfg.cache_dir) / "llm_cache.sqlite")
+                if force_pull_cache_from_remote:
+                    default_remote_storage().pull(cfg.llm_responses_cache_path, force=True)
+                cache = SQLiteCache(database_path=cfg.llm_responses_cache_path)
                 set_llm_cache(cache)
                 _is_cache_enabled = True
         else:

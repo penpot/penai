@@ -5,6 +5,7 @@ The `config_local.json` is a good place to keep access keys and other secrets.
 """
 
 import os
+from pathlib import Path
 from re import Pattern
 from typing import Literal, cast
 
@@ -65,6 +66,15 @@ class __Configuration(DefaultDataConfiguration):
     def cache_dir(self) -> str:
         """:return: absolute path to directory where cache files are stored"""
         return self._get_existing_path("cache", create=True)
+
+    @property
+    def temp_cache_dir(self) -> str:
+        """:return: absolute path to directory where temporary cache files are stored"""
+        return self._get_existing_path("temp_cache", create=True)
+
+    @property
+    def llm_responses_cache_path(self) -> str:
+        return str(Path(self.cache_dir) / self._get_non_empty_entry("llm_responses_cache_filename"))
 
     def results_dir(self) -> str:
         return self._get_existing_path("results", create=True)
