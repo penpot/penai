@@ -1,6 +1,8 @@
 import logging
 import os
-from enum import Enum
+from dataclasses import dataclass
+from enum import Enum, StrEnum
+from functools import cache
 
 from sensai.util.cache import pickle_cached
 
@@ -8,10 +10,37 @@ from penai.client import PenpotClient
 from penai.config import get_config, pull_from_remote
 from penai.models import PenpotPage, PenpotProject
 from penai.registries.web_drivers import RegisteredWebDriver
-from penai.svg import PenpotPageSVG
+from penai.svg import PenpotPageSVG, PenpotShapeElement
 
 log = logging.getLogger(__name__)
 cfg = get_config()
+
+
+class ShapeType(StrEnum):
+    BUTTON = "button"
+    ICON = "icon"
+    TEXT = "text"
+
+
+@dataclass(kw_only=True)
+class ShapeMetadata:
+    """Usually set manually in the context of a registry."""
+
+    description: str
+    overlayed_text: str | None = None
+    subtext: str | None = None
+    shape_type: ShapeType = ShapeType.ICON
+
+    def to_semantics_string(self) -> str:
+        result = f"of type '{self.shape_type}' depicting a " + self.description
+        if self.overlayed_text:
+            result += f" with overlayed text: '{self.overlayed_text}'"
+        if self.subtext:
+            result += f" with subtext: '{self.subtext}'"
+        return result + "."
+
+
+_MD = ShapeMetadata
 
 
 class SavedPenpotProject(Enum):
@@ -74,7 +103,7 @@ class SavedPenpotProject(Enum):
         :return: the page's SVG
         """
 
-        @pickle_cached(cfg.cache_dir, load=cached)
+        @pickle_cached(cfg.temp_cache_dir, load=cached)
         def load_page_svg_text(project: SavedPenpotProject, page_name: str) -> str:
             page = project._load_page_with_viewboxes(page_name)
             return page.svg.to_string()
@@ -89,7 +118,7 @@ class SavedPenpotProject(Enum):
         :return: the CSS content
         """
 
-        @pickle_cached(cfg.cache_dir, load=cached)
+        @pickle_cached(cfg.temp_cache_dir, load=cached)
         def load_main_file_typographies_css(saved_project: SavedPenpotProject) -> str:
             client = PenpotClient.create_default()
             project = saved_project.load(pull=True)
@@ -100,3 +129,82 @@ class SavedPenpotProject(Enum):
             return typographies.to_css()
 
         return load_main_file_typographies_css(self)
+
+
+@dataclass
+class ShapeForExperimentation:
+    name: str
+    metadata: ShapeMetadata
+    project: SavedPenpotProject
+    page_name: str
+
+    @staticmethod
+    @cache
+    def _load_page_svg(project: SavedPenpotProject, page_name: str) -> PenpotPageSVG:
+        return project.load_page_svg_with_viewboxes(page_name)
+
+    def get_shape(self) -> PenpotShapeElement:
+        page_svg = self._load_page_svg(self.project, self.page_name)
+        return page_svg.get_shape_by_name(self.name)
+
+
+_PR = SavedPenpotProject
+
+
+class _Collection:
+    def __init__(self) -> None:
+        self.shapes: list[ShapeForExperimentation] = []
+
+    def _add(self, shape: ShapeForExperimentation) -> ShapeForExperimentation:
+        self.shapes.append(shape)
+        return shape
+
+    def add_music_app_shape(self, name: str, metadata: ShapeMetadata) -> ShapeForExperimentation:
+        return self._add(
+            ShapeForExperimentation(
+                name="ic_equalizer_48px-1",
+                metadata=_MD(description="Equalizer icon"),
+                page_name="Interactive music app",
+                project=_PR.INTERACTIVE_MUSIC_APP,
+            )
+        )
+
+
+class ShapeCollection:
+    _collection = _Collection()
+
+    ma_equalizer = _collection.add_music_app_shape(
+        name="ic_equalizer_48px-1", metadata=_MD(description="Equalizer icon")
+    )
+    ma_group_5 = _collection.add_music_app_shape(
+        name="Group-5", metadata=_MD(description="Home icon", subtext="Home")
+    )
+    ma_group_6 = _collection.add_music_app_shape(
+        name="Group-6", metadata=_MD(description="Compass icon", subtext="Explore")
+    )
+    ma_group_7 = _collection.add_music_app_shape(
+        name="Group-7", metadata=_MD(description="Music library icon", subtext="Music library")
+    )
+    ma_btn_primary_1 = _collection.add_music_app_shape(
+        name="btn-primary-1",
+        metadata=_MD(
+            description="Play button",
+            shape_type=ShapeType.BUTTON,
+            overlayed_text="Play",
+        ),
+    )
+    ma_btn_secondary = _collection.add_music_app_shape(
+        name="btn-secondary",
+        metadata=_MD(
+            description="Shuffle button",
+            shape_type=ShapeType.BUTTON,
+            overlayed_text="Shuffle",
+        ),
+    )
+    ma_icsupervisor_account_48px = _collection.add_music_app_shape(
+        "ic_supervisor_account_48px", metadata=_MD(description="User icon")
+    )
+
+    @classmethod
+    def get_shapes(cls) -> list[ShapeForExperimentation]:
+        return cls._collection.shapes
