@@ -1,4 +1,4 @@
-from collections.abc import Generator, Iterable
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Self
@@ -22,7 +22,7 @@ class InferencedHierarchySchema(BaseModel):
     description: str
     children: list["InferencedHierarchySchema"] | None = None
 
-    def flatten(self) -> Generator["InferencedHierarchySchema", None, None]:
+    def flatten(self) -> Iterable["InferencedHierarchySchema"]:
         yield self
 
         if self.children:
