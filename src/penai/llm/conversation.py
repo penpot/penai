@@ -10,11 +10,18 @@ import bs4
 import httpx
 import markdown
 from bs4 import BeautifulSoup
+from langchain.cache import SQLiteCache
+from langchain.globals import set_llm_cache
 from langchain.memory import ConversationBufferMemory
 from langchain_core.messages import HumanMessage, SystemMessage
 from PIL.Image import Image
 
+from penai.config import default_remote_storage, get_config
 from penai.llm.llm_model import RegisteredLLM
+
+USE_LLM_CACHE_DEFAULT = True
+cfg = get_config()
+_is_cache_enabled = False
 
 
 class CodeSnippet:
@@ -99,7 +106,22 @@ class Conversation(Generic[TResponse]):
         response_factory: Callable[[str], TResponse] = Response,  # type: ignore
         system_prompt: str | None = None,
         require_json: bool = False,
+        use_cache: bool = USE_LLM_CACHE_DEFAULT,
+        force_pull_cache_from_remote: bool = True,
     ):
+        global _is_cache_enabled
+        if use_cache:
+            if not _is_cache_enabled:
+                if force_pull_cache_from_remote:
+                    default_remote_storage().pull(cfg.llm_responses_cache_path, force=True)
+                cache = SQLiteCache(database_path=cfg.llm_responses_cache_path)
+                set_llm_cache(cache)
+                _is_cache_enabled = True
+        else:
+            if _is_cache_enabled:
+                raise ValueError(
+                    "Caching is already enabled. Since caching is enabled globally, it cannot be disabled for this conversation."
+                )
         self.memory = ConversationBufferMemory()
         self.llm = model.create_model(require_json=require_json)
         self.verbose = verbose

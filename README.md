@@ -31,7 +31,7 @@ docker build -t penai .
 and run it with the repository mounted as a volume:
 
 ```shell
-docker run -it --rm -v "$(pwd)":/workspace penai
+docker run -it --rm -v "$(pwd)":/workspaces penai
 ```
 
 You can also just run `bash docker_build_and_run.sh`, which will do both things

@@ -3,6 +3,8 @@
 config_local.json
 temp
 test/log
+reports
+notebooks/log
 /*.iml
 
 # Byte-compiled / optimized / DLL files
