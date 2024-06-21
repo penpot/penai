@@ -264,7 +264,8 @@ class SVGVariationsGenerator:
         revised_variations.write_results(self.result_writer, file_prefix="revised_")
         return revised_variations
 
-    def _create_colors_prompt(self, penpot_colors: PenpotColors) -> str:
+    @classmethod
+    def _create_colors_prompt(cls, penpot_colors: PenpotColors) -> str:
         colors = penpot_colors.get_colors()
         prompt = ""
         if len(colors) > 0:
@@ -277,12 +278,13 @@ class SVGVariationsGenerator:
             )
         return prompt
 
+    @classmethod
     def _create_variation_scope_prompt(
-        self, variation_scope: VariationInstructionSnippet | str, colors: PenpotColors | None = None
+        cls, variation_scope: VariationInstructionSnippet | str, colors: PenpotColors | None = None
     ) -> str:
         prompt = str(variation_scope)
         if colors is not None:
-            colors_prompt = self._create_colors_prompt(colors)
+            colors_prompt = cls._create_colors_prompt(colors)
             if colors_prompt != "":
                 prompt += "\n" + colors_prompt
         return prompt
@@ -342,12 +344,14 @@ class SVGVariationsGenerator:
     def create_variations_from_example_present_at_once(
         self,
         example_variations: SVGVariations,
+        colors: PenpotColors | None = None,
     ) -> SVGVariations:
         """Generates variations based on an example set of variations that are presented to the model initially.
         Given the example variations (original, (variation_1, variation_2, ...)), the model is asked to generate,
         the same kinds of variations for another UI element - one at atime, but in a single conversation.
 
         :param example_variations: the example variations
+        :param colors: the colors used in the design, which shall be considered in the generation process
         :return: the variations
         """
         system_prompt = (
@@ -356,6 +360,10 @@ class SVGVariationsGenerator:
             "principles to another UI element. "
             "In each response you are to return a single variation. "
         )
+        if colors:
+            colors_prompt = self._create_colors_prompt(colors)
+            if colors_prompt != "":
+                system_prompt += "\n" + colors_prompt
 
         conversation = self._create_conversation(system_prompt=system_prompt)
 
@@ -389,6 +397,7 @@ class SVGVariationsGenerator:
     def create_variations_from_example(
         self,
         example_variations: SVGVariations,
+        colors: PenpotColors | None = None,
     ) -> SVGVariations:
         """Generates variations based on an example set of variations that are presented to the model one
         at a time, i.e. in each conversation, the model is given one example (original, variation) and is
@@ -396,6 +405,7 @@ class SVGVariationsGenerator:
 
         :param example_variations: the example variations; if there are multiple variations, then there
             will be a separate conversation for each variation asking the model to create that kind of variation
+        :param colors: the colors used in the design, which shall be considered in the generation process
         :return: the variations
         """
         system_prompt = (
@@ -404,6 +414,10 @@ class SVGVariationsGenerator:
             "Your task is analyze the way in which the variation differs from the original "
             "and then apply the same mechanisms to another UI element. "
         )
+        if colors:
+            colors_prompt = self._create_colors_prompt(colors)
+            if colors_prompt != "":
+                system_prompt += "\n" + colors_prompt
 
         variations_dict = {}
         for _i, (name, svg_text) in enumerate(example_variations.variations_dict.items()):
@@ -412,7 +426,7 @@ class SVGVariationsGenerator:
                 "Here is the example pair (original and variation):\n\n"
                 f"This is the original design:\n```{example_variations.original_svg.to_string()}```\n\n"
                 f"This is the variation '{name}':\n```{svg_text}```\n\n"
-                f"Based on this example, apply the same type of variation to this design:```{self.svg.to_string()}```\n"
+                f"Based on this example, apply the same type of variation to this design:\n```{self.svg.to_string()}```\n"
             )
             response = conversation.query(prompt)
             code_snippets = response.get_code_snippets()
