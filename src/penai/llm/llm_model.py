@@ -68,7 +68,7 @@ class RegisteredLLM(Enum):
                     temperature=temperature,
                     max_output_tokens=max_tokens,
                 )
-            case RegisteredLLM.CLAUDE_3_OPUS:
+            case RegisteredLLM.CLAUDE_3_OPUS | RegisteredLLM.CLAUDE_3_5_SONNET:
                 require_json_unsupported()
                 if max_tokens is None:
                     # Anthropic doesn't accept None for max_tokens. 4096 is the maximal allowed value.
