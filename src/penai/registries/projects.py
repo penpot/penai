@@ -130,6 +130,7 @@ class SavedPenpotProject(Enum):
 
         return load_main_file_typographies_css(self)
 
+
 @dataclass
 class ShapeForExperimentation:
     name: str

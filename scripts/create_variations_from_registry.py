@@ -86,15 +86,16 @@ def print_blue(text: str) -> None:
 def main(num_variations: int = 2, max_shapes: int = 2, report_output_dir: str = "reports") -> None:
     logging.configure(level=logging.INFO)
 
+    shapeS_for_exp = ShapeCollection.get_shapes()
     num_shapes_for_experiments = min(
-        max_shapes, SavedPenpotProject.get_num_all_selected_shapes_for_experiments()
+        max_shapes, len(shapeS_for_exp)
     )
 
     shape_name_to_persistence_dir_and_semantics = {}
 
-    for i, (shape, metadata) in enumerate(
+    for i, shape_for_exp in enumerate(
         tqdm(
-            SavedPenpotProject.get_all_selected_shapes_for_experiments(),
+            shapeS_for_exp,
             total=num_shapes_for_experiments,
             desc="Shape: ",
         )
