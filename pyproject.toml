@@ -176,6 +176,7 @@ ignore = [
     "RUF012",  # forbids mutable types for class attributes
     "SIM102", "RET507",  # forbids freedom in specification if/elif and return
     "ISC002",  # forbids implicitly concatenated string literals
+    "RET504",  # removes "superfluous" assignment before return
 ]
 unfixable = []
 extend-fixable = [
