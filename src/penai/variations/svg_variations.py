@@ -32,6 +32,10 @@ class VariationInstructionSnippet(StrEnum):
     )
 
 
+class RevisionInstructionSnippet(StrEnum):
+    MODIFY_SHAPES = "Modify these variations such that they all consider shape changes."
+
+
 PROMPT_FORMAT_DESCRIPTION = (
     "For each variation, create a level 2 heading (markdown prefix `## `) that names"
     "the variation followed by the respective code snippet."
@@ -99,10 +103,11 @@ def transform_generated_svg_code(svg_code: str) -> str:
 
 class SVGVariationsResponse(Response):
     def get_variations_dict(self) -> dict[str, str]:
-        return {
+        variations_dict = {
             k: transform_generated_svg_code(code_snippet.code)
             for k, code_snippet in self.get_code_in_sections(2).items()
         }
+        return variations_dict
 
 
 class SVGVariationsConversation(Conversation[SVGVariationsResponse]):
@@ -147,7 +152,9 @@ class SVGVariations:
         html += "</body></html>"
         return html
 
-    def revise(self, prompt: str) -> "SVGVariations":
+    def revise(
+        self, prompt: str | RevisionInstructionSnippet = RevisionInstructionSnippet.MODIFY_SHAPES
+    ) -> "SVGVariations":
         if self.conversation is None:
             raise ValueError("Cannot revise without a conversation")
         conversation = self.conversation.clone()
@@ -184,7 +191,6 @@ class SVGVariationsGenerator:
         model: RegisteredLLM = RegisteredLLM.GPT4O,
         persistence_base_dir: PathLike = Path(cfg.results_dir()) / "svg_variations",
         persistence_enabled: bool = True,
-        persistence_add_timestamp: bool = True,
     ):
         """:param shape:
         :param semantics:
@@ -193,7 +199,6 @@ class SVGVariationsGenerator:
         :param persistence_base_dir: the base directory for persistence, to which subdirectories indicating the shape name
             and (optionally, if `persistence_add_timestamp` is enabled) the current time will be added
         :param persistence_enabled: whether to save the responses to disk
-        :param persistence_add_timestamp: whether to use a persistence subdirectory indicating the current date and time
         """
         self.semantics = semantics
 
@@ -203,10 +208,10 @@ class SVGVariationsGenerator:
         self.verbose = verbose
         self.model = model
         persistence_base_dir = Path(persistence_base_dir)
-        responses_dir = Path(persistence_base_dir / fn_compatible(shape.name))
-        if persistence_add_timestamp:
-            responses_dir = responses_dir / datetime_tag()
-        self.result_writer = ResultWriter(responses_dir, enabled=persistence_enabled)
+        result_dir = (
+            persistence_base_dir / fn_compatible(shape.name) / (datetime_tag() + "_" + model.value)
+        )
+        self.result_writer = ResultWriter(result_dir, enabled=persistence_enabled)
 
     @property
     def persistence_dir(self) -> Path:
@@ -255,7 +260,8 @@ class SVGVariationsGenerator:
     def revise_variations(
         self,
         variations: SVGVariations,
-        revision_prompt: str = "Modify these variations such that they all consider shape changes.",
+        revision_prompt: str
+        | RevisionInstructionSnippet = RevisionInstructionSnippet.MODIFY_SHAPES,
     ) -> SVGVariations:
         """Generates revised variations based on the given variations. If persistence is enabled, the saved files will
         have the prefix `revised_`.

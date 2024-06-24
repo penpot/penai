@@ -11,6 +11,10 @@ from penai.config import get_config, pull_from_remote
 from penai.models import PenpotPage, PenpotProject
 from penai.registries.web_drivers import RegisteredWebDriver
 from penai.svg import PenpotPageSVG, PenpotShapeElement
+from penai.variations.svg_variations import (
+    RevisionInstructionSnippet,
+    VariationInstructionSnippet,
+)
 
 log = logging.getLogger(__name__)
 cfg = get_config()
@@ -30,6 +34,8 @@ class ShapeMetadata:
     overlayed_text: str | None = None
     subtext: str | None = None
     shape_type: ShapeType = ShapeType.ICON
+    variation_logic: str = VariationInstructionSnippet.SHAPES_COLORS_POSITIONS
+    revision_prompt: str = RevisionInstructionSnippet.MODIFY_SHAPES
 
     def to_semantics_string(self) -> str:
         result = f"of type '{self.shape_type}' depicting a " + self.description
