@@ -1,14 +1,13 @@
-from calendar import c
 import os
 from pathlib import Path
-from jsonargparse import CLI
-from regex import W
-from sensai.util import logging
 
-from penai.registries.projects import SavedPenpotProject, ShapeCollection
-from penai.variations.svg_variations import SVGVariationsGenerator
-from tqdm import tqdm
+from sensai.util import logging
 from termcolor import colored
+from tqdm import tqdm
+
+from penai.llm.llm_model import RegisteredLLM
+from penai.registries.projects import ShapeCollection, ShapeForExperimentation
+from penai.variations.svg_variations import SVGVariationsGenerator
 
 
 def generate_html_content(
@@ -83,19 +82,24 @@ def print_blue(text: str) -> None:
     print(colored(text, "blue"))
 
 
-def main(num_variations: int = 2, max_shapes: int = 2, report_output_dir: str = "reports") -> None:
+def main(shapes_for_exp: list[ShapeForExperimentation] | None= None,
+        num_variations: int = 5, max_shapes: int | None = None, report_output_dir: str = "reports",
+        llm: RegisteredLLM = RegisteredLLM.GPT4O) -> None:
     logging.configure(level=logging.INFO)
 
-    shapeS_for_exp = ShapeCollection.get_shapes()
-    num_shapes_for_experiments = min(
-        max_shapes, len(shapeS_for_exp)
-    )
+    if shapes_for_exp is None:
+        shapes_for_exp = ShapeCollection.get_shapes()
+
+    if max_shapes is None:
+        max_shapes = len(shapes_for_exp)
+
+    num_shapes_for_experiments = min(max_shapes, len(shapes_for_exp))
 
     shape_name_to_persistence_dir_and_semantics = {}
 
     for i, shape_for_exp in enumerate(
         tqdm(
-            shapeS_for_exp,
+            shapes_for_exp,
             total=num_shapes_for_experiments,
             desc="Shape: ",
         )
@@ -103,8 +107,12 @@ def main(num_variations: int = 2, max_shapes: int = 2, report_output_dir: str = 
         if i >= max_shapes:
             break
         shape = shape_for_exp.get_shape()
-        semantics = shape_for_exp.metadata.to_semantics_string()
-        var_gen = SVGVariationsGenerator(shape=shape, semantics=semantics)
+        metadata = shape_for_exp.metadata
+        semantics = metadata.to_semantics_string()
+        variation_logic = metadata.variation_logic
+        revision_prompt = metadata.revision_prompt
+
+        var_gen = SVGVariationsGenerator(shape=shape, semantics=semantics, model=llm)
         shape_name_to_persistence_dir_and_semantics[shape.name] = (
             var_gen.persistence_dir,
             semantics,
@@ -113,11 +121,11 @@ def main(num_variations: int = 2, max_shapes: int = 2, report_output_dir: str = 
         print_green(
             f"Creating {num_variations} variations for shape {shape.name} with metadata semantics: {semantics}",
         )
-        variations = var_gen.create_variations(num_variations=num_variations)
+        variations = var_gen.create_variations(num_variations=num_variations, variation_logic=variation_logic)
         print_green(
             f"Revising the {num_variations} variations for shape {shape.name} with metadata semantics: {semantics}"
         )
-        var_gen.revise_variations(variations)
+        var_gen.revise_variations(variations, revision_prompt=revision_prompt)
 
     html_content = generate_html_content(shape_name_to_persistence_dir_and_semantics)
     html_file_path = (
@@ -130,4 +138,4 @@ def main(num_variations: int = 2, max_shapes: int = 2, report_output_dir: str = 
 
 
 if __name__ == "__main__":
-    CLI(main)
+    main(shapes_for_exp=None, llm=RegisteredLLM.CLAUDE_3_5_SONNET)
