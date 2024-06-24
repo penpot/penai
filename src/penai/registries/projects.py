@@ -148,10 +148,7 @@ class ShapeForExperimentation:
         return page_svg.get_shape_by_name(self.name)
 
 
-_PR = SavedPenpotProject
-
-
-class _Collection:
+class _ShapeCollection:
     def __init__(self) -> None:
         self.shapes: list[ShapeForExperimentation] = []
 
@@ -162,16 +159,16 @@ class _Collection:
     def add_music_app_shape(self, name: str, metadata: ShapeMetadata) -> ShapeForExperimentation:
         return self._add(
             ShapeForExperimentation(
-                name="ic_equalizer_48px-1",
-                metadata=_MD(description="Equalizer icon"),
+                name=name,
+                metadata=metadata,
                 page_name="Interactive music app",
-                project=_PR.INTERACTIVE_MUSIC_APP,
+                project=SavedPenpotProject.INTERACTIVE_MUSIC_APP,
             )
         )
 
 
 class ShapeCollection:
-    _collection = _Collection()
+    _collection = _ShapeCollection()
 
     ma_equalizer = _collection.add_music_app_shape(
         name="ic_equalizer_48px-1", metadata=_MD(description="Equalizer icon")
