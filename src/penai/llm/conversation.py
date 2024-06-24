@@ -61,7 +61,15 @@ class Response:
 
     @cached_property
     def html(self) -> str:
-        return markdown.markdown(self.text)
+        def replace_code(m: re.Match) -> str:
+            code = m.group(1)
+            return re.sub("\n\\s*\n", "\n", code)
+
+        # TODO: Workaround for limitation in `markdown` library.
+        # The library `markdown` cannot deal with empty lines in code blocks, so we remove them
+        text = re.sub(r"```(.*?)```", replace_code, self.text, flags=re.DOTALL)
+
+        return markdown.markdown(text)
 
     @cached_property
     def soup(self) -> BeautifulSoup:
