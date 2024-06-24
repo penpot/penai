@@ -27,7 +27,7 @@ class WebServer:
         html_files: Dict[str, Dict[str, list[str]]] = collections.defaultdict(lambda: collections.defaultdict(list))
         for root, dirs, files in os.walk(self.svg_variations_dir):
             for file in files:
-                if file.endswith('.html'):
+                if file.endswith('.html') or file.endswith(".md"):
                     rel_dir = os.path.relpath(root, self.svg_variations_dir).replace(os.path.sep, "/")
                     shape_name = rel_dir.split("/")[0]
                     sub_dir = rel_dir[len(shape_name) + 1:]
