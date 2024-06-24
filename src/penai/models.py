@@ -430,6 +430,7 @@ class PenpotMinimalShapeXML:
         "constraints-v": "scale",
     }
 
+    # Note: there is some duplication with a similar mechanism in the SVG class
     @classmethod
     def _remove_unwanted_elements(cls, tree: BetterElement) -> BetterElement:
         root = deepcopy(tree)
