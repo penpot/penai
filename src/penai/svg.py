@@ -137,7 +137,7 @@ class SVG:
         return result
 
     @classmethod
-    def _remove_unwanted_elements(cls, tree: BetterElement):
+    def _remove_unwanted_elements(cls, tree: BetterElement) -> None:
         for element in tree.iter():
             for attr_qual_name, value in cls._unwanted_attr_qual_name_values():
                 if element.attrib.get(attr_qual_name, None) == value:
@@ -300,6 +300,9 @@ class SVG:
             for i, el_id in enumerate(sorted(all_ids)):
                 result = result.replace(el_id, f"{i}")
         return result
+
+    def with_shortened_ids(self) -> Self:
+        return self.from_string(self.to_string(replace_ids_by_short_ids=True))
 
 
 def get_node_depth(el: etree.ElementBase, root: etree.ElementBase | None = None) -> int:
@@ -612,7 +615,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         shape_id = self.shape_id
         prefix = "shape-"
         assert shape_id.startswith(prefix)
-        return shape_id[len(prefix) :]
+        return shape_id[len(prefix):]
 
     @property
     def depth_in_svg(self) -> int:

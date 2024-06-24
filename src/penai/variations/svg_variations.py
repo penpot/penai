@@ -198,7 +198,7 @@ class SVGVariationsGenerator:
         self.semantics = semantics
 
         # create simplified SVG (without the bloat)
-        self.svg = shape.to_svg()
+        self.svg = shape.to_svg().with_shortened_ids()
         self.svg.strip_penpot_tags()
         self.verbose = verbose
         self.model = model
