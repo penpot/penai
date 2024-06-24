@@ -103,8 +103,45 @@ class SVG:
     In the long-term (lol never), we might extend this a full-fledged SVG implementation.
     """
 
-    def __init__(self, dom: etree.ElementTree):
+    def __init__(self, dom: etree.ElementTree, remove_unwanted_elements: bool = True):
         self.dom = dom
+        if remove_unwanted_elements:
+            self._remove_unwanted_elements(deepcopy(self.dom))
+
+    NSMAP = {
+        "svg": "http://www.w3.org/2000/svg",
+        "penpot": "https://penpot.app/xmlns",
+    }
+
+    UNWANTED_ATTR_KEY_VALS = {
+        "transform": "matrix(1.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000)",
+        "transform-inverse": "matrix(1.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000)",
+        "rotation": "0",
+    }
+
+    @classmethod
+    def _attr_qual_name(cls, name: str, namespace: str) -> str:
+        return "{" + cls.NSMAP[namespace] + "}" + name
+
+    @classmethod
+    def possible_attr_qual_names(cls, name: str) -> list[str]:
+        return [name] + [cls._attr_qual_name(name, ns) for ns in cls.NSMAP]
+
+    @classmethod
+    @cache
+    def _unwanted_attr_qual_name_values(cls) -> list[tuple[str, str]]:
+        result = []
+        for attr_name, value in cls.UNWANTED_ATTR_KEY_VALS.items():
+            for attr_qual_name in cls.possible_attr_qual_names(attr_name):
+                result.append((attr_qual_name, value))
+        return result
+
+    @classmethod
+    def _remove_unwanted_elements(cls, tree: BetterElement) -> None:
+        for element in tree.iter():
+            for attr_qual_name, value in cls._unwanted_attr_qual_name_values():
+                if element.attrib.get(attr_qual_name, None) == value:
+                    del element.attrib[attr_qual_name]
 
     def to_html_string(self) -> str:
         return f"<html><body>{self.to_string()}</body></html>"
@@ -252,8 +289,20 @@ class SVG:
         style_el.text = style
         self.dom.getroot().insert(0, style_el)
 
-    def to_string(self, pretty: bool = True) -> str:
-        return etree.tostring(self.dom, pretty_print=pretty).decode()
+    def to_string(self, pretty: bool = True, replace_ids_by_short_ids: bool = False) -> str:
+        result = etree.tostring(self.dom, pretty_print=pretty).decode()
+        if replace_ids_by_short_ids:
+            all_ids = set()
+            for el in self.dom.iter():
+                if "id" in el.attrib:
+                    all_ids.add(el.attrib["id"])
+
+            for i, el_id in enumerate(sorted(all_ids)):
+                result = result.replace(el_id, f"{i}")
+        return result
+
+    def with_shortened_ids(self) -> Self:
+        return self.from_string(self.to_string(replace_ids_by_short_ids=True))
 
 
 def get_node_depth(el: etree.ElementBase, root: etree.ElementBase | None = None) -> int:

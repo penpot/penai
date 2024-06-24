@@ -158,7 +158,7 @@ class SVGVariations:
     def write_results(self, result_writer: ResultWriter, file_prefix: str = "") -> None:
         if self.conversation is not None:
             result_writer.write_text_file(
-                f"{file_prefix}full_conversation.txt",
+                f"{file_prefix}full_conversation.md",
                 self.conversation.get_full_conversation_string(),
                 content_description="full conversation",
             )
@@ -198,7 +198,7 @@ class SVGVariationsGenerator:
         self.semantics = semantics
 
         # create simplified SVG (without the bloat)
-        self.svg = shape.to_svg()
+        self.svg = shape.to_svg().with_shortened_ids()
         self.svg.strip_penpot_tags()
         self.verbose = verbose
         self.model = model
