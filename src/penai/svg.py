@@ -615,7 +615,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         shape_id = self.shape_id
         prefix = "shape-"
         assert shape_id.startswith(prefix)
-        return shape_id[len(prefix):]
+        return shape_id[len(prefix) :]
 
     @property
     def depth_in_svg(self) -> int:
