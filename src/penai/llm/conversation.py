@@ -10,9 +10,9 @@ import bs4
 import httpx
 import markdown
 from bs4 import BeautifulSoup
-from langchain.cache import SQLiteCache
 from langchain.globals import set_llm_cache
 from langchain.memory import ConversationBufferMemory
+from langchain_community.cache import SQLiteCache
 from langchain_core.messages import HumanMessage, SystemMessage
 from PIL.Image import Image
 
