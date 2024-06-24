@@ -63,7 +63,8 @@ class Response:
     def html(self) -> str:
         def replace_code(m: re.Match) -> str:
             code = m.group(1)
-            return re.sub("\n\\s*\n", "\n", code)
+            code = re.sub("\n\\s*\n", "\n", code)
+            return "```" + code + "```"
 
         # TODO: Workaround for limitation in `markdown` library.
         # The library `markdown` cannot deal with empty lines in code blocks, so we remove them
