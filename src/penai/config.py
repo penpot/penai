@@ -76,6 +76,9 @@ class __Configuration(DefaultDataConfiguration):
     def llm_responses_cache_path(self) -> str:
         return str(Path(self.cache_dir) / self._get_non_empty_entry("llm_responses_cache_filename"))
 
+    def is_using_local_llm_cache(self) -> bool:
+        return "local" in self.llm_responses_cache_path
+
     def results_dir(self) -> str:
         return self._get_existing_path("results", create=True)
 

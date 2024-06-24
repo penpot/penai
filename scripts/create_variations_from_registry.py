@@ -5,6 +5,7 @@ from sensai.util import logging
 from termcolor import colored
 from tqdm import tqdm
 
+from penai.config import get_config, pull_from_remote
 from penai.llm.llm_model import RegisteredLLM
 from penai.registries.projects import ShapeCollection, ShapeForExperimentation
 from penai.variations.svg_variations import SVGVariationsGenerator
@@ -52,10 +53,10 @@ def generate_html_content(
         <div>
             <h2>Shape: {shape_name}</h2>
             <span>Semantics string: {semantics} </span>
-            
+
             <h3>Variations</h3>
             <iframe src="{variations_path}" title="Variations"></iframe>
-            
+
             <h3>Revised Variations</h3>
             <iframe src="{revised_variations_path}" title="Variations"></iframe>
         </div>
@@ -78,14 +79,22 @@ def print_green(text: str) -> None:
     print(colored(text, "green"))
 
 
-def print_blue(text: str) -> None: 
+def print_blue(text: str) -> None:
     print(colored(text, "blue"))
 
 
-def main(shapes_for_exp: list[ShapeForExperimentation] | None= None,
-        num_variations: int = 5, max_shapes: int | None = None, report_output_dir: str = "reports",
-        llm: RegisteredLLM = RegisteredLLM.GPT4O) -> None:
+def main(
+    shapes_for_exp: list[ShapeForExperimentation] | None = None,
+    num_variations: int = 5, max_shapes: int | None = None, report_output_dir: str = "reports",
+    llm: RegisteredLLM = RegisteredLLM.GPT4O,
+    force_pull_global_llm_cache: bool = True,
+) -> None:
     logging.configure(level=logging.INFO)
+
+    c = get_config()
+
+    if not c.is_using_local_llm_cache() and force_pull_global_llm_cache:
+        pull_from_remote(c.llm_responses_cache_path, force=True)
 
     if shapes_for_exp is None:
         shapes_for_exp = ShapeCollection.get_shapes()

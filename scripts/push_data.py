@@ -14,7 +14,7 @@ def push_all_data(stage: DataStage = "raw", force: bool = False, include_llm_cac
     c = get_config()
     if include_llm_cache:
         llm_cache_path = c.llm_responses_cache_path
-        if "local" in llm_cache_path:
+        if c.is_using_local_llm_cache():
             raise ValueError(
                 f"You are trying to push the LOCAL! LLM cache: {llm_cache_path}. "
                 "Aborting. Either specify --include-llm-cache=False or adjust your configuration, "
