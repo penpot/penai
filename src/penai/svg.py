@@ -1,7 +1,6 @@
 import abc
 import logging
 import re
-import uuid
 from collections import defaultdict
 from collections.abc import Iterable
 from copy import deepcopy
@@ -10,6 +9,7 @@ from functools import cache
 from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
 import matplotlib.transforms as mpl_transforms
+import shortuuid
 from lxml import etree
 from pptree import print_tree
 from pydantic import NonNegativeFloat
@@ -159,9 +159,10 @@ class SVG:
     """
 
     def __init__(self, dom: etree.ElementTree, remove_unwanted_elements: bool = True):
-        self.dom = dom
         if remove_unwanted_elements:
-            self._remove_unwanted_elements(deepcopy(self.dom))
+            dom = deepcopy(dom)
+            self._remove_unwanted_elements(dom)
+        self.dom = dom
 
     NSMAP = {
         "svg": "http://www.w3.org/2000/svg",
@@ -356,6 +357,7 @@ class SVG:
         replace_ids_by_short_ids: bool = False,
         unique_ids: bool = True,
         add_width_height: bool = False,
+        scale_to_width: int | None = None,
     ) -> str:
         """:param pretty:
         :param replace_ids_by_short_ids:
@@ -363,6 +365,9 @@ class SVG:
             (in order to avoid id conflicts when combining multiple SVGs)
         :param add_width_height: whether to add width and height attributes to the SVG element
             (as indicated by the viewBox)
+        :param scale_to_width: only has an effect if add_width_height is True; if set, the width
+            and height attributes will be set to the corresponding values of the viewBox, scaled
+            to the given width.
         :return: string representation of the entire <svg> element
         """
         dom = self.dom
@@ -374,8 +379,15 @@ class SVG:
             view_box = dom.getroot().attrib.get("viewBox")
             if view_box:
                 x, y, width, height = map(float, view_box.split())
+
+                if scale_to_width is not None:
+                    scale_factor = scale_to_width / width
+                    width *= scale_factor
+                    height *= scale_factor
+
                 dom.getroot().attrib["width"] = str(width)
                 dom.getroot().attrib["height"] = str(height)
+
             else:
                 log.warning("No viewBox found; could not set width and height")
 
@@ -396,7 +408,7 @@ class SVG:
         return result
 
     def with_shortened_ids(self) -> Self:
-        return self.from_string(self.to_string(replace_ids_by_short_ids=True))
+        return self.from_string(self.to_string(replace_ids_by_short_ids=True, unique_ids=False))
 
 
 def get_node_depth(el: etree.ElementBase, root: etree.ElementBase | None = None) -> int:
@@ -604,6 +616,8 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             svg_root_attribs["style"] = style_string
 
         svg_root_attribs.pop("fill", None)
+        svg_root_attribs.pop("width", None)
+        svg_root_attribs.pop("height", None)
 
         if view_box == "default":
             view_box = self.get_default_view_box()
@@ -1088,7 +1102,7 @@ def ensure_unique_ids_in_svg_code(svg_code: str) -> str:
     """
     ids = re.findall(r'id="(.*?)"', svg_code)
     for identifier in ids:
-        new_id = uuid.uuid1()
+        new_id = shortuuid.uuid()
         svg_code = svg_code.replace(f'id="{identifier}"', f'id="{new_id}"')
         svg_code = svg_code.replace(f"url(#{identifier})", f"url(#{new_id})")
         svg_code = svg_code.replace(f"url('#{identifier}')", f"url('#{new_id})'")
