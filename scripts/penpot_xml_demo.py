@@ -2,7 +2,6 @@ from sensai.util import logging
 
 from penai.models import PenpotMinimalShapeXML
 from penai.registries.projects import SavedPenpotProject
-from zmq import log
 
 if __name__ == "__main__":
     logging.configure(level=logging.DEBUG)
