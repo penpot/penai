@@ -680,13 +680,13 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     def depth_in_shapes(self) -> int:
         return self._depth_in_shapes
 
-    def get_shape_depth(self) -> int:
+    def get_shape_height(self) -> int:
         children = list(self.get_direct_children_shapes())
 
         if not children:
             return 0
 
-        return 1 + max(child.get_shape_depth() for child in children)
+        return 1 + max(child.get_shape_height() for child in children)
 
     def iter_children_at_depth(self, depth: int) -> Iterable[Self]:
         if depth:
