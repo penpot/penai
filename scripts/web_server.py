@@ -32,7 +32,10 @@ class WebServer:
                     shape_name = rel_dir.split("/")[0]
                     sub_dir = rel_dir[len(shape_name) + 1:]
                     html_files[shape_name][sub_dir].append(file)
-        return html_files
+        sorted_html_files = {}
+        for key, value in sorted(html_files.items()):
+            sorted_html_files[key] = dict(sorted(value.items(), reverse=True))
+        return sorted_html_files
 
     async def index(self, request: Request) -> HTMLResponse:
         html_files = self._load_svg_variations()
