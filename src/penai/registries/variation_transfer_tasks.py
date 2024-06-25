@@ -43,12 +43,12 @@ class ShapeVariationTemplates:
     gv_button_regular = (
         ShapeVariationTemplate(ShapeReferences.gv_button_regular_1)
         .with_variation("decolorized", ShapeReferences.gv_button_regular_2)
-        .with_variation("decolorized, dashed", ShapeReferences.gv_button_regular_3)
+        .with_variation("decolorized, dotted", ShapeReferences.gv_button_regular_3)
     )
     gv_button_hover = (
         ShapeVariationTemplate(ShapeReferences.gv_button_hover_1)
         .with_variation("decolorized", ShapeReferences.gv_button_hover_2)
-        .with_variation("decolorized, dashed", ShapeReferences.gv_button_hover_3)
+        .with_variation("decolorized, dotted", ShapeReferences.gv_button_hover_3)
     )
     gv_input_field = (
         ShapeVariationTemplate(ShapeReferences.gv_dark_input_rest)
