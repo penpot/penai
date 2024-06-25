@@ -168,10 +168,13 @@ class SVG:
         "penpot": "https://penpot.app/xmlns",
     }
 
+    # NOTE: very similar to MinimalPenpotXML logic
     UNWANTED_ATTR_KEY_VALS = {
         "transform": "matrix(1.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000)",
         "transform-inverse": "matrix(1.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000)",
         "rotation": "0",
+        "rx": "0",
+        "ry": "0",
     }
 
     @classmethod
@@ -593,6 +596,15 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             and the view box will be set to the default view box of the page.
         """
         svg_root_attribs = deepcopy(self._lxml_element.getroottree().getroot().attrib)
+        style_string = svg_root_attribs.get("style", "")
+        style_string = re.sub(r"width:.*?;", "", style_string)
+        style_string = re.sub(r"height:.*?;", "", style_string)
+        style_string = re.sub(r"fill:.*?;", "", style_string)
+        if style_string:
+            svg_root_attribs["style"] = style_string
+
+        svg_root_attribs.pop("fill", None)
+
         if view_box == "default":
             view_box = self.get_default_view_box()
         if view_box is not None:

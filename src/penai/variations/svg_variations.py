@@ -45,6 +45,13 @@ PROMPT_FORMAT_DESCRIPTION = (
     "the variation followed by the respective code snippet."
 )
 
+VARIATION_CONSTRAINT_PROMPT = (
+    "Make sure to either use the original view-box or adjust the view-box accordingly. "
+    "Do not add explicit width or height attributes to the <svg> tag. "
+    "Round coordinates to integers if possible. Do not change fonts. "
+    "Make sure to not change the semantics of the original design element (the SVG)."
+)
+
 
 class VariationDescriptionSequence(Enum):
     UI_ELEMENT_STATES = (
@@ -70,7 +77,8 @@ class VariationsPromptBuilder:
         """
         num_variations_text = "" if num_variations is None else f"{num_variations} "
         self._prompt_1_create_variations = f"Create {num_variations_text}variations of the SVG."
-        self._prompt_2_variation_instructions: str | VariationInstructionSnippet = (
+        self._prompt_2_variation_constraints: str = VARIATION_CONSTRAINT_PROMPT
+        self._prompt_3_variation_instructions: str | VariationInstructionSnippet = (
             VariationInstructionSnippet.SHAPES_COLORS_POSITIONS
         )
         self._colors = None
@@ -80,7 +88,7 @@ class VariationsPromptBuilder:
             If no number of variations is specified at construction, it should include specific instructions on which variations to generate.
         :return:
         """
-        self._prompt_2_variation_instructions = instructions
+        self._prompt_3_variation_instructions = instructions
         return self
 
     def with_colors(self, colors: PenpotColors | None) -> Self:
@@ -91,7 +99,8 @@ class VariationsPromptBuilder:
         prompt_text = (
             DesignPromptBuilder(
                 f"{self._prompt_1_create_variations}\n"
-                f"{self._prompt_2_variation_instructions}\n"
+                f"{self._prompt_2_variation_constraints}\n"
+                f"{self._prompt_3_variation_instructions}\n"
                 f"{PROMPT_FORMAT_DESCRIPTION}"
             )
             .with_colors(self._colors)
@@ -262,6 +271,8 @@ class SVGVariationsGenerator:
         prompt += (
             " to make the shapes that are being used explicit (where applicable), "
             "making use of the respective shape tags (rect, circle, ellipse, etc.) whenever possible. "
+            "Ensure that the SVG is as concise as possible, removing any unnecessary attributes. "
+            "Round coordinates to integers if possible. "
             "Be sure to maintain any cutouts that are present in the original SVG by using appropriate masks.\n\n"
             f"```{self.svg.to_string()}```"
         )
