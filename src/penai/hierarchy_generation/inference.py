@@ -96,7 +96,7 @@ class HierarchyInferencer:
         self,
         model: RegisteredLLM = RegisteredLLM.GPT4O,
         validate_hierarchy: bool = True,
-        max_shapes: int = 100,
+        max_shapes: int = 200,
     ) -> None:
         self.model = model
         self.validate_hierarchy = validate_hierarchy
