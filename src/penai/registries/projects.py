@@ -1,8 +1,9 @@
 import logging
 import os
 from dataclasses import dataclass
-from enum import Enum, StrEnum
+from enum import Enum
 from functools import cache
+from typing import Literal
 
 from sensai.util.cache import pickle_cached
 
@@ -20,12 +21,34 @@ log = logging.getLogger(__name__)
 cfg = get_config()
 
 
-class ShapeType(StrEnum):
+class ShapeType(Enum):
     BUTTON = "button"
     ICON = "icon"
     TEXT = "text"
     BUTTON_SIMPLE = "button_simple"
     BUTTON_WITH_ICONS = "button_with_icons"
+
+    def get_default_variation_logic(self) -> str:
+        match self:
+            case ShapeType.BUTTON:
+                return VariationInstructionSnippet.SHAPES_COLORS_POSITIONS
+            case ShapeType.ICON:
+                return VariationInstructionSnippet.SHAPES_COLORS_POSITIONS
+            case ShapeType.TEXT:
+                return VariationInstructionSnippet.SHAPES_COLORS_POSITIONS
+            case _:
+                raise NotImplementedError
+
+    def get_default_revision_logic(self) -> str:
+        match self:
+            case ShapeType.BUTTON:
+                return RevisionInstructionSnippet.MODIFY_SHAPES
+            case ShapeType.ICON:
+                return RevisionInstructionSnippet.MODIFY_SHAPES
+            case ShapeType.TEXT:
+                return RevisionInstructionSnippet.MODIFY_SHAPES
+            case _:
+                raise NotImplementedError
 
 
 @dataclass(kw_only=True)
@@ -36,11 +59,17 @@ class ShapeMetadata:
     overlayed_text: str | None = None
     subtext: str | None = None
     shape_type: ShapeType = ShapeType.ICON
-    variation_logic: str = VariationInstructionSnippet.SHAPES_COLORS_POSITIONS
-    revision_prompt: str = RevisionInstructionSnippet.MODIFY_SHAPES
+    variation_logic: str | Literal["default"] = "default"
+    revision_prompt: str | Literal["default"] = "default"
+
+    def __post_init__(self) -> None:
+        if self.variation_logic == "default":
+            self.variation_logic = self.shape_type.get_default_variation_logic()
+        if self.revision_prompt == "default":
+            self.revision_prompt = self.shape_type.get_default_revision_logic()
 
     def to_semantics_string(self) -> str:
-        result = f"of type '{self.shape_type}' depicting a " + self.description
+        result = f"of type '{self.shape_type.value}' depicting a " + self.description
         if self.overlayed_text:
             result += f" with overlayed text: '{self.overlayed_text}'"
         if self.subtext:
@@ -192,8 +221,7 @@ class ShapeCollection:
         metadata=_MD(
             description="Music library icon",
             subtext="Library",
-            variation_logic="Focus on aesthetics and usability, while staying close to the original design in spirit. "
-            "The variations need to preserve the original meaning, which is a music library icon. ",
+            variation_logic="Focus on aesthetics and usability, while staying close to the original design in spirit. Preserve the overall shapes and colors!",
             revision_prompt="Keep the icon but adjust the background elements while staying close to the original design.",
         ),
     )
