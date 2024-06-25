@@ -1,4 +1,4 @@
-from penai.variations.svg_variations import transform_generated_svg_code
+from penai.variations.svg_variations import ensure_unique_ids_in_svg_code
 
 generated_svg_code = """<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:penpot="https://penpot.app/xmlns" viewBox="1136.0 474.0 72.0 72.0" version="1.1" style="width:100%;height:100%;background:#E8E9EA" fill="none" preserveAspectRatio="xMinYMin meet">
   <defs>
@@ -14,5 +14,5 @@ generated_svg_code = """<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="htt
 
 
 def test_post_process_svg() -> None:
-    processed_svg_code = transform_generated_svg_code(generated_svg_code)
+    processed_svg_code = ensure_unique_ids_in_svg_code(generated_svg_code)
     assert "mask5" not in processed_svg_code
