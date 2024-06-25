@@ -230,7 +230,9 @@ class SVGVariationsGenerator:
         return Path(self.result_writer.result_dir).absolute()
 
     def _create_conversation(self, system_prompt: str | None = None) -> SVGVariationsConversation:
-        return SVGVariationsConversation(verbose=self.verbose, model=self.model)
+        return SVGVariationsConversation(
+            verbose=self.verbose, model=self.model, system_prompt=system_prompt
+        )
 
     def get_svg_refactoring_prompt(self) -> str:
         prompt = ""
