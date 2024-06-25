@@ -5,7 +5,7 @@ from sensai.util import logging
 from termcolor import colored
 from tqdm import tqdm
 
-from penai.config import get_config, pull_from_remote
+from penai.config import get_config, pull_from_remote, top_level_directory
 from penai.llm.llm_model import RegisteredLLM
 from penai.registries.projects import ShapeCollection, ShapeForExperimentation
 from penai.variations.svg_variations import SVGVariationsGenerator
@@ -85,9 +85,12 @@ def print_blue(text: str) -> None:
 
 def main(
     shapes_for_exp: list[ShapeForExperimentation] | None = None,
-    num_variations: int = 5, max_shapes: int | None = None, report_output_dir: str = "reports",
+    num_variations: int = 5,
+    max_shapes: int | None = None,
+    report_output_dir: str = os.path.join(top_level_directory, "reports"),
     llm: RegisteredLLM = RegisteredLLM.GPT4O,
-    force_pull_global_llm_cache: bool = True,
+    force_pull_global_llm_cache: bool = False,
+    include_revisions: bool = False,
 ) -> None:
     logging.configure(level=logging.INFO)
 
@@ -131,10 +134,11 @@ def main(
             f"Creating {num_variations} variations for shape {shape.name} with metadata semantics: {semantics}",
         )
         variations = var_gen.create_variations(num_variations=num_variations, variation_logic=variation_logic)
-        print_green(
-            f"Revising the {num_variations} variations for shape {shape.name} with metadata semantics: {semantics}"
-        )
-        var_gen.revise_variations(variations, revision_prompt=revision_prompt)
+        if include_revisions:
+            print_green(
+                f"Revising the {num_variations} variations for shape {shape.name} with metadata semantics: {semantics}"
+            )
+            var_gen.revise_variations(variations, revision_prompt=revision_prompt)
 
     html_content = generate_html_content(shape_name_to_persistence_dir_and_semantics)
     html_file_path = (
@@ -147,4 +151,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main(shapes_for_exp=None, llm=RegisteredLLM.CLAUDE_3_5_SONNET)
+    main(shapes_for_exp=[ShapeCollection.ma_group_7], llm=RegisteredLLM.CLAUDE_3_5_SONNET)

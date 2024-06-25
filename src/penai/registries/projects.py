@@ -24,6 +24,8 @@ class ShapeType(StrEnum):
     BUTTON = "button"
     ICON = "icon"
     TEXT = "text"
+    BUTTON_SIMPLE = "button_simple"
+    BUTTON_WITH_ICONS = "button_with_icons"
 
 
 @dataclass(kw_only=True)
@@ -186,7 +188,14 @@ class ShapeCollection:
         name="Group-6", metadata=_MD(description="Compass icon", subtext="Explore")
     )
     ma_group_7 = _collection.add_music_app_shape(
-        name="Group-7", metadata=_MD(description="Music library icon", subtext="Music library")
+        name="Group-7",
+        metadata=_MD(
+            description="Music library icon",
+            subtext="Library",
+            variation_logic="Focus on aesthetics and usability, while staying close to the original design in spirit. "
+            "The variations need to preserve the original meaning, which is a music library icon. ",
+            revision_prompt="Keep the icon but adjust the background elements while staying close to the original design.",
+        ),
     )
     ma_btn_primary_1 = _collection.add_music_app_shape(
         name="btn-primary-1",

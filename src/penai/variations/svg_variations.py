@@ -32,12 +32,18 @@ class VariationInstructionSnippet(StrEnum):
     )
 
 
+REVISION_PREPROMPT = (
+    "Now, you are to revise the variations you have created. "
+    "For each variation, consider the following revision instruction: \n"
+)
+
+
 class RevisionInstructionSnippet(StrEnum):
     MODIFY_SHAPES = "Modify these variations such that they all consider shape changes."
 
 
 PROMPT_FORMAT_DESCRIPTION = (
-    "For each variation, create a level 2 heading (markdown prefix `## `) that names"
+    "For each variation, create a level 2 heading (markdown prefix `## `) that names "
     "the variation followed by the respective code snippet."
 )
 
@@ -153,12 +159,15 @@ class SVGVariations:
         return html
 
     def revise(
-        self, prompt: str | RevisionInstructionSnippet = RevisionInstructionSnippet.MODIFY_SHAPES
+        self,
+        revision_logic: str | RevisionInstructionSnippet = RevisionInstructionSnippet.MODIFY_SHAPES,
+        preprompt: str = REVISION_PREPROMPT,
     ) -> "SVGVariations":
         if self.conversation is None:
             raise ValueError("Cannot revise without a conversation")
         conversation = self.conversation.clone()
-        response = conversation.query(prompt)
+        revision_prompt = preprompt + revision_logic
+        response = conversation.query(revision_prompt)
         variations_dict = response.get_variations_dict()
         return SVGVariations(self.original_svg, variations_dict, conversation)
 
