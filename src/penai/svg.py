@@ -7,6 +7,7 @@ from enum import Enum
 from functools import cache
 from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
+import matplotlib.transforms as mpl_transforms
 from lxml import etree
 from pptree import print_tree
 from pydantic import NonNegativeFloat
@@ -14,7 +15,7 @@ from pydantic.dataclasses import dataclass
 from selenium.webdriver.remote.webdriver import WebDriver
 from tqdm import tqdm
 
-from penai import utils
+import penai.utils.misc as utils
 from penai.registries.web_drivers import RegisteredWebDriver, get_web_driver_for_html
 from penai.types import PathLike, RecursiveStrDict
 from penai.utils.dict import apply_func_to_nested_keys
@@ -65,6 +66,22 @@ class BoundingBox:
             height=self.height + 2 * absolute_margin,
         )
 
+    def intersection(self, other: Self) -> "BoundingBox":
+        return BoundingBox(
+            x=min(self.x + self.width, other.x + other.width) - max(self.x, other.x),
+            y=min(self.y + self.height, other.y + other.height) - max(self.y, other.y),
+            width=min(self.x + self.width, other.x + other.width) - max(self.x, other.x),
+            height=min(self.y + self.height, other.y + other.height) - max(self.y, other.y),
+        )
+
+    def union(self, other: Self) -> "BoundingBox":
+        return BoundingBox(
+            x=min(self.x, other.x),
+            y=min(self.y, other.y),
+            width=max(self.x + self.width, other.x + other.width) - min(self.x, other.x),
+            height=max(self.y + self.height, other.y + other.height) - min(self.y, other.y),
+        )
+
     @property
     def aspect_ratio(self) -> NonNegativeFloat:
         return self.width / self.height
@@ -75,6 +92,14 @@ class BoundingBox:
 
     def to_view_box_string(self) -> str:
         return f"{self.x} {self.y} {self.width} {self.height}"
+
+    def to_svg_attribs(self) -> dict[str, str]:
+        return {
+            "x": str(self.x),
+            "y": str(self.y),
+            "width": str(self.width),
+            "height": str(self.height),
+        }
 
     @classmethod
     def from_dom_rect(cls, dom_rect: dict[str, Any]) -> Self:
@@ -95,6 +120,33 @@ class BoundingBox:
         return cls(
             *[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")],
         )
+
+    def intersects(self, other: Self) -> bool:
+        # Check if one rectangle is to the left of the other
+        if self.x + self.width < other.x or other.x + other.width < self.x:
+            return False
+        # Check if one rectangle is above the other
+        if self.y + self.height < other.y or other.y + other.height < self.y:
+            return False
+        return True
+
+    @classmethod
+    def from_corner_points(
+        cls,
+        x0: float,
+        y0: float,
+        x1: float,
+        y1: float,
+    ) -> Self:
+        if x0 > x1:
+            x0, x1 = x1, x0
+        if y0 > y1:
+            y0, y1 = y1, y0
+        return cls(x0, y0, x1 - x0, y1 - y0)
+
+    @classmethod
+    def from_mpl_bbox(cls, bbox: mpl_transforms.Bbox) -> Self:
+        return cls.from_corner_points(bbox.x0, bbox.y0, bbox.x1, bbox.y1)
 
 
 class SVG:
@@ -288,6 +340,9 @@ class SVG:
         style_el = etree.Element("style")
         style_el.text = style
         self.dom.getroot().insert(0, style_el)
+
+    def to_file(self, path: PathLike, pretty: bool = False) -> None:
+        self.dom.write(path, pretty_print=pretty)
 
     def to_string(self, pretty: bool = True, replace_ids_by_short_ids: bool = False) -> str:
         result = etree.tostring(self.dom, pretty_print=pretty).decode()
@@ -625,6 +680,21 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     def depth_in_shapes(self) -> int:
         return self._depth_in_shapes
 
+    def get_shape_height(self) -> int:
+        children = list(self.get_direct_children_shapes())
+
+        if not children:
+            return 0
+
+        return 1 + max(child.get_shape_height() for child in children)
+
+    def iter_children_at_depth(self, depth: int) -> Iterable[Self]:
+        if depth:
+            for child in self.get_direct_children_shapes():
+                yield from child.iter_children_at_depth(depth - 1)
+        else:
+            yield self
+
     @property
     def child_shapes(self) -> list["PenpotShapeElement"]:
         # TODO: this might be slow, and properties shouldn't be slow, but setting at init leads to infinite recursion..
@@ -722,6 +792,10 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         hierarchy_dict = self.get_hierarchy_dict()
         return apply_func_to_nested_keys(hierarchy_dict, lambda k: k.name)
 
+    def remove_clip_paths(self) -> bool:
+        groups = self.get_inner_g_elements()
+        return any(group.attrib.pop("clip-path", None) is not None for group in groups)
+
     def pprint_hierarchy(self, horizontal: bool = True) -> None:
         print_tree(
             self,
@@ -784,7 +858,7 @@ class PenpotPageSVG(SVG):
             self._shape_elements,
             self._depth_to_shape_el,
             self._shape_el_to_depth,
-        ) = find_all_penpot_shapes(self.dom)
+        ) = find_all_penpot_shapes(self.dom, style_supplier=self._style_supplier)
 
     @overload
     def _get_shapes_by_attr(
@@ -864,6 +938,11 @@ class PenpotPageSVG(SVG):
         container_g.getparent().remove(container_g)
 
     def remove_shape(self, shape_id: str) -> None:
+        """Removes a shape (and its sub-shapes) given by its ID from the SVG tree.
+
+        The state of the PenpotPageSVG object is reset after the shape is removed, i.e.
+        the shape elements are re-extracted from the tree.
+        """
         self._remove_shape_from_tree(shape_id)
         self._reset_state()
 
@@ -905,7 +984,7 @@ class PenpotPageSVG(SVG):
 
     def retrieve_and_set_view_boxes_for_shape_elements(
         self,
-        web_driver: WebDriver | RegisteredWebDriver,
+        web_driver: WebDriver | RegisteredWebDriver = RegisteredWebDriver.CHROME,
         selected_shape_elements: Iterable[PenpotShapeElement] | None = None,
         respect_clip_masks: bool = True,
         show_progress: bool = True,
