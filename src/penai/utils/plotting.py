@@ -6,6 +6,7 @@ from PIL import Image
 def plot_image_grid(
     images: list[Image.Image | np.ndarray],
     n_cols: int | None = None,
+    labels: list[str] | None = None,
     figsize_per_image: float = 4,
     show_axis: bool = False,
 ) -> plt.Figure:
@@ -29,6 +30,12 @@ def plot_image_grid(
 
     for ax in axs.flat[len(images) :]:
         ax.axis("off")
+
+    if labels is not None:
+        assert len(labels) == len(images)
+
+        for ax, label in zip(axs.flat[: len(images)], labels, strict=True):
+            ax.set_title(label)
 
     plt.tight_layout()
 

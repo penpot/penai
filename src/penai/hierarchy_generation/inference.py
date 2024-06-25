@@ -96,9 +96,11 @@ class HierarchyInferencer:
         self,
         model: RegisteredLLM = RegisteredLLM.GPT4O,
         validate_hierarchy: bool = True,
+        max_shapes: int = 100,
     ) -> None:
         self.model = model
         self.validate_hierarchy = validate_hierarchy
+        self.max_shapes = max_shapes
 
     def build_prompt(self, visualizations: list[ShapeVisualization]) -> str:
         query = (
@@ -122,6 +124,13 @@ class HierarchyInferencer:
         shape: PenpotShapeElement,
         return_visualizations: bool = False,
     ) -> HierarchyElement | tuple[HierarchyElement, list[ShapeVisualization]]:
+        num_shapes = len(list(shape.get_all_children_shapes())) + 1
+
+        if num_shapes > self.max_shapes:
+            raise ValueError(
+                f"Too many shapes to infer hierarchy: {num_shapes} > {self.max_shapes}"
+            )
+
         visualizer = ShapeVisualizer(RegisteredWebDriver.CHROME)
         visualizations = list(tqdm(visualizer.visualize_bboxes_in_shape(shape)))
 
