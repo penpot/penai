@@ -1,3 +1,9 @@
+from collections.abc import Generator
+from contextlib import contextmanager
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from typing import Any
+
 import sensai.util.io as sensai_io
 
 
@@ -24,3 +30,35 @@ def fn_compatible(name: str) -> str:
     :return: a string that can be used as a filename/directory name
     """
     return name.replace("/", "")
+
+
+@contextmanager
+def temp_file_for_content(
+    content: str | bytes,
+    extension: str,
+    delete: bool = False,
+) -> Generator[Path, Any, Any]:
+    """Create a temporary file for a given file content."""
+    if extension and not extension.startswith("."):
+        raise ValueError("Extension should start with a dot")
+
+    if isinstance(content, str):
+        mode = "w"
+    else:
+        assert isinstance(content, bytes)
+        mode = "wb"
+
+    # Note: (just for the curious, not actually needed to know)
+    # buffering=0 is very important if you want to yield inside
+    # Since we don't use the delete option here (we delete manually below)
+    # we yield outside of this context
+    # The code below is essentially equivalent to `with open()...write`
+    with NamedTemporaryFile(prefix="penai_", suffix=extension, mode=mode, delete=False) as file:
+        file.write(content)
+        file.flush()
+
+        path = Path(file.name)
+    yield path
+
+    if delete:
+        path.unlink()

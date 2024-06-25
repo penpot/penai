@@ -337,6 +337,7 @@ class PenpotFile(BaseStyleSupplier):
 
 @dataclass
 class PenpotProject:
+    name: str
     main_file_id: str
     files: dict[str, PenpotFile]
 
@@ -376,7 +377,7 @@ class PenpotProject:
                 project_dir / str(file_id),
             )
 
-        return cls(files=files, main_file_id=manifest.fileId)
+        return cls(name=project_dir.stem, files=files, main_file_id=manifest.fileId)
 
 
 class PenpotMinimalShapeXML:

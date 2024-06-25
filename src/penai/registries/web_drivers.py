@@ -4,7 +4,7 @@ from enum import Enum
 
 from selenium.webdriver.remote.webdriver import WebDriver
 
-from penai.utils.svg import temp_file_for_content
+from penai.utils.io import temp_file_for_content
 from penai.utils.web_drivers import create_chrome_web_driver
 
 

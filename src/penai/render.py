@@ -1,10 +1,11 @@
 import abc
 import io
 import time
-from collections.abc import Generator
+from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
-from typing import ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
+from typing import Any, ParamSpec, Self, TypedDict, TypeVar, Unpack, cast
 
 import resvg_py
 from PIL import Image
@@ -13,8 +14,24 @@ from selenium.webdriver.remote.webdriver import WebDriver
 
 from penai.svg import SVG, BoundingBox
 from penai.types import PathLike
-from penai.utils.svg import image_from_bytes, temp_file_for_content
+from penai.utils.io import temp_file_for_content
+from penai.utils.svg import image_from_bytes
 from penai.utils.web_drivers import create_chrome_web_driver
+
+
+@dataclass
+class RenderArtifacts:
+    bounding_boxes: dict[str, BoundingBox] | None = None
+
+
+@dataclass
+class RenderResult:
+    def __init__(self, image: Image.Image, **artifacts: dict[str, Any]):
+        self.image = image
+        self.artefacts = RenderArtifacts(**artifacts)
+
+    image: Image.Image
+    artifacts: RenderArtifacts
 
 
 class BaseSVGRenderer(abc.ABC):
@@ -32,7 +49,7 @@ class BaseSVGRenderer(abc.ABC):
         svg_string: str,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         pass
 
     @abc.abstractmethod
@@ -41,7 +58,7 @@ class BaseSVGRenderer(abc.ABC):
         svg: SVG,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         pass
 
     @abc.abstractmethod
@@ -50,7 +67,7 @@ class BaseSVGRenderer(abc.ABC):
         svg_path: PathLike,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         pass
 
     # meant to be overridden if necessary
@@ -69,16 +86,22 @@ class WebDriverSVGRendererParams(TypedDict, total=False):
 class WebDriverSVGRenderer(BaseSVGRenderer):
     SUPPORTS_ALPHA = False
 
-    def __init__(self, webdriver: WebDriver, wait_time: float | None = None):
+    def __init__(
+        self,
+        webdriver: WebDriver,
+        wait_time: float | None = None,
+        infer_bounding_boxes: bool = False,
+    ):
         self.web_driver = webdriver
         self.wait_time = wait_time
+        self.infer_bounding_boxes = infer_bounding_boxes
 
     @classmethod
     @contextmanager
     def create_chrome_renderer(
         cls,
         **kwargs: Unpack[WebDriverSVGRendererParams],
-    ) -> Generator[Self, None, None]:
+    ) -> Iterator[Self]:
         """Instantiate an SVG renderer using a headless Chrome instance."""
         with create_chrome_web_driver() as driver:
             yield cls(driver, **kwargs)
@@ -99,12 +122,30 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         # correspond to a physical pixel in typical desktop environments.
         return f"{dim}px" if dim is not None else "auto"
 
+    def _infer_bounding_boxes(self) -> dict[str, BoundingBox]:
+        bboxes_result = self.web_driver.execute_script(
+            """
+            return Object.fromEntries(
+                Array.from(
+                    document.querySelectorAll('[id]')).map(el => [
+                        el.id, el.getBoundingClientRect()
+                    ]
+                )
+            );
+        """,
+        )
+
+        return {
+            element_id: BoundingBox.from_dom_rect(bbox)
+            for element_id, bbox in bboxes_result.items()
+        }
+
     def _render_svg(
         self,
         svg_path: str,
         width: int | None,
         height: int | None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         self._get(svg_path)
 
         # At this point, the SVG will have been rendered and have the dimensions as specified by
@@ -137,17 +178,24 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
 
         svg_el = self.web_driver.find_element(By.CSS_SELECTOR, "svg")
 
+        artifacts = {}
+
+        if self.infer_bounding_boxes:
+            artifacts["bounding_boxes"] = self._infer_bounding_boxes()
+
         buffer = io.BytesIO(svg_el.screenshot_as_png)
         buffer.seek(0)
 
-        return Image.open(buffer).convert("RGB")
+        image = Image.open(buffer).convert("RGB")
+
+        return RenderResult(image=image, **artifacts)
 
     def render_svg_string(
         self,
         svg_string: str,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         """Render the content of an SVG file to an image.
 
         :param svg_string: The content of the SVG file to render.
@@ -166,7 +214,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         svg: SVG,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         return self.render_svg_string(svg.to_string(), width=width, height=height)
 
     def render_svg_file(
@@ -174,7 +222,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         svg_path: PathLike,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         """Render an SVG file to an image.
 
         :param svg_path: Path to the SVG file to render.
@@ -200,7 +248,7 @@ class ResvgRenderer(BaseSVGRenderer):
         svg_string: str,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         svg = SVG.from_string(svg_string)
 
         if self.inline_linked_images:
@@ -223,14 +271,14 @@ class ResvgRenderer(BaseSVGRenderer):
             ),
         )
 
-        return image_from_bytes(bytes(result))
+        return RenderResult(image=image_from_bytes(bytes(result)))
 
     def render_svg_file(
         self,
         svg_path: PathLike,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         svg_string = Path(svg_path).read_text()
         return self.render_svg_string(svg_string, width=width, height=height)
 
@@ -239,5 +287,5 @@ class ResvgRenderer(BaseSVGRenderer):
         svg: SVG,
         width: int | None = None,
         height: int | None = None,
-    ) -> Image.Image:
+    ) -> RenderResult:
         return self.render_svg_string(svg.to_string(), width=width, height=height)
