@@ -221,7 +221,9 @@ class ShapeCollection:
         metadata=_MD(
             description="Music library icon",
             subtext="Library",
-            variation_logic="Focus on aesthetics and usability, while staying close to the original design in spirit. Preserve the overall shapes and colors!",
+            variation_logic="Focus on aesthetics and usability, while staying close to the original design in spirit. "
+            "Don't change the stroke width."
+            "The variations need to preserve the original meaning, which is a music library icon.",
             revision_prompt="Keep the icon but adjust the background elements while staying close to the original design.",
         ),
     )
