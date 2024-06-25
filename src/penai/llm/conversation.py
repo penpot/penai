@@ -116,13 +116,11 @@ class Conversation(Generic[TResponse]):
         system_prompt: str | None = None,
         require_json: bool = False,
         use_cache: bool = USE_LLM_CACHE_DEFAULT,
-        force_pull_cache_from_remote: bool = True,
     ):
         global _is_cache_enabled
         if use_cache:
             if not _is_cache_enabled:
-                if force_pull_cache_from_remote:
-                    default_remote_storage().pull(cfg.llm_responses_cache_path, force=True)
+                default_remote_storage().pull(cfg.llm_responses_cache_path, force=False)
                 cache = SQLiteCache(database_path=cfg.llm_responses_cache_path)
                 set_llm_cache(cache)
                 _is_cache_enabled = True
