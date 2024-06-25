@@ -198,7 +198,7 @@ class SVGVariationsGenerator:
     def __init__(
         self,
         shape: PenpotShapeElement,
-        semantics: str,
+        semantics: str | None = None,
         verbose: bool = True,
         model: RegisteredLLM = RegisteredLLM.GPT4O,
         persistence_base_dir: PathLike = Path(cfg.results_dir()) / "svg_variations",
@@ -233,13 +233,21 @@ class SVGVariationsGenerator:
         return SVGVariationsConversation(verbose=self.verbose, model=self.model)
 
     def get_svg_refactoring_prompt(self) -> str:
-        return (
-            f"The semantics of the following SVG can be summarized using the term(s) '{self.semantics}'. "
-            "Refactor the SVG to make the shapes that are being used explicit (where applicable), "
+        prompt = ""
+        if self.semantics is not None:
+            prompt += (
+                f"The semantics of the following SVG can be summarized using the term(s) '{self.semantics}'. "
+                "Refactor the SVG"
+            )
+        else:
+            prompt += "Refactor the following SVG"
+        prompt += (
+            " to make the shapes that are being used explicit (where applicable), "
             "making use of the respective shape tags (rect, circle, ellipse, etc.) whenever possible. "
             "Be sure to maintain any cutouts that are present in the original SVG by using appropriate masks.\n\n"
             f"```{self.svg.to_string()}```"
         )
+        return prompt
 
     def create_variations_for_prompt(
         self,
