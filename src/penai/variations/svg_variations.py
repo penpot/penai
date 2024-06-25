@@ -9,7 +9,7 @@ from typing import Self
 from sensai.util.logging import datetime_tag
 
 from penai.config import get_config
-from penai.llm.conversation import Conversation, Response
+from penai.llm.conversation import Conversation, PromptBuilder, Response
 from penai.llm.llm_model import RegisteredLLM
 from penai.models import PenpotColors
 from penai.svg import SVG, PenpotShapeElement
@@ -75,6 +75,7 @@ class VariationsPromptBuilder:
         self._prompt_2_variation_instructions: str | VariationInstructionSnippet = (
             VariationInstructionSnippet.SHAPES_COLORS_POSITIONS
         )
+        self._colors = None
 
     def with_variation_instructions(self, instructions: str | VariationInstructionSnippet) -> Self:
         """:param instructions: instructions on how to generate variations.
@@ -84,11 +85,22 @@ class VariationsPromptBuilder:
         self._prompt_2_variation_instructions = instructions
         return self
 
+    def with_colors(self, colors: PenpotColors | None) -> Self:
+        self._colors = colors
+        return self
+
     def build(self) -> VariationsPrompt:
+        prompt_text = (
+            DesignPromptBuilder(
+                f"{self._prompt_1_create_variations}\n"
+                f"{self._prompt_2_variation_instructions}\n"
+                f"{PROMPT_FORMAT_DESCRIPTION}"
+            )
+            .with_colors(self._colors)
+            .build()
+        )
         return VariationsPrompt(
-            f"{self._prompt_1_create_variations}\n"
-            f"{self._prompt_2_variation_instructions}\n"
-            f"{PROMPT_FORMAT_DESCRIPTION}",
+            prompt_text,
             42,
         )
 
@@ -194,6 +206,24 @@ class SVGVariations:
             )
 
 
+class DesignPromptBuilder(PromptBuilder):
+    def with_colors(self, colors: PenpotColors | None, breaks: int = 2) -> Self:
+        """Adds information on the given colors (if any)."""
+        if colors is None:
+            return self
+        colors = colors.get_colors()
+        if len(colors) > 0:
+            prompt = "The design uses the following colors:\n"
+            for color in colors:
+                prompt += f"{color.name}: {color.color}\n"
+            prompt += (
+                "In the outputs you create, use these colors where applicable "
+                "and make sure that any additional colors fit well with the existing color scheme."
+            )
+            self.with_text(prompt, breaks=breaks)
+        return self
+
+
 class SVGVariationsGenerator:
     def __init__(
         self,
@@ -271,10 +301,12 @@ class SVGVariationsGenerator:
         variation_logic: (
             str | VariationInstructionSnippet
         ) = VariationInstructionSnippet.SHAPES_COLORS_POSITIONS,
+        colors: PenpotColors | None = None,
     ) -> SVGVariations:
         prompt = (
             VariationsPromptBuilder(num_variations)
             .with_variation_instructions(variation_logic)
+            .with_colors(colors)
             .build()
         )
         return self.create_variations_for_prompt(prompt)
@@ -293,29 +325,10 @@ class SVGVariationsGenerator:
         return revised_variations
 
     @classmethod
-    def _create_colors_prompt(cls, penpot_colors: PenpotColors) -> str:
-        colors = penpot_colors.get_colors()
-        prompt = ""
-        if len(colors) > 0:
-            prompt += "The design uses the following colors:\n"
-            for color in colors:
-                prompt += f"{color.name}: {color.color}\n"
-            prompt += (
-                "In the SVGs you create, use these colors where applicable "
-                "and make sure that any additional colors fit well with the existing color scheme."
-            )
-        return prompt
-
-    @classmethod
     def _create_variation_scope_prompt(
         cls, variation_scope: VariationInstructionSnippet | str, colors: PenpotColors | None = None
     ) -> str:
-        prompt = str(variation_scope)
-        if colors is not None:
-            colors_prompt = cls._create_colors_prompt(colors)
-            if colors_prompt != "":
-                prompt += "\n" + colors_prompt
-        return prompt
+        return DesignPromptBuilder(str(variation_scope)).with_colors(colors).build()
 
     def create_variations_sequentially(
         self,
@@ -383,15 +396,15 @@ class SVGVariationsGenerator:
         :return: the variations
         """
         system_prompt = (
-            "You are a design assistant tasked with creating variations of an SVG. "
-            "You will be presented with examples of variations of a UI element, and your task is to apply the same variation "
-            "principles to another UI element. "
-            "In each response you are to return a single variation. "
+            DesignPromptBuilder(
+                "You are a design assistant tasked with creating variations of an SVG. "
+                "You will be presented with examples of variations of a UI element, and your task is to apply the same variation "
+                "principles to another UI element. "
+                "In each response you are to return a single variation. "
+            )
+            .with_colors(colors)
+            .build()
         )
-        if colors:
-            colors_prompt = self._create_colors_prompt(colors)
-            if colors_prompt != "":
-                system_prompt += "\n" + colors_prompt
 
         conversation = self._create_conversation(system_prompt=system_prompt)
 
@@ -420,6 +433,7 @@ class SVGVariationsGenerator:
 
         variations = SVGVariations(self.svg, variations_dict, conversation)
         variations.write_results(self.result_writer)
+        self.result_writer.write_text_file("example_presented.html", example_variations.to_html())
         return variations
 
     def create_variations_from_example(
@@ -437,15 +451,15 @@ class SVGVariationsGenerator:
         :return: the variations
         """
         system_prompt = (
-            "You are a design assistant tasked with creating a variation of an SVG. "
-            "You will be presented with an example, i.e. an original design and a variation thereof. "
-            "Your task is analyze the way in which the variation differs from the original "
-            "and then apply the same mechanisms to another UI element. "
+            DesignPromptBuilder(
+                "You are a design assistant tasked with creating a variation of an SVG. "
+                "You will be presented with an example, i.e. an original design and a variation thereof. "
+                "Your task is analyze the way in which the variation differs from the original "
+                "and then apply the same mechanisms to another UI element. "
+            )
+            .with_colors(colors)
+            .build()
         )
-        if colors:
-            colors_prompt = self._create_colors_prompt(colors)
-            if colors_prompt != "":
-                system_prompt += "\n" + colors_prompt
 
         variations_dict = {}
         for _i, (name, svg_text) in enumerate(example_variations.variations_dict.items()):
@@ -467,4 +481,5 @@ class SVGVariationsGenerator:
 
         variations = SVGVariations(self.svg, variations_dict)
         variations.write_results(self.result_writer)
+        self.result_writer.write_text_file("example_presented.html", example_variations.to_html())
         return variations

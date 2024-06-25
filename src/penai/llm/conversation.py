@@ -205,3 +205,21 @@ class HumanMessageBuilder:
 
     def build(self) -> HumanMessage:
         return HumanMessage(content=self._content)  # type: ignore
+
+
+class PromptBuilder:
+    def __init__(self, initial_prompt: str = ""):
+        self._content = initial_prompt
+
+    def with_text(self, text: str, breaks: int = 0) -> Self:
+        self._content += "\n" * breaks
+        self._content += text
+        return self
+
+    def with_conditional_text(self, condition: bool, text: str) -> Self:
+        if condition:
+            self._content += text
+        return self
+
+    def build(self) -> str:
+        return self._content
