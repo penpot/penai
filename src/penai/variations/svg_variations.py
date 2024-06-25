@@ -7,7 +7,7 @@ from typing import Self
 from sensai.util.logging import datetime_tag
 
 from penai.config import get_config
-from penai.llm.conversation import Conversation, PromptBuilder, Response
+from penai.llm.conversation import CodeSnippet, Conversation, PromptBuilder, Response
 from penai.llm.llm_model import RegisteredLLM
 from penai.models import PenpotColors
 from penai.svg import SVG, PenpotShapeElement
@@ -17,6 +17,10 @@ from penai.utils.io import ResultWriter, fn_compatible
 cfg = get_config()
 
 log = logging.getLogger(__name__)
+
+
+class LLMResponseError(Exception):
+    pass
 
 
 class VariationInstructionSnippet(StrEnum):
@@ -50,6 +54,31 @@ VARIATION_CONSTRAINT_PROMPT = (
     "Do not add explicit width or height attributes to the <svg> tag. "
     "Round coordinates to integers if possible. Do not change fonts. "
     "Make sure to not change the semantics of the original design element (the SVG)."
+)
+
+SVG_REFACTORING_LOGIC_PROMPT = (
+    "The refactoring should not affect the visual appearance of the SVG. This means that the SVG should look exactly the same before and after the refactoring. "
+    "To simplify the SVG structure, follow all of the following instructions!"
+    "When possible, replace paths by compositions that make use of svg shape tags (rect, circle, ellipse, etc.)."
+    "If a path cannot be replaced by shapes, keep it as is and don't attempt to simplify it. "
+    "Ensure that the SVG is concise by removing any unnecessary attributes. "
+    "Remove groups that do not serve a purpose, but keep groups that are useful for separating semantically different elements. "
+    "Don't change any attributes of <text> tags! "
+    "Don't change the position of text elements. "
+    "Make sure to take care of setting fill='none' for shapes that should not be filled."
+    # "Do not merge together paths, unless they can be better represented by shapes as described above."
+    # "Round coordinates to integers if possible. "
+    "Be sure to maintain any cutouts that are present in the original SVG by using appropriate masks.\n\n"
+)
+
+REFACTORING_PROMPT_TWO = (
+    "Now replace paths by compositions that make use of svg shape tags (rect, circle, ellipse, etc.). "
+    "The elements may overlap, but make absolutely sure that the visual appearance of the SVG remains the same. "
+    "If a path can be split into multiple paths (i.e. representing separate, non-overlapping shapes), do so. "
+    "If a path can be reformulated as one overarching path with a hole represented by another path, do so"
+    "by using cutouts and masking. "
+    "Follow these instructions repeatedly until there is nothing left to refactor. "
+    "If none of the above can be done, do nothing and keep it as is. "
 )
 
 
@@ -142,6 +171,7 @@ class SVGVariations:
         self,
         original_svg: SVG,
         variations_dict: dict[str, str],
+        refactored_svg_snippets: list[CodeSnippet] | None = None,
         conversation: SVGVariationsConversation | None = None,
     ):
         """:param original_svg: the original SVG
@@ -149,23 +179,38 @@ class SVGVariations:
         """
         self.variations_dict = variations_dict
         self.original_svg = original_svg
+        self.refactored_svg_snippets = refactored_svg_snippets or []
         self.conversation = conversation
 
     def iter_variations_name_svg(self) -> Iterator[tuple[str, SVG]]:
         for name, svg_text in self.variations_dict.items():
             yield name, SVG.from_string(svg_text)
 
-    def to_html(self, width_style: str = "60%", add_width_height: bool = True) -> str:
+    def to_html(
+        self,
+        width_style: str = "60%",
+        add_width_height: bool = True,
+        scale_to_width: float | None = 400,
+    ) -> str:
         # NOTE: When rendering several inlined SVGs together on an HTML page,
         #       we must ensure that all identifiers are unique.
         html = "<html><body>"
         html += f'<div style="width:{width_style}">'
         html += "<h1>Original</h1>"
-        html += self.original_svg.to_string(unique_ids=True, add_width_height=add_width_height)
+        html += self.original_svg.to_string(
+            unique_ids=True, add_width_height=add_width_height, scale_to_width=scale_to_width
+        )
+        for i, refactored_svg_snippet in enumerate(self.refactored_svg_snippets, 1):
+            html += f"<h1>Refactored: {i}</h1>"
+            html += SVG.from_string(refactored_svg_snippet.code).to_string(
+                unique_ids=True, add_width_height=add_width_height, scale_to_width=scale_to_width
+            )
         html += "<h1>Variations</h1>"
         for name, svg in self.iter_variations_name_svg():
             html += f"<h2>{name}</h2>"
-            html += svg.to_string(unique_ids=True, add_width_height=add_width_height)
+            html += svg.to_string(
+                unique_ids=True, add_width_height=add_width_height, scale_to_width=scale_to_width
+            )
         html += "</div>"
         html += "</body></html>"
         return html
@@ -187,7 +232,8 @@ class SVGVariations:
         if self.conversation is not None:
             result_writer.write_text_file(
                 f"{file_prefix}full_conversation.md",
-                self.conversation.get_full_conversation_string(),
+                "# Full conversation for variations\n"
+                + self.conversation.get_full_conversation_string(),
                 content_description="full conversation",
             )
         result_writer.write_text_file(
@@ -265,31 +311,57 @@ class SVGVariationsGenerator:
         prompt = ""
         if self.semantics is not None:
             prompt += (
-                f"The semantics of the following SVG can be summarized using the term(s) '{self.semantics}'. "
-                "Refactor the SVG"
+                f"The semantics of the following SVG can be summarized using the term(s): {self.semantics.rstrip('.')}. "
+                "Refactor the SVG."
             )
         else:
-            prompt += "Refactor the following SVG"
-        prompt += (
-            " to make the shapes that are being used explicit (where applicable), "
-            "making use of the respective shape tags (rect, circle, ellipse, etc.) whenever possible. "
-            "Ensure that the SVG is as concise as possible, removing any unnecessary attributes. "
-            "Round coordinates to integers if possible. "
-            "Be sure to maintain any cutouts that are present in the original SVG by using appropriate masks.\n\n"
-            f"```{self.svg.to_string()}```"
-        )
+            prompt += "Refactor the following SVG."
+        prompt += f"\n\n{SVG_REFACTORING_LOGIC_PROMPT}"
+        prompt += f"```{self.svg.to_string()}```"
         return prompt
 
     def create_variations_for_instructions(
         self,
         variation_instructions: VariationInstructions,
     ) -> SVGVariations:
-        conversation = self._create_conversation()
-        conversation.query_text(self.get_svg_refactoring_prompt())
+        refactored_snippets = []
+        refactoring_conversation = self._create_conversation()
+        refactoring_response = refactoring_conversation.query(self.get_svg_refactoring_prompt())
+        refactored_snippets += refactoring_response.get_code_snippets()
+        if len(refactored_snippets) != 1:
+            raise LLMResponseError(
+                f"Expected the response to contain exactly one code snippet but got:\n{refactoring_response.text}"
+            )
+        ref2_response = refactoring_conversation.query(REFACTORING_PROMPT_TWO)
+        refactored_snippets += ref2_response.get_code_snippets()
+        self.result_writer.write_text_file(
+            "refactoring_conversation.md",
+            "# Refactoring the SVG \n" + refactoring_conversation.get_full_conversation_string(),
+        )
 
-        variations_response = conversation.query(variation_instructions.text)
+        # Fishing out the last refactored SVG snippet and using it to start a new conversation for variations
+        last_svg_snippet = refactored_snippets[-1].code
+        variations_conversation = self._create_conversation()
+        if self.semantics is not None:
+            semantics_prompt = f"The semantics of the following SVG can be summarized using the term(s): {self.semantics.rstrip('.')}. "
+        else:
+            semantics_prompt = "Below is an SVG that contains a design element."
+
+        variations_conversation.query_text(
+            semantics_prompt
+            + f"```{last_svg_snippet}```. In the following, you are to create variations of this SVG. "
+            f"If not needed for the variation, do not adjust the svg path. "
+            f"You should also not adjust the view-box."
+        )
+        # Now actually create the variations
+        variations_response = variations_conversation.query(variation_instructions.text)
         variations_dict = variations_response.get_variations_dict()
-        variations = SVGVariations(self.svg, variations_dict, conversation)
+        variations = SVGVariations(
+            self.svg,
+            variations_dict,
+            refactored_svg_snippets=refactored_snippets,
+            conversation=variations_conversation,
+        )
 
         variations.write_results(self.result_writer)
         return variations
