@@ -1,4 +1,4 @@
-from penai.variations.svg_variations import ensure_unique_ids_in_svg_code
+from penai.svg import ensure_unique_ids_in_svg_code
 
 generated_svg_code = """<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:penpot="https://penpot.app/xmlns" viewBox="1136.0 474.0 72.0 72.0" version="1.1" style="width:100%;height:100%;background:#E8E9EA" fill="none" preserveAspectRatio="xMinYMin meet">
   <defs>
