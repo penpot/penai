@@ -61,16 +61,18 @@ class VariationDescriptionSequence(Enum):
     )
 
 
-class VariationsPrompt:
+class VariationInstructions:
+    """Represents instructions (text prompt) for the generation of variations."""
+
     def __init__(self, text: str, _private: int):
         if _private != 42:
             raise ValueError(
-                "This class should not be instantiated directly. Use VariationsPromptBuilder instead.",
+                "This class should not be instantiated directly. Use VariationsInstructionsBuilder instead.",
             )
         self.text = text
 
 
-class VariationsPromptBuilder:
+class VariationsInstructionsBuilder:
     def __init__(self, num_variations: int | None):
         """:param num_variations: the number of variations to create; if None, the number is not specified and should be made explicit in
         customized variation instructions
@@ -95,7 +97,7 @@ class VariationsPromptBuilder:
         self._colors = colors
         return self
 
-    def build(self) -> VariationsPrompt:
+    def build(self) -> VariationInstructions:
         prompt_text = (
             DesignPromptBuilder(
                 f"{self._prompt_1_create_variations}\n"
@@ -106,7 +108,7 @@ class VariationsPromptBuilder:
             .with_colors(self._colors)
             .build()
         )
-        return VariationsPrompt(
+        return VariationInstructions(
             prompt_text,
             42,
         )
@@ -278,14 +280,14 @@ class SVGVariationsGenerator:
         )
         return prompt
 
-    def create_variations_for_prompt(
+    def create_variations_for_instructions(
         self,
-        variations_prompt: VariationsPrompt,
+        variation_instructions: VariationInstructions,
     ) -> SVGVariations:
         conversation = self._create_conversation()
         conversation.query_text(self.get_svg_refactoring_prompt())
 
-        variations_response = conversation.query(variations_prompt.text)
+        variations_response = conversation.query(variation_instructions.text)
         variations_dict = variations_response.get_variations_dict()
         variations = SVGVariations(self.svg, variations_dict, conversation)
 
@@ -301,12 +303,12 @@ class SVGVariationsGenerator:
         colors: PenpotColors | None = None,
     ) -> SVGVariations:
         prompt = (
-            VariationsPromptBuilder(num_variations)
+            VariationsInstructionsBuilder(num_variations)
             .with_variation_instructions(variation_logic)
             .with_colors(colors)
             .build()
         )
-        return self.create_variations_for_prompt(prompt)
+        return self.create_variations_for_instructions(prompt)
 
     def revise_variations(
         self,
