@@ -11,6 +11,10 @@ from penai.config import get_config, pull_from_remote
 from penai.models import PenpotPage, PenpotProject
 from penai.registries.web_drivers import RegisteredWebDriver
 from penai.svg import PenpotPageSVG, PenpotShapeElement
+from penai.variations.svg_variations import (
+    RevisionInstructionSnippet,
+    VariationInstructionSnippet,
+)
 
 log = logging.getLogger(__name__)
 cfg = get_config()
@@ -30,6 +34,8 @@ class ShapeMetadata:
     overlayed_text: str | None = None
     subtext: str | None = None
     shape_type: ShapeType = ShapeType.ICON
+    variation_logic: str = VariationInstructionSnippet.SHAPES_COLORS_POSITIONS
+    revision_prompt: str = RevisionInstructionSnippet.MODIFY_SHAPES
 
     def to_semantics_string(self) -> str:
         result = f"of type '{self.shape_type}' depicting a " + self.description
@@ -148,10 +154,7 @@ class ShapeForExperimentation:
         return page_svg.get_shape_by_name(self.name)
 
 
-_PR = SavedPenpotProject
-
-
-class _Collection:
+class _ShapeCollection:
     def __init__(self) -> None:
         self.shapes: list[ShapeForExperimentation] = []
 
@@ -162,16 +165,16 @@ class _Collection:
     def add_music_app_shape(self, name: str, metadata: ShapeMetadata) -> ShapeForExperimentation:
         return self._add(
             ShapeForExperimentation(
-                name="ic_equalizer_48px-1",
-                metadata=_MD(description="Equalizer icon"),
+                name=name,
+                metadata=metadata,
                 page_name="Interactive music app",
-                project=_PR.INTERACTIVE_MUSIC_APP,
+                project=SavedPenpotProject.INTERACTIVE_MUSIC_APP,
             )
         )
 
 
 class ShapeCollection:
-    _collection = _Collection()
+    _collection = _ShapeCollection()
 
     ma_equalizer = _collection.add_music_app_shape(
         name="ic_equalizer_48px-1", metadata=_MD(description="Equalizer icon")

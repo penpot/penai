@@ -10,9 +10,9 @@ import bs4
 import httpx
 import markdown
 from bs4 import BeautifulSoup
-from langchain.cache import SQLiteCache
 from langchain.globals import set_llm_cache
 from langchain.memory import ConversationBufferMemory
+from langchain_community.cache import SQLiteCache
 from langchain_core.messages import HumanMessage, SystemMessage
 from PIL.Image import Image
 
@@ -61,7 +61,16 @@ class Response:
 
     @cached_property
     def html(self) -> str:
-        return markdown.markdown(self.text)
+        def replace_code(m: re.Match) -> str:
+            code = m.group(1)
+            code = re.sub("\n\\s*\n", "\n", code)
+            return "```" + code + "```"
+
+        # TODO: Workaround for limitation in `markdown` library.
+        # The library `markdown` cannot deal with empty lines in code blocks, so we remove them
+        text = re.sub(r"```(.*?)```", replace_code, self.text, flags=re.DOTALL)
+
+        return markdown.markdown(text)
 
     @cached_property
     def soup(self) -> BeautifulSoup:

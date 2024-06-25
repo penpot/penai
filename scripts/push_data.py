@@ -12,11 +12,18 @@ def push_all_data(stage: DataStage = "raw", force: bool = False, include_llm_cac
     :param include_llm_cache: if True, the LLM cache will be pushed as well
     """
     c = get_config()
+    if include_llm_cache:
+        llm_cache_path = c.llm_responses_cache_path
+        if "local" in llm_cache_path:
+            raise ValueError(
+                f"You are trying to push the LOCAL! LLM cache: {llm_cache_path}. "
+                "Aborting. Either specify --include-llm-cache=False or adjust your configuration, "
+                "e.g., by removing the corresponding entry in `config_local.json`."
+            )
+        push_to_remote(llm_cache_path, force=force)
     target_dir = c.data_basedir(stage=stage, check_existence=True)
     print(f"Pushing data for stage {stage} from {target_dir}")
     push_to_remote(c.data_basedir(stage=stage), force=force)
-    if include_llm_cache:
-        push_to_remote(c.llm_responses_cache_path, force=force)
 
 
 if __name__ == "__main__":
