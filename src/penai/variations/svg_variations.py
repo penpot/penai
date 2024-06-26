@@ -222,6 +222,8 @@ class DesignPromptBuilder(PromptBuilder):
 
 
 class SVGVariationsGenerator:
+    FILENAME_VARIATION_TRANSFER_EXAMPLE_PRESENTED = "example_presented.html"
+
     def __init__(
         self,
         shape: PenpotShapeElement,
@@ -432,7 +434,9 @@ class SVGVariationsGenerator:
 
         variations = SVGVariations(self.svg, variations_dict, conversation)
         variations.write_results(self.result_writer)
-        self.result_writer.write_text_file("example_presented.html", example_variations.to_html())
+        self.result_writer.write_text_file(
+            self.FILENAME_VARIATION_TRANSFER_EXAMPLE_PRESENTED, example_variations.to_html()
+        )
         return variations
 
     def create_variations_from_example(
