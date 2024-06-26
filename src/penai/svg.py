@@ -355,7 +355,7 @@ class SVG:
         self,
         pretty: bool = True,
         replace_ids_by_short_ids: bool = False,
-        unique_ids: bool = True,
+        unique_ids: bool = False,
         add_width_height: bool = False,
         scale_to_width: int | None = None,
     ) -> str:
