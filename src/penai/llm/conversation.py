@@ -4,7 +4,7 @@ from collections.abc import Callable
 from copy import copy, deepcopy
 from functools import cached_property
 from io import BytesIO
-from typing import Any, Generic, Self, TypeAlias, TypeVar
+from typing import Any, Generic, Self, TypeAlias, TypeVar, cast
 
 import bs4
 import httpx
@@ -173,9 +173,6 @@ class Conversation(Generic[TResponse]):
         return clone
 
 
-MessageType = TypeVar("MessageType", bound=BaseMessage)
-
-
 class MessageBuilder:
     def __init__(self, text_message: str | None = None):
         self._content: list[dict[str, Any]] = []
@@ -210,17 +207,20 @@ class MessageBuilder:
         self._add_image_from_bytes(image_bytes)
         return self
 
-    def build(self, message_type: MessageType = HumanMessage) -> MessageType:
+    # NOTE: It would be _cleaner_ to use a generic type for the argument and return type here but the typing
+    # system in Python does currently not seem to support TypeVars that are bound to a type that is a subclass
+    # of a specific class.
+    def build(self, message_type: type[BaseMessage] = HumanMessage) -> BaseMessage:
         return message_type(content=self._content)  # type: ignore
 
     def build_system_message(self) -> SystemMessage:
-        return self.build(SystemMessage)
+        return cast(SystemMessage, self.build(SystemMessage))
 
     def build_human_message(self) -> HumanMessage:
-        return self.build(HumanMessage)
+        return cast(HumanMessage, self.build(HumanMessage))
 
     def build_ai_message(self) -> AIMessage:
-        return self.build(AIMessage)
+        return cast(AIMessage, self.build(AIMessage))
 
 
 class PromptBuilder:
