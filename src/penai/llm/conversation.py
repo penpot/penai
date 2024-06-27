@@ -13,15 +13,11 @@ from bs4 import BeautifulSoup
 from langchain.globals import set_llm_cache
 from langchain.memory import ConversationBufferMemory
 from langchain_community.cache import SQLiteCache
-from langchain_core.messages import HumanMessage, SystemMessage
-from PIL.Image import Image
-
-from penai.config import get_config, pull_from_remote
-from penai.llm.llm_model import RegisteredLLM
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from PIL.Image import Image
 
-from penai.config import default_remote_storage
+from penai.config import get_config, pull_from_remote
+from penai.llm.llm_model import RegisteredLLM, RegisteredLLMParams
 
 USE_LLM_CACHE_DEFAULT = True
 cfg = get_config()
@@ -120,6 +116,7 @@ class Conversation(Generic[TResponse]):
         system_prompt: str | None = None,
         require_json: bool = False,
         use_cache: bool = USE_LLM_CACHE_DEFAULT,
+        **model_options: RegisteredLLMParams,
     ):
         global _is_cache_enabled
         if use_cache:
@@ -134,7 +131,7 @@ class Conversation(Generic[TResponse]):
                     "Caching is already enabled. Since caching is enabled globally, it cannot be disabled for this conversation."
                 )
         self.memory = ConversationBufferMemory()
-        self.llm = model.create_model(require_json=require_json)
+        self.llm = model.create_model(**model_options)
         self.verbose = verbose
         self.response_factory = response_factory
         if system_prompt is not None:

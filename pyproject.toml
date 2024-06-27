@@ -45,6 +45,7 @@ tqdm = "^4.66.4"
 transit-python2 = "^0.8.321"
 types-markdown = "^3.6.0.20240316"
 webdriver-manager = "^4.0.1"
+randomname = "^0.2.1"
 
 [tool.poetry.group.dev]
 optional = true

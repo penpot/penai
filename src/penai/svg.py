@@ -6,8 +6,10 @@ from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
 from functools import cache
+from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
-
+import webbrowser
+import randomname
 import matplotlib.transforms as mpl_transforms
 import shortuuid
 from lxml import etree
@@ -73,16 +75,20 @@ class BoundingBox:
         return BoundingBox(
             x=min(self.x + self.width, other.x + other.width) - max(self.x, other.x),
             y=min(self.y + self.height, other.y + other.height) - max(self.y, other.y),
-            width=min(self.x + self.width, other.x + other.width) - max(self.x, other.x),
-            height=min(self.y + self.height, other.y + other.height) - max(self.y, other.y),
+            width=min(self.x + self.width, other.x + other.width)
+            - max(self.x, other.x),
+            height=min(self.y + self.height, other.y + other.height)
+            - max(self.y, other.y),
         )
 
     def union(self, other: Self) -> "BoundingBox":
         return BoundingBox(
             x=min(self.x, other.x),
             y=min(self.y, other.y),
-            width=max(self.x + self.width, other.x + other.width) - min(self.x, other.x),
-            height=max(self.y + self.height, other.y + other.height) - min(self.y, other.y),
+            width=max(self.x + self.width, other.x + other.width)
+            - min(self.x, other.x),
+            height=max(self.y + self.height, other.y + other.height)
+            - min(self.y, other.y),
         )
 
     @property
@@ -407,8 +413,15 @@ class SVG:
 
         return result
 
+    def open_in_browser(self):
+        with NamedTemporaryFile(suffix=".html", delete=False) as f:
+            self.to_file(f.name)
+            webbrowser.open("file://" + f.name)
+
     def with_shortened_ids(self) -> Self:
-        return self.from_string(self.to_string(replace_ids_by_short_ids=True, unique_ids=False))
+        return self.from_string(
+            self.to_string(replace_ids_by_short_ids=True, unique_ids=False)
+        )
 
 
 def get_node_depth(el: etree.ElementBase, root: etree.ElementBase | None = None) -> int:
@@ -481,7 +494,8 @@ def _el_has_visible_content(el: Element) -> bool:
             return False
 
         if not path.getchildren() and (
-            path.get("fill") == "none" or path_style.getPropertyValue("fill") in ["none"]
+            path.get("fill") == "none"
+            or path_style.getPropertyValue("fill") in ["none"]
         ):
             return False
 
@@ -691,12 +705,15 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 if clip_el is None:
                     continue
 
-                assert set(clip_el.keys()) >= {
-                    "x",
-                    "y",
-                    "width",
-                    "height",
-                }, f"Expected clip element to have attributes 'x', 'y', 'width', 'height', but got {clip_el.keys()}"
+                assert (
+                    set(clip_el.keys())
+                    >= {
+                        "x",
+                        "y",
+                        "width",
+                        "height",
+                    }
+                ), f"Expected clip element to have attributes 'x', 'y', 'width', 'height', but got {clip_el.keys()}"
 
                 return BoundingBox.from_clip_rect(clip_el)
 
@@ -768,9 +785,17 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         key = key.value if isinstance(key, PenpotShapeAttr) else key
         return self.attrib[self.get_namespaced_key("penpot", key)]
 
+    def set_penpot_attr(self, key: str | PenpotShapeAttr, value: str) -> None:
+        key = key.value if isinstance(key, PenpotShapeAttr) else key
+        self.attrib[self.get_namespaced_key("penpot", key)] = value
+
     @property
     def name(self) -> str:
         return self.get_penpot_attr(PenpotShapeAttr.NAME)
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self.set_penpot_attr(PenpotShapeAttr.NAME, value)
 
     @property
     def type(self) -> PenpotShapeType:
@@ -807,7 +832,9 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 for child in g_containing_par_shape_candidate:
                     if _el_is_penpot_shape(child):
                         return self.__class__(child)
-            g_containing_par_shape_candidate = g_containing_par_shape_candidate.getparent()
+            g_containing_par_shape_candidate = (
+                g_containing_par_shape_candidate.getparent()
+            )
         return None
 
     def get_all_parent_shapes(self) -> list[Self]:
@@ -942,8 +969,7 @@ class PenpotPageSVG(SVG):
         attr_name: str,
         attr_value: Any,
         should_be_unique: Literal[True],
-    ) -> PenpotShapeElement:
-        ...
+    ) -> PenpotShapeElement: ...
 
     @overload
     def _get_shapes_by_attr(
@@ -951,8 +977,7 @@ class PenpotPageSVG(SVG):
         attr_name: str,
         attr_value: Any,
         should_be_unique: Literal[False] = False,
-    ) -> list[PenpotShapeElement]:
-        ...
+    ) -> list[PenpotShapeElement]: ...
 
     def _get_shapes_by_attr(
         self,
@@ -961,7 +986,9 @@ class PenpotPageSVG(SVG):
         should_be_unique: bool = False,
     ) -> PenpotShapeElement | list[PenpotShapeElement]:
         matched_shapes = [
-            shape for shape in self.penpot_shape_elements if getattr(shape, attr_name) == attr_value
+            shape
+            for shape in self.penpot_shape_elements
+            if getattr(shape, attr_name) == attr_value
         ]
         if not should_be_unique:
             return matched_shapes
@@ -1079,7 +1106,9 @@ class PenpotPageSVG(SVG):
         if selected_shape_elements is None:
             selected_shape_elements = self.penpot_shape_elements
         else:
-            if non_contained_shape_ids := {s.shape_id for s in selected_shape_elements}.difference(
+            if non_contained_shape_ids := {
+                s.shape_id for s in selected_shape_elements
+            }.difference(
                 {s.shape_id for s in self.penpot_shape_elements},
             ):
                 raise ValueError(
@@ -1122,3 +1151,19 @@ def ensure_unique_ids_in_svg_code(svg_code: str) -> str:
         svg_code = svg_code.replace(f"url('#{identifier}')", f"url('#{new_id})'")
         svg_code = svg_code.replace(f'href="#{identifier}"', f'href="#{new_id}"')
     return svg_code
+
+
+def randomize_penpot_shape_names(element: PenpotShapeElement | PenpotPageSVG) -> None:
+    """Randomize the names of all shapes in the given PenpotShapeElement or PenpotPageSVG."""
+    if isinstance(element, PenpotShapeElement):
+        shapes = [element]
+    elif isinstance(element, PenpotPageSVG):
+        shapes = element.get_shape_elements_at_depth(0)
+    else:
+        raise TypeError(f"Unsupported element type: {type(element)}")
+
+    for shape in shapes:
+        shape.name = randomname.get_name()
+
+        for child in shape.get_direct_children_shapes():
+            randomize_penpot_shape_names(child)
