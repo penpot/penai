@@ -816,6 +816,20 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             return []
         return [parent_shape, *parent_shape.get_all_parent_shapes()]
 
+    def get_containing_frame_element(self) -> Self | None:
+        parent_shape = self.get_parent_shape()
+        if parent_shape is None:
+            return None
+        if parent_shape.type == PenpotShapeType.FRAME:
+            return parent_shape
+        return parent_shape.get_containing_frame_element()
+
+    def get_containing_frame_elements(self) -> list[Self]:
+        parent_frame = self.get_containing_frame_element()
+        if parent_frame is None:
+            return []
+        return [parent_frame, *parent_frame.get_containing_frame_elements()]
+
     def get_containing_g_element(self) -> BetterElement:
         """Get the parent <g> element to which this shape corresponds; child shapes will be children of it.
 
