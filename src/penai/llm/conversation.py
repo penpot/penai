@@ -18,6 +18,10 @@ from PIL.Image import Image
 
 from penai.config import get_config, pull_from_remote
 from penai.llm.llm_model import RegisteredLLM
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from PIL.Image import Image
+
+from penai.config import default_remote_storage
 
 USE_LLM_CACHE_DEFAULT = True
 cfg = get_config()
@@ -169,7 +173,10 @@ class Conversation(Generic[TResponse]):
         return clone
 
 
-class HumanMessageBuilder:
+MessageType = TypeVar("MessageType", bound=BaseMessage)
+
+
+class MessageBuilder:
     def __init__(self, text_message: str | None = None):
         self._content: list[dict[str, Any]] = []
         if text_message is not None:
@@ -203,8 +210,17 @@ class HumanMessageBuilder:
         self._add_image_from_bytes(image_bytes)
         return self
 
-    def build(self) -> HumanMessage:
-        return HumanMessage(content=self._content)  # type: ignore
+    def build(self, message_type: MessageType = HumanMessage) -> MessageType:
+        return message_type(content=self._content)  # type: ignore
+
+    def build_system_message(self) -> SystemMessage:
+        return self.build(SystemMessage)
+
+    def build_human_message(self) -> HumanMessage:
+        return self.build(HumanMessage)
+
+    def build_ai_message(self) -> AIMessage:
+        return self.build(AIMessage)
 
 
 class PromptBuilder:

@@ -111,7 +111,7 @@ class HierarchyInferencer:
             # "The hierarchy and description should be precise enough so that a blind person can figure out the design.\n"
         )
 
-        message = HumanMessageBuilder()
+        message = MessageBuilder()
         message.with_text_message(self.prompt_template.format(query=query))
 
         for visualization in visualizations:
