@@ -355,7 +355,7 @@ class SVG:
         self,
         pretty: bool = True,
         replace_ids_by_short_ids: bool = False,
-        unique_ids: bool = True,
+        unique_ids: bool = False,
         add_width_height: bool = False,
         scale_to_width: int | None = None,
     ) -> str:
@@ -370,6 +370,9 @@ class SVG:
             to the given width.
         :return: string representation of the entire <svg> element
         """
+        if unique_ids and replace_ids_by_short_ids:
+            raise ValueError("Cannot set both unique_ids and replace_ids_by_short_ids to True.")
+
         dom = self.dom
 
         if add_width_height:
@@ -1102,7 +1105,7 @@ def ensure_unique_ids_in_svg_code(svg_code: str) -> str:
     """
     ids = re.findall(r'id="(.*?)"', svg_code)
     for identifier in ids:
-        new_id = shortuuid.uuid()
+        new_id = f"{identifier}_{shortuuid.uuid()}"
         svg_code = svg_code.replace(f'id="{identifier}"', f'id="{new_id}"')
         svg_code = svg_code.replace(f"url(#{identifier})", f"url(#{new_id})")
         svg_code = svg_code.replace(f"url('#{identifier}')", f"url('#{new_id})'")
