@@ -213,7 +213,7 @@ class ShapeCollection:
     ma_group_5_home = _collection.add_music_app_shape(
         name="Group-5", metadata=_MD(description="Home icon", subtext="Home")
     )
-    ma_group_6 = _collection.add_music_app_shape(
+    ma_group_6_compass = _collection.add_music_app_shape(
         name="Group-6", metadata=_MD(description="Compass icon", subtext="Explore")
     )
     ma_group_7_music_library = _collection.add_music_app_shape(
