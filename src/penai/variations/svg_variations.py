@@ -233,15 +233,35 @@ class SVGVariations:
         original_svg: SVG,
         variations_dict: dict[str, str],
         refactored_svg_snippets: list[CodeSnippet] | None = None,
-        conversation: SVGVariationsConversation | None = None,
+        conversation: SVGVariationsConversation | list[SVGVariationsConversation] | None = None,
     ):
         """:param original_svg: the original SVG
         :param variations_dict: a mapping from variation name to SVG code
         """
         self.variations_dict = variations_dict
         self.original_svg = original_svg
+        if conversation is None:
+            conversation = []
+        elif isinstance(conversation, SVGVariationsConversation):
+            conversation = [conversation]
+        self._conversations = conversation
         self.refactored_svg_snippets = refactored_svg_snippets or []
-        self.conversation = conversation
+
+
+    @property
+    def conversation(self) -> SVGVariationsConversation | None:
+        """Returns the main conversation (if there is only one).
+
+        :return: the main conversation
+        """
+        if len(self._conversations) == 1:
+            return self._conversations[0]
+        else:
+            return None
+
+    def conversations(self) -> list[SVGVariationsConversation]:
+        """:return: the list of all conversations (may be empty)"""
+        return self._conversations
 
     def iter_variations_name_svg(self) -> Iterator[tuple[str, SVG]]:
         for name, svg_text in self.variations_dict.items():
@@ -282,7 +302,7 @@ class SVGVariations:
         preprompt: str = REVISION_PREPROMPT,
     ) -> "SVGVariations":
         if self.conversation is None:
-            raise ValueError("Cannot revise without a conversation")
+            raise ValueError("Cannot revise without a (single main) conversation")
         conversation = self.conversation.clone()
         revision_prompt = preprompt + revision_logic
         response = conversation.query(revision_prompt)
@@ -297,6 +317,13 @@ class SVGVariations:
                 + self.conversation.get_full_conversation_string(),
                 content_description="full conversation",
             )
+        elif len(self._conversations) > 1:
+            for i, conversation in enumerate(self._conversations, start=1):
+                result_writer.write_text_file(
+                    f"{file_prefix}conversation_{i}.md",
+                    conversation.get_full_conversation_string(),
+                    content_description=f"conversation {i}",
+                )
         result_writer.write_text_file(
             f"{file_prefix}variations.html",
             self.to_html(),
@@ -329,6 +356,8 @@ class DesignPromptBuilder(PromptBuilder):
 
 
 class SVGVariationsGenerator:
+    FILENAME_VARIATION_TRANSFER_EXAMPLE_PRESENTED = "example_presented.html"
+
     def __init__(
         self,
         shape: PenpotShapeElement,
@@ -614,7 +643,9 @@ class SVGVariationsGenerator:
 
         variations = SVGVariations(self.svg, variations_dict, conversation=conversation)
         variations.write_results(self.result_writer)
-        self.result_writer.write_text_file("example_presented.html", example_variations.to_html())
+        self.result_writer.write_text_file(
+            self.FILENAME_VARIATION_TRANSFER_EXAMPLE_PRESENTED, example_variations.to_html()
+        )
         return variations
 
     def create_variations_from_example(
@@ -643,6 +674,7 @@ class SVGVariationsGenerator:
         )
 
         variations_dict = {}
+        conversations = []
         for _i, (name, svg_text) in enumerate(example_variations.variations_dict.items()):
             conversation = self._create_refactoring_conversation(system_prompt=system_prompt)
             prompt = (
@@ -659,8 +691,9 @@ class SVGVariationsGenerator:
             if len(code_snippets) > 1:
                 log.warning("Received more than one code snippet in response; using the first one")
             variations_dict[name] = code_snippets[0].code
+            conversations.append(conversation)
 
-        variations = SVGVariations(self.svg, variations_dict)
+        variations = SVGVariations(self.svg, variations_dict, conversations)
         variations.write_results(self.result_writer)
         self.result_writer.write_text_file("example_presented.html", example_variations.to_html())
         return variations

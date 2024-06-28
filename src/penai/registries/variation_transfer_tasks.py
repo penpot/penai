@@ -91,12 +91,10 @@ class VariationTransferTasks(StaticCollection):
             ShapeReferences.gv_button_danger,
         ],
     )
-    gv_textarea = VariationTransferTask(
-        ShapeVariationTemplates.gv_button_hover,
+    gv_input_field = VariationTransferTask(
+        ShapeVariationTemplates.gv_input_field,
         [
-            ShapeReferences.gv_button_plus_icon,
-            ShapeReferences.gv_button_icon,
-            ShapeReferences.gv_button_danger,
+            ShapeReferences.gv_textarea_rest,
         ],
     )
 

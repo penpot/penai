@@ -100,7 +100,7 @@ def get_config(reload: bool = False) -> __Configuration:
 __remote_storage_instance = None
 
 
-def default_remote_storage() -> RemoteStorage:
+def _default_remote_storage() -> RemoteStorage:
     """Returns the default remote storage instance. It is created lazily."""
     global __remote_storage_instance
     if __remote_storage_instance is None:
@@ -116,7 +116,7 @@ def pull_from_remote(
     dryrun: bool = False,
 ) -> TransactionSummary:
     """Pulls from the remote storage using the default storage config."""
-    return default_remote_storage().pull(
+    return _default_remote_storage().pull(
         remote_path=remote_path,
         local_base_dir=top_level_directory,
         force=force,
@@ -134,7 +134,7 @@ def push_to_remote(
     dryrun: bool = False,
 ) -> TransactionSummary:
     """Pushes to the remote storage using the default storage config."""
-    return default_remote_storage().push(
+    return _default_remote_storage().push(
         path=local_path,
         local_path_prefix=top_level_directory,
         include_regex=include_regex,

@@ -1,3 +1,4 @@
+import re
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
@@ -29,7 +30,9 @@ def fn_compatible(name: str) -> str:
     :param name: the name
     :return: a string that can be used as a filename/directory name
     """
-    return name.replace("/", "")
+    name = name.replace("/", "")
+    name = re.sub(r"\s+", " ", name)
+    return name
 
 
 @contextmanager

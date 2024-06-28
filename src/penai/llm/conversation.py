@@ -16,7 +16,7 @@ from langchain_community.cache import SQLiteCache
 from langchain_core.messages import HumanMessage, SystemMessage
 from PIL.Image import Image
 
-from penai.config import default_remote_storage, get_config
+from penai.config import get_config, pull_from_remote
 from penai.llm.llm_model import RegisteredLLM
 
 USE_LLM_CACHE_DEFAULT = True
@@ -120,7 +120,7 @@ class Conversation(Generic[TResponse]):
         global _is_cache_enabled
         if use_cache:
             if not _is_cache_enabled:
-                default_remote_storage().pull(cfg.llm_responses_cache_path, force=False)
+                pull_from_remote(cfg.llm_responses_cache_path, force=False)
                 cache = SQLiteCache(database_path=cfg.llm_responses_cache_path)
                 set_llm_cache(cache)
                 _is_cache_enabled = True
