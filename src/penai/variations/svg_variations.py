@@ -247,7 +247,6 @@ class SVGVariations:
         self._conversations = conversation
         self.refactored_svg_snippets = refactored_svg_snippets or []
 
-
     @property
     def conversation(self) -> SVGVariationsConversation | None:
         """Returns the main conversation (if there is only one).
