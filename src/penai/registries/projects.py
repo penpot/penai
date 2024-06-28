@@ -210,13 +210,13 @@ class ShapeCollection:
     ma_equalizer = _collection.add_music_app_shape(
         name="ic_equalizer_48px-1", metadata=_MD(description="Equalizer icon")
     )
-    ma_group_5 = _collection.add_music_app_shape(
+    ma_group_5_home = _collection.add_music_app_shape(
         name="Group-5", metadata=_MD(description="Home icon", subtext="Home")
     )
     ma_group_6 = _collection.add_music_app_shape(
         name="Group-6", metadata=_MD(description="Compass icon", subtext="Explore")
     )
-    ma_group_7 = _collection.add_music_app_shape(
+    ma_group_7_music_library = _collection.add_music_app_shape(
         name="Group-7",
         metadata=_MD(
             description="Music library icon",
@@ -225,7 +225,7 @@ class ShapeCollection:
             revision_prompt="Keep the icon but adjust the background elements while staying close to the original design.",
         ),
     )
-    ma_btn_primary_1 = _collection.add_music_app_shape(
+    ma_btn_primary_1_play = _collection.add_music_app_shape(
         name="btn-primary-1",
         metadata=_MD(
             description="Play button",
@@ -233,7 +233,7 @@ class ShapeCollection:
             overlayed_text="Play",
         ),
     )
-    ma_btn_secondary = _collection.add_music_app_shape(
+    ma_btn_secondary_shuffle = _collection.add_music_app_shape(
         name="btn-secondary",
         metadata=_MD(
             description="Shuffle button",
@@ -241,7 +241,7 @@ class ShapeCollection:
             overlayed_text="Shuffle",
         ),
     )
-    ma_icsupervisor_account_48px = _collection.add_music_app_shape(
+    ma_icsupervisor_account_48px_user_icon = _collection.add_music_app_shape(
         "ic_supervisor_account_48px", metadata=_MD(description="User icon")
     )
 
