@@ -158,6 +158,7 @@ def main(
 
 if __name__ == "__main__":
     main(
-        [ShapeCollection.ma_group_6_compass],
-        num_variations=3, num_refactoring_steps=2
+        # [ShapeCollection.ma_group_6_compass, ShapeCollection.ma_equalizer, ShapeCollection.ma_group_7_music_library],
+        num_variations=5, num_refactoring_steps=3,
+        include_revisions=False,
     )

@@ -214,7 +214,14 @@ class ShapeCollection:
         name="Group-5", metadata=_MD(description="Home icon", subtext="Home")
     )
     ma_group_6_compass = _collection.add_music_app_shape(
-        name="Group-6", metadata=_MD(description="Compass icon", subtext="Explore")
+        name="Group-6",
+        metadata=_MD(
+            description="Compass icon",
+            subtext="Explore",
+            variation_logic="Make the element that depicts the compass needle point north but don't adjust its overall form. "
+            "Make sure that the compass center remains in the middle of the needle."
+            "Also adjust the outer form of the compass and play around with needle and inner circle colors. ",
+        ),
     )
     ma_group_7_music_library = _collection.add_music_app_shape(
         name="Group-7",

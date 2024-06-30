@@ -44,6 +44,15 @@ REVISION_PREPROMPT = (
 
 class RevisionInstructionSnippet(StrEnum):
     MODIFY_SHAPES = "Modify these variations such that they all consider shape changes."
+    MERGE_PATHS = (
+        "Now merge all paths into one if possible while maintaining visual appearance. "
+        "Otherwise, just return the svg as is. "
+        "Make sure to maintain all symmetries and "
+        "keep the right order of the paths such that smaller shapes are enclosed in larger ones. "
+        "Give a suitable semantic id to the resulting path. "
+    )
+    """This revision prompt was an experiment to make filling of split-up path behave well. For now, it was superseded
+    by using a better refactoring prompt. Leaving it here for reference, might come back to it."""
 
 
 PROMPT_FORMAT_DESCRIPTION = (
@@ -56,7 +65,8 @@ VARIATION_CONSTRAINT_PROMPT = (
     "Do not add explicit width or height attributes to the <svg> tag. "
     "Round coordinates to integers if possible. Do not change fonts. "
     "Make sure to not change the semantics of the original design element (the SVG)."
-    "Do not modify complex shapes defined by complicated paths."
+    "Do not modify complex shapes defined by complicated paths "
+    "unless specifically instructed to do so."
 )
 
 SVG_REFACTORING_INITIAL_LOGIC = (
@@ -67,6 +77,7 @@ SVG_REFACTORING_INITIAL_LOGIC = (
     # "If a path cannot be replaced by shapes, keep it as is and don't attempt to simplify it. "
     "-) First identify the background color - it could be declared as fill or as style='background:...' in the <svg> tag. \n"
     "-) Remove any unnecessary groups that do not serve a purpose and have no attributes. "
+    # "-) Remove any invisible elements, such as elements with opacity 0 or those that merge with the background. \n"
     # "-) Remove groups that do not serve a purpose and have no attributes, but keep other groups intact, e.g. those useful for separating semantically different elements.\n"
     "-) Consolidate attributes defined through 'style:...` and directly in the tag. For example, instead of "
     '\'style: "opacity:0.5;..."\' you should write `opacity:"0.5" and so on. \n'
@@ -99,7 +110,10 @@ SVG_REFACTORING_REFINEMENT_LOGIC = (
     "Make the shapes that are being expressed as paths explicit (where applicable) by "
     "making use of the respective shape tags (rect, circle, ellipse, etc.) whenever possible.\n"
     "Maintain any cutouts that are present in the original SVG by using appropriate masks and fills.\n"
-    "Make sure that all tags are in the correct and that the visual appearance remains "
+    "If shapes cannot be made explicit, keep them as paths but split paths separated by ZZZZ up, and fill enclosed shapes correctly "
+    "(by using the overall background color or the prior element's color).\n"
+    "Give any newly created tags appropriate names and IDs.\n"
+    "Make sure that all tags are in the correct order and that the visual appearance remains "
     "the same as before.\n"
     # "Your answer should only be the refactored SVG and nothing else.\n"
     # "Make sure to take care of setting fill='none' for shape tags that should not be filled.\n"
@@ -107,13 +121,23 @@ SVG_REFACTORING_REFINEMENT_LOGIC = (
     # "If none of the above can be done, do nothing and keep it as is. "
 )
 
-SVG_REFACTORING_COMPARISON_LOGIC = (
-    "Compare the following reference SVG with the refactored SVG. "
-    "Your answer should end with a potentially corrected version of the refactored SVG inside a '```svg` code tag.\n"
-    "If the refactored SVG is visually equivalent, "
-    "even if it is structurally different, respond with the refactored one."
-    "If the refactored SVG does not look exactly the same as the original SVG,"
-    "and only in that case, respond with the reference one. "
+SVG_REFACTORING_FINAL_COMPARISON_LOGIC = (
+    "Have a final look at the refactored SVG and compare it to the original given at the very beginning. "
+    "Can any paths be simplified? If yes, simplify them. "
+    "Is the order of the tags correct? Remember that contained (smaller) "
+    "paths should come after the containing (larger) paths that enclose them. "
+    "Paths contained within a larger path should not have the same color as the containing one, otherwise they are invisible. "
+    # "This does not hold for non-overlapping or partially overlapping paths though. "
+    "You will have to identify which paths are contained within each other to determine the correct fills. "
+    "You should also not adjust stroke related attributes. "
+    "Are any remaining paths equivalent to simple shapes? "
+    "If yes, simplify them, in replacing all circles by <circle>, all rectangles by <rect>, etc. "
+    "Otherwise, keep the paths as they are. "
+    "If any elements after the refactoring are not needed or invisible, remove them. "
+    "Your answer should contain an analysis of which elements are contained within each other, "
+    "how this influences the logic of fills (see above), "
+    "as well as an analysis of which paths are equivalent to simple shapes. "
+    "Finally, your response should contain the final version of the refactored SVG."
 )
 
 
@@ -135,11 +159,11 @@ def get_initial_refactoring_prompt(svg_str: str, semantics: str | None = None) -
 def get_refactoring_comparison_prompt(svg_str_reference: str, svg_str_refactored: str) -> str:
     """Generates a prompt for comparing a reference SVG with the refactored SVG."""
     return (
-        f"{SVG_REFACTORING_COMPARISON_LOGIC}\n"
-        "Here is the reference SVG:\n"
-        f"```{svg_str_reference}```\n"
-        "Here is the refactored SVG:\n"
-        f"```{svg_str_refactored}```\n"
+        f"{SVG_REFACTORING_FINAL_COMPARISON_LOGIC}\n"
+        # "Here is the reference SVG:\n"
+        # f"```{svg_str_reference}```\n"
+        # "Here is the refactored SVG:\n"
+        # f"```{svg_str_refactored}```\n"
     )
 
 
