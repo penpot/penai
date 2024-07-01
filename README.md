@@ -31,11 +31,14 @@ docker build -t penai .
 and run it with the repository mounted as a volume:
 
 ```shell
-docker run -it --rm -v "$(pwd)":/workspaces penai
+docker run -it --rm -v "$(pwd)":/workspaces/penai penai
 ```
 
 You can also just run `bash docker_build_and_run.sh`, which will do both things
 for you.
+
+To make a quick check if everything is working , you can run the `pytest` 
+command from the container.
 
 Note: for the WSL subsystem on Windows you might need to adjust the path for the
 volume.

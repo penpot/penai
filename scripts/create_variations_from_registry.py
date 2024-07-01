@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Literal
 
 from sensai.util import logging
 from termcolor import colored
@@ -88,9 +89,11 @@ def main(
     num_variations: int = 5,
     max_shapes: int | None = None,
     report_output_dir: str = os.path.join(top_level_directory, "reports"),
-    llm: RegisteredLLM = RegisteredLLM.GPT4O,
+    refactoring_llm: RegisteredLLM = RegisteredLLM.CLAUDE_3_5_SONNET,
+    variations_llm: RegisteredLLM = RegisteredLLM.CLAUDE_3_5_SONNET,
     force_pull_global_llm_cache: bool = False,
     include_revisions: bool = False,
+    num_refactoring_steps: Literal[0, 1, 2, 3] = 2,
 ) -> None:
     logging.configure(level=logging.INFO)
 
@@ -124,7 +127,10 @@ def main(
         variation_logic = metadata.variation_logic
         revision_prompt = metadata.revision_prompt
 
-        var_gen = SVGVariationsGenerator(shape=shape, semantics=semantics, model=llm)
+        var_gen = SVGVariationsGenerator(
+            shape=shape, semantics=semantics, svg_refactoring_model=refactoring_llm,
+            svg_variations_model=variations_llm, num_refactoring_steps=num_refactoring_steps
+        )
         shape_name_to_persistence_dir_and_semantics[shape.name] = (
             var_gen.persistence_dir,
             semantics,
@@ -151,4 +157,8 @@ def main(
 
 
 if __name__ == "__main__":
-    main(shapes_for_exp=[ShapeCollection.ma_group_7], llm=RegisteredLLM.CLAUDE_3_5_SONNET)
+    main(
+        # [ShapeCollection.ma_group_6_compass, ShapeCollection.ma_equalizer, ShapeCollection.ma_group_7_music_library],
+        num_variations=5, num_refactoring_steps=3,
+        include_revisions=False,
+    )
