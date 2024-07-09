@@ -33,6 +33,9 @@ def create_chrome_web_driver(headless: bool = True) -> Generator[WebDriver, Any,
         # Allow CORS for file://
         chrome_options.add_argument("--allow-file-access-from-files")
 
+        # Allows to start Chrome in a container as root
+        chrome_options.add_argument("--no-sandbox")
+
         try:
             driver = webdriver.Chrome(
                 service=ChromeService(ChromeDriverManager().install()),

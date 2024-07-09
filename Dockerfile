@@ -5,12 +5,31 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED 1
 ENV PYTHONDONTWRITEBYTECODE 1
 
-# Install system dependencies required for pipx and Poetry.
+# Install system dependencies required for the project.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
     git \
+    wget \
+    unzip \
+    libvips-dev \
+    gnupg2 \
     && rm -rf /var/lib/apt/lists/*
+
+# install google chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN CHROME_VERSION=$(google-chrome-stable --version | awk '{print $3}') && \
+    echo "Chrome version: ${CHROME_VERSION}" && \
+    wget https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chromedriver-linux64.zip && \
+    unzip chromedriver-linux64.zip && \
+    mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver && \
+    chmod +x /usr/local/bin/chromedriver
+
 
 # Install pipx.
 RUN python3 -m pip install --no-cache-dir pipx \

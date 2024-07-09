@@ -210,24 +210,29 @@ class ShapeCollection:
     ma_equalizer = _collection.add_music_app_shape(
         name="ic_equalizer_48px-1", metadata=_MD(description="Equalizer icon")
     )
-    ma_group_5 = _collection.add_music_app_shape(
+    ma_group_5_home = _collection.add_music_app_shape(
         name="Group-5", metadata=_MD(description="Home icon", subtext="Home")
     )
-    ma_group_6 = _collection.add_music_app_shape(
-        name="Group-6", metadata=_MD(description="Compass icon", subtext="Explore")
+    ma_group_6_compass = _collection.add_music_app_shape(
+        name="Group-6",
+        metadata=_MD(
+            description="Compass icon",
+            subtext="Explore",
+            variation_logic="Make the element that depicts the compass needle point north but don't adjust its overall form. "
+            "Make sure that the compass center remains in the middle of the needle."
+            "Also adjust the outer form of the compass and play around with needle and inner circle colors. ",
+        ),
     )
-    ma_group_7 = _collection.add_music_app_shape(
+    ma_group_7_music_library = _collection.add_music_app_shape(
         name="Group-7",
         metadata=_MD(
             description="Music library icon",
             subtext="Library",
-            variation_logic="Focus on aesthetics and usability, while staying close to the original design in spirit. "
-            "Don't change the stroke width."
-            "The variations need to preserve the original meaning, which is a music library icon.",
+            variation_logic="Adjust the form of background elements while keeping the icon.",
             revision_prompt="Keep the icon but adjust the background elements while staying close to the original design.",
         ),
     )
-    ma_btn_primary_1 = _collection.add_music_app_shape(
+    ma_btn_primary_1_play = _collection.add_music_app_shape(
         name="btn-primary-1",
         metadata=_MD(
             description="Play button",
@@ -235,7 +240,7 @@ class ShapeCollection:
             overlayed_text="Play",
         ),
     )
-    ma_btn_secondary = _collection.add_music_app_shape(
+    ma_btn_secondary_shuffle = _collection.add_music_app_shape(
         name="btn-secondary",
         metadata=_MD(
             description="Shuffle button",
@@ -243,7 +248,7 @@ class ShapeCollection:
             overlayed_text="Shuffle",
         ),
     )
-    ma_icsupervisor_account_48px = _collection.add_music_app_shape(
+    ma_icsupervisor_account_48px_user_icon = _collection.add_music_app_shape(
         "ic_supervisor_account_48px", metadata=_MD(description="User icon")
     )
 
