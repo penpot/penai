@@ -386,20 +386,28 @@ class SVGVariationsGenerator:
         shape: PenpotShapeElement,
         semantics: str | None = None,
         verbose: bool = True,
-        svg_refactoring_model: RegisteredLLM = RegisteredLLM.GPT4O,
-        svg_variations_model: RegisteredLLM = RegisteredLLM.CLAUDE_3_5_SONNET,
+        model: RegisteredLLM = RegisteredLLM.CLAUDE_3_5_SONNET,
+        svg_refactoring_model: RegisteredLLM | None = None,
+        svg_variations_model: RegisteredLLM | None = None,
         persistence_base_dir: PathLike = Path(cfg.results_dir()) / "svg_variations",
         persistence_enabled: bool = True,
         num_refactoring_steps: Literal[0, 1, 2, 3] = 1,
     ):
-        """:param shape:
-        :param semantics:
-        :param verbose:
-        :param svg_refactoring_model:
+        """:param shape: the shape for which to variations shall be created
+        :param semantics: the semantics of the shape; depending on the task, this may be helpful
+        :param verbose: whether to print additional information (e.g. LLM responses)
+        :param model: the model to use by default for all subtasks
+        :param svg_refactoring_model: if not None, use this model for refactoring tasks
+        :param svg_variations_model: if not None, use this model for the main task of SVG variation generation
         :param persistence_base_dir: the base directory for persistence, to which subdirectories indicating the shape name
             and (optionally, if `persistence_add_timestamp` is enabled) the current time will be added
         :param persistence_enabled: whether to save the responses to disk
         """
+        if svg_refactoring_model is None:
+            svg_refactoring_model = model
+        if svg_variations_model is None:
+            svg_variations_model = model
+
         self.semantics = semantics
 
         # create simplified SVG (without the bloat)
