@@ -151,4 +151,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main(shapes_for_exp=[ShapeCollection.ma_group_7], llm=RegisteredLLM.CLAUDE_3_5_SONNET)
+    main(shapes_for_exp=None, llm=RegisteredLLM.CLAUDE_3_5_SONNET)
