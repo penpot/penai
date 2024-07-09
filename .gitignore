@@ -152,3 +152,4 @@ scripts/gfonts.*
 
 # generated files
 /results
+google-fonts.sqlite
