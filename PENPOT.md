@@ -1,6 +1,6 @@
 # Penpot
 
-This is a briefly description of page and shape attributes. It is based on the type definitions found in `common/src/app/common/types` folder.
+This is a brief description of page and shape attributes. It is based on the type definitions found in `common/src/app/common/types` folder.
 
 ## Pages
 
