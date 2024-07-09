@@ -33,7 +33,19 @@ graphics and is therefore the model of choice for most our use cases.
 
 ### Generating Variations of Vector Shapes
 
+As an inspirational starting point, we consider the problem of generating variations of a given shape.
+
 ![shape variations](resources/images/use_case_variations.png)
+
+In order to facilitate the generation of variations, it can be very helpful to refactor the original
+SVG representation in order to make shapes and cutouts more explicit, avoiding less explicit SVG path
+representations whenever possible.
+
+Furthermore, we typically want to limit the scope of what is varied. For instance, we might want to 
+vary only foreground colours or certain inner shapes.
+Furthermore, we typically have constraints that shall guide the generation process, e.g. to ensure
+that the generated shapes remain close to the original shape, maintaining the semantics, or to ensure
+that colour variations respect the colour palette of the design project.
 
 ### Variation Style Transfer
 
