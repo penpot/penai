@@ -47,6 +47,13 @@ Furthermore, we typically have constraints that shall guide the generation proce
 that the generated shapes remain close to the original shape, maintaining the semantics, or to ensure
 that colour variations respect the colour palette of the design project.
 
+* Batch job: 
+  * Apply variation generation to registered shapes: [scripts/batch_svg_variations.py](scripts/batch_svg_variations.py)
+  * Inspection of results: [scripts/web_server.py](scripts/web_server.py)
+* Notebooks:
+  * Variation generation for an icon/logo: [notebooks/svg_variations_icon.ipynb](notebooks/svg_variations_icon.ipynb)  
+  * Variation generation for a UI element: [notebooks/svg_variations_ui_widget.ipynb](notebooks/svg_variations_ui_widget.ipynb)  
+
 ### Variation Style Transfer
 
 In user interface design, the same principles are often applied to a wide variety of
@@ -63,8 +70,11 @@ and subsequently the applied transformation:
 
 ![shape variation style transfer/results](resources/videos/use_case_variation_transfer.gif)
 
-Entry point: [scripts/batch_variation_transfer.py](scripts/batch_svg_variation_transfer.py)
-Result visualisation: via [web server](scripts/web_server.py)
+* Batch job: 
+  * Apply variation transfer to registered shapes: [scripts/batch_variation_transfer.py](scripts/batch_svg_variation_transfer.py)
+  * Inspection of results: [scripts/web_server.py](scripts/web_server.py)
+* Notebooks:
+  * Variation transfer for UI elements: [notebooks/svg_variation_transfer_ui_widget.ipynb](notebooks/svg_variation_transfer_ui_widget.ipynb) 
 
 ### Naming Shapes Semantically
 
