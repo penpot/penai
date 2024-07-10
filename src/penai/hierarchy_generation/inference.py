@@ -136,7 +136,9 @@ class HierarchyInferencer:
 
         prompt = self.build_prompt(visualizations)
 
-        conversation = Conversation(response_factory=lambda text: SchemaResponse(text, self.parser))
+        conversation = Conversation(
+            model=self.model, response_factory=lambda text: SchemaResponse(text, self.parser)
+        )
         response = conversation.query(prompt)
         queried_hierarchy = response.parse_response()
 
