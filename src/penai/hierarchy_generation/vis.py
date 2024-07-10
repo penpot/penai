@@ -4,10 +4,12 @@ import textwrap
 from copy import deepcopy
 
 from lxml import etree
+from sensai.util import count_not_none
+from starlette.templating import Jinja2Templates
 
 from penai.config import top_level_directory
 from penai.hierarchy_generation.inference import HierarchyElement
-from penai.svg import BoundingBox, PenpotShapeElement
+from penai.svg import SVG, BoundingBox, PenpotShapeElement
 from penai.types import PathLike
 from penai.xml import BetterElement
 
@@ -132,18 +134,34 @@ class InteractiveSVGHierarchyVisualizer:
 class InteractiveHTMLHierarchyVisualizer:
     def __init__(
         self,
-        svg_path: str,
         hierarchy_element: HierarchyElement,
+        svg: SVG | None = None,
+        svg_path: str | None = None,
         title: str = "Hierarchy Inspection",
     ):
-        with open(os.path.join(top_level_directory, "resources", "hierarchy.html")) as f:
-            html_content = f.read()
+        assert count_not_none(svg, svg_path) == 1
+
         jstree_data_dict = self._create_jstree_data_dict(hierarchy_element)
-        self.html_content = (
-            html_content.replace("$$title", title)
-            .replace("$$svgFile", svg_path)
-            .replace("$$hierarchyData", json.dumps(jstree_data_dict))
+
+        svg_content = None
+        if svg is not None:
+            svg_content = svg.to_string()
+
+        templates = Jinja2Templates(
+            directory=os.path.join(top_level_directory, "resources", "jinja_templates")
         )
+        response = templates.TemplateResponse(
+            "hierarchy.html",
+            {
+                "title": title,
+                "hierarchyData": json.dumps(jstree_data_dict),
+                "svgFile": svg_path,
+                "svgContent": svg_content,
+                "request": None,
+            },
+        )
+        html_content = response.body.decode("utf-8")
+        self.html_content = html_content
 
     def _create_jstree_data_dict(self, hierarchy_element: HierarchyElement) -> dict:
         item_dict = {
