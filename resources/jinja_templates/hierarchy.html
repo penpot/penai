@@ -2,13 +2,15 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>$$title</title>
+    <title>{{ title }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
     <style>
         body {
             font-family: Calibri, Helvetica, sans-serif;
+            min-width: 1024px;
+            min-height: 768px;
         }
 
         .visible { opacity: 100% !important; }
@@ -61,10 +63,11 @@
 
             // create hierarchy tree
             // data: list of objects
+            var treeData = {{ hierarchyData|safe }};
             var $tree = $('#jstree');
             $tree.jstree({
                 'core': {
-                    'data': $$hierarchyData
+                    'data': treeData
                 }
             }).on('loaded.jstree', function() {
                 $tree.jstree('open_all');
@@ -83,7 +86,12 @@
     </script>
 
     <div id="svg">
-        <object id="svg-img" type="image/svg+xml" data="$$svgFile" width="100%" height="100%" onload="inlineSVG();" />
+        {% if svgFile %}
+            <object id="svg-img" type="image/svg+xml" data="{{ svgFile }}" width="100%" height="100%" onload="inlineSVG();" />
+        {% endif %}
+        {% if svgContent %}
+            {{ svgContent|safe }}
+        {% endif %}
     </div>
 </body>
 </html>
