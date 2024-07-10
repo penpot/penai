@@ -95,7 +95,7 @@ and subsequently the applied transformation:
     * Variation transfer for UI
       elements: [notebooks/svg_variation_transfer_ui_widget.ipynb](notebooks/svg_variation_transfer_ui_widget.ipynb)
 
-### Naming Shapes Semantically
+### Naming Shapes Semantically (Work in Progress)
 
 Associating shapes with meaningful names can be essential for discoverability,
 especially
