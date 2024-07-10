@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
 from functools import cache
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
 import matplotlib.transforms as mpl_transforms
@@ -349,6 +350,8 @@ class SVG:
         self.dom.getroot().insert(0, style_el)
 
     def to_file(self, path: PathLike, pretty: bool = False) -> None:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
         self.dom.write(path, pretty_print=pretty)
 
     def to_string(
