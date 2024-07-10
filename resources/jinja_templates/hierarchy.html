@@ -20,6 +20,7 @@
             height: 100%;
             overflow-x: scroll;
             overflow-y: scroll;
+            box-sizing: border-box;
         }
 
         #svg {
@@ -52,14 +53,12 @@
 
             const resizeElements = function() {
                 console.log("resize");
+                const scrollbarWidth = 17;
                 const hierarchyWidth = 380;
                 var windowWidth = $(window).width();
                 $hierarchy.width(hierarchyWidth);
-                $svg.width(windowWidth-hierarchyWidth);
+                $svg.width(windowWidth-hierarchyWidth-scrollbarWidth);
             };
-
-            resizeElements();
-            $(window).on('resize', resizeElements);
 
             // create hierarchy tree
             // data: list of objects
@@ -82,6 +81,9 @@
                     $("#" + node.data["id"]).addClass("visible");
                 });
             });
+
+            resizeElements();
+            $(window).on('resize', resizeElements);
         });
     </script>
 
