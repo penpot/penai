@@ -2,6 +2,7 @@
   "name": "PenAI Project",
   "dockerFile": "../Dockerfile",
   "workspaceFolder": "/workspaces/penai",
+  "runArgs": ["--shm-size=1g"],
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash",
     "python.pythonPath": "/usr/local/bin/python",
