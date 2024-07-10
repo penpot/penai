@@ -114,6 +114,9 @@ shapes contained:
 
 ![hierarchy inference](resources/images/use_case_hierarchy_inference.png)
 
+Notebooks:
+* Hierarchy inference for an example frame: [notebooks/hierarchy_inference.ipynb](notebooks/hierarchy_inference.ipynb) 
+
 ## Development Environment
 
 Clone the repository and run
