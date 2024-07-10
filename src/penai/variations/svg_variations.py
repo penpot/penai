@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterator, Sequence
+from copy import deepcopy
 from enum import Enum, StrEnum
 from pathlib import Path
 from typing import Literal, Self
@@ -383,7 +384,7 @@ class SVGVariationsGenerator:
 
     def __init__(
         self,
-        shape: PenpotShapeElement,
+        shape: PenpotShapeElement | SVG,
         semantics: str | None = None,
         verbose: bool = True,
         model: RegisteredLLM = RegisteredLLM.CLAUDE_3_5_SONNET,
@@ -411,8 +412,11 @@ class SVGVariationsGenerator:
         self.semantics = semantics
 
         # create simplified SVG (without the bloat)
-        self.svg = shape.to_svg().with_shortened_ids()
-        self.svg.strip_penpot_tags()
+        if isinstance(shape, PenpotShapeElement):
+            self.svg = shape.to_svg().with_shortened_ids()
+        else:
+            self.svg = deepcopy(shape)
+        self.svg.strip_foreign_tags()
         self.verbose = verbose
         self.refactoring_model = svg_refactoring_model
         self.variations_model = svg_variations_model
