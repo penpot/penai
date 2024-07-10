@@ -1,14 +1,13 @@
 # Generative AI Capabilities for Penpot
 
-This project explores applications of generative AI in the context
-of [Penpot](https://penpot.app),
-an open-source design and prototyping platform.
+We explore applications of generative AI for the purpose of creating an assistant for the graphic design space, 
+particularly in the context of the open-source design software [Penpot](https://penpot.app). 
+As initial assistance functions, we consider the generation of variations of vector shapes, 
+improving the structure and semantic meta-data of design documents, 
+and the transfer of design styles between different shapes. 
 
-While some of the capabilities are specific to Penpot, the project also aims to
-provide general
-functionality for the generation and augmentation of design assets provided in
-standard formats
-such as SVG.
+While some of the capabilities are specific to Penpot, core functionality is largely general, 
+building on open standards such as SVG.
 
 <!-- generated with `markdown-toc -i README.md` -->
 ***Table of Contents***
