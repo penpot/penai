@@ -153,3 +153,6 @@ scripts/gfonts.*
 # generated files
 /results
 google-fonts.sqlite
+
+# user-specific scripts
+/deploy-penai.sh
