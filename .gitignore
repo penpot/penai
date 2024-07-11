@@ -156,3 +156,6 @@ google-fonts.sqlite
 
 # user-specific scripts
 /deploy-penai.sh
+
+# Google Fonts cache
+./**/google-fonts.sqlite
