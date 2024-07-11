@@ -139,6 +139,14 @@ class BoundingBox:
             return False
         return True
 
+    def __eq__(self, other: Self) -> bool:
+        return (
+            self.x == other.x
+            and self.y == other.y
+            and self.width == other.width
+            and self.height == other.height
+        )
+
     @classmethod
     def from_corner_points(
         cls,
