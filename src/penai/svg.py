@@ -1,6 +1,7 @@
 import abc
 import logging
 import re
+import webbrowser
 from collections import defaultdict
 from collections.abc import Iterable
 from copy import deepcopy
@@ -8,9 +9,9 @@ from enum import Enum
 from functools import cache
 from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
-import webbrowser
-import randomname
+
 import matplotlib.transforms as mpl_transforms
+import randomname
 import shortuuid
 from lxml import etree
 from pptree import print_tree
@@ -385,7 +386,9 @@ class SVG:
         :return: string representation of the entire <svg> element
         """
         if unique_ids and replace_ids_by_short_ids:
-            raise ValueError("Cannot set both unique_ids and replace_ids_by_short_ids to True.")
+            raise ValueError(
+                "Cannot set both unique_ids and replace_ids_by_short_ids to True."
+            )
 
         dom = self.dom
 
@@ -644,7 +647,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         svg_root_attribs.pop("width", None)
         svg_root_attribs.pop("height", None)
 
-        if view_box == "default":
+        if isinstance(view_box, str) and view_box == "default":
             view_box = self.get_default_view_box()
         if view_box is not None:
             svg_root_attribs["viewBox"] = view_box.to_view_box_string()
