@@ -49,7 +49,7 @@ DEFAULT_BBOX_FACE_COLOR = "gray"
 AX_LIMITS = (-10000, 10000)
 
 
-def _add_label_to_axis(ax: Axis, label: str, bbox: BoundingBox, bottom_margin: float):
+def _add_label_to_axis(ax: Axis, label: str, bbox: BoundingBox, bottom_margin: float) -> None:
     ax.text(
         bbox.x + bbox.width / 2,
         bbox.y - bottom_margin,
@@ -69,7 +69,7 @@ def _add_label_to_axis(ax: Axis, label: str, bbox: BoundingBox, bottom_margin: f
 
 def _add_bbox_outlines_to_axis(
     ax: Axis, bbox: BoundingBox, color: str = "red", linewidth: float = 1
-):
+) -> None:
     line_kwargs = dict(color=color, linewidth=linewidth, zorder=1)
 
     ax.add_line(Line2D(AX_LIMITS, (bbox.y, bbox.y), **line_kwargs))  # type: ignore
@@ -98,7 +98,7 @@ def _add_bbox_to_axis(
     bbox_face_color: str = "gray",
     bbox_edge_color: str = "green",
     bbox_line_width: float = 1,
-):
+) -> None:
     bounds = (
         (bbox.x, bbox.y),
         bbox.width,
@@ -163,18 +163,21 @@ class ShapeHighlighter(BaseShapeVisualizer):
     ) -> None:
         bbox = bboxes[shape.shape_id]
 
-        self.show_focus_outlines and _add_bbox_outlines_to_axis(ax, bbox)
-        self.show_label and _add_label_to_axis(
-            ax, label, bbox, self.annotation_bottom_margin
-        )
-        self.show_bounds and _add_bbox_to_axis(
-            ax,
-            bbox,
-            self.bbox_alpha,
-            self.bbox_face_color,
-            self.bbox_edge_color,
-            self.bbox_line_width,
-        )
+        if self.show_focus_outlines:
+            _add_bbox_outlines_to_axis(ax, bbox)
+
+        if self.show_label:
+            _add_label_to_axis(ax, label, bbox, self.annotation_bottom_margin)
+
+        if self.show_bounds:
+            _add_bbox_to_axis(
+                ax,
+                bbox,
+                self.bbox_alpha,
+                self.bbox_face_color,
+                self.bbox_edge_color,
+                self.bbox_line_width,
+            )
 
 
 class ShapeHierarchyVisualizer(BaseShapeVisualizer):
@@ -210,12 +213,10 @@ class ShapeHierarchyVisualizer(BaseShapeVisualizer):
 
         bbox = get_bbox(shape.shape_id)
 
-        edge_scale = 1
+        edge_scale = 1.0
 
         if self.edge_width_rel_to_size:
-            ax_bbox = ax.get_window_extent().transformed(
-                ax.get_figure().dpi_scale_trans.inverted()
-            )
+            ax_bbox = ax.get_window_extent().transformed(ax.get_figure().dpi_scale_trans.inverted())
             ax_width, ax_height = ax_bbox.width, ax_bbox.height
 
             shortest_edge = min(ax_width, ax_height)
@@ -276,9 +277,7 @@ class DesignElementVisualizer:
             label_factory if label_factory is not None else _default_shape_label_factory
         )
 
-    def _get_relevant_children(
-        self, shape: PenpotShapeElement
-    ) -> list[PenpotShapeElement]:
+    def _get_relevant_children(self, shape: PenpotShapeElement) -> list[PenpotShapeElement]:
         return [
             child
             for child in shape.get_all_children_shapes()
@@ -304,7 +303,7 @@ class DesignElementVisualizer:
 
         return shape_image, shape_bboxes
 
-    def _prepare_plt_context(self, img: Image.Image, bbox: BoundingBox):
+    def _prepare_plt_context(self, img: Image.Image, bbox: BoundingBox) -> tuple[plt.Figure, Axis]:
         fig, ax = plt.subplots(
             dpi=self.dpi,
             figsize=(
@@ -330,14 +329,12 @@ class DesignElementVisualizer:
 
     def _visualize_single_shape(
         self, super_image, shape, bbox, label, all_shape_bboxes
-    ):
+    ) -> ShapeVisualization:
         ax_bbox = bbox.with_margin(self.ax_margin)
 
         fig, ax = self._prepare_plt_context(super_image, ax_bbox)
 
-        self.shape_visualizer.visualize_shape(
-            ax, shape, label, all_shape_bboxes, clip_bbox=ax_bbox
-        )
+        self.shape_visualizer.visualize_shape(ax, shape, label, all_shape_bboxes, clip_bbox=ax_bbox)
 
         image = self._figure_to_image(fig)
 

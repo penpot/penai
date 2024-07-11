@@ -33,9 +33,7 @@ color_by_hierarchy_level = [
 
 
 class InteractiveSVGHierarchyVisualizer:
-    def __init__(
-        self, hierarchy_element: HierarchyElement, shape: PenpotShapeElement
-    ) -> None:
+    def __init__(self, hierarchy_element: HierarchyElement, shape: PenpotShapeElement) -> None:
         svg = shape.to_svg()
         root = svg.dom.getroot()
 
@@ -72,9 +70,7 @@ class InteractiveSVGHierarchyVisualizer:
         )
 
         hover_group = etree.SubElement(interactive_group, "g")
-        ghost_group = etree.SubElement(
-            interactive_group, "g", attrib={"pointer-events": "none"}
-        )
+        ghost_group = etree.SubElement(interactive_group, "g", attrib={"pointer-events": "none"})
 
         hierarchy_level = 0
 
@@ -196,9 +192,7 @@ class InteractivePenpotDesignVisualizer:
         )
 
         hover_group = etree.SubElement(interactive_group, "g")
-        ghost_group = etree.SubElement(
-            interactive_group, "g", attrib={"pointer-events": "none"}
-        )
+        ghost_group = etree.SubElement(interactive_group, "g", attrib={"pointer-events": "none"})
 
         hierarchy_level = 0
 
@@ -229,9 +223,7 @@ class InteractivePenpotDesignVisualizer:
                 label = etree.SubElement(
                     ghost_group,
                     "text",
-                    attrib=dict(
-                        x=str(bbox.x), y=str(bbox.y - 10), style="fill: black;"
-                    ),
+                    attrib=dict(x=str(bbox.x), y=str(bbox.y - 10), style="fill: black;"),
                 )
                 label.text = shape.name
 
@@ -267,9 +259,7 @@ class InteractivePenpotDesignVisualizer:
     ) -> None:
         for shape in shapes:
             self._inject_shape_visualization(shape, svg_root)
-            self._inject_hierarchy_visualization(
-                svg_root, shape.get_direct_children_shapes()
-            )
+            self._inject_hierarchy_visualization(svg_root, shape.get_direct_children_shapes())
 
     def write_svg(self, path: PathLike) -> None:
         self.svg.to_file(path)
@@ -283,9 +273,7 @@ class InteractiveHTMLHierarchyVisualizer:
         svg_path: str | None = None,
         title: str = "Hierarchy Inspection",
     ):
-        with open(
-            os.path.join(top_level_directory, "resources", "hierarchy.html")
-        ) as f:
+        with open(os.path.join(top_level_directory, "resources", "hierarchy.html")) as f:
             html_content = f.read()
 
         assert count_not_none(svg, svg_path) == 1
@@ -323,8 +311,7 @@ class InteractiveHTMLHierarchyVisualizer:
         }
         if hierarchy_element.children:
             item_dict["children"] = [
-                self._create_jstree_data_dict(child)
-                for child in hierarchy_element.children
+                self._create_jstree_data_dict(child) for child in hierarchy_element.children
             ]
         return item_dict
 

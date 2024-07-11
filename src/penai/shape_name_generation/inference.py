@@ -19,7 +19,7 @@ class DescriptionGenerator:
         self.model_options = model_options
         self.validate_result = validate_result
         self.lock = threading.Lock()
-        self.shape_visualizations = {}
+        self.shape_visualizations: dict[PenpotShapeElement, ShapeVisualization] = {}
 
     def add_shape_to_message(
         self, message_builder: MessageBuilder, shape_vis: ShapeVisualization
@@ -43,9 +43,7 @@ class DescriptionGenerator:
                 parents = shape.get_all_parent_shapes()
                 top_level_frame = parents[-1] if parents else shape
 
-            visualizations = list(
-                self.visualizer.visualize_bboxes_in_shape(top_level_frame)
-            )
+            visualizations = list(self.visualizer.visualize_bboxes_in_shape(top_level_frame))
 
             for vis in visualizations:
                 self.shape_visualizations[vis.shape] = vis
