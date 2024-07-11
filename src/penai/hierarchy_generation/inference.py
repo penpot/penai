@@ -1,9 +1,6 @@
-from abc import abstractmethod
-import abc
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import cached_property
-import json
 from typing import Generic, Self, TypeVar
 
 from langchain_core.output_parsers import BaseOutputParser, JsonOutputParser
@@ -14,7 +11,7 @@ from tqdm import tqdm
 from penai.llm.conversation import Conversation, MessageBuilder, Response
 from penai.llm.llm_model import RegisteredLLM, RegisteredLLMParams
 from penai.svg import BoundingBox, PenpotShapeElement
-from penai.utils.vis import ShapeVisualization, ShapeVisualizer
+from penai.utils.vis import DesignElementVisualizer, ShapeVisualization
 
 
 class InferencedHierarchySchema(BaseModel):
@@ -90,77 +87,6 @@ class SchemaResponse(Response, Generic[SchemaType]):
         return self.parser.invoke(self.text)
 
 
-# class BaseDesignDocumentInferencer(abc.ABC):
-#     def __init__(
-#         self,
-#         shape_visualizer: ShapeVisualizer,
-#         model: RegisteredLLM = RegisteredLLM.GPT4O,
-#         system_message: SystemMessage | None = None,
-#         **model_options: RegisteredLLMParams,
-#     ) -> None:
-#         self.shape_visualizer = shape_visualizer
-#         self.model = model
-#         self.model_options = model_options
-#         self.system_message = system_message
-
-#     @abc.abstractmethod
-#     def build_user_message(
-#         self, root_shape: PenpotShapeElement, visualizations: list[ShapeVisualization]
-#     ) -> HumanMessage:
-#         pass
-
-#     def query(
-#         self,
-#         shape: PenpotShapeElement,
-#         schema: type[SchemaType],
-#         return_artifacts: bool = False,
-#     ) -> SchemaType | tuple[SchemaType, list[ShapeVisualization]]:
-#         num_shapes = len(list(shape.get_all_children_shapes())) + 1
-
-#         if num_shapes > self.max_shapes:
-#             raise ValueError(
-#                 f"Too many shapes to infer hierarchy: {num_shapes} > {self.max_shapes}"
-#             )
-
-#         visualizations = list(
-#             tqdm(self.shape_visualizer.visualize_bboxes_in_shape(shape))
-#         )
-
-#         messages = [
-#             self.system_message,
-#             self.build_user_message(shape, visualizations),
-#         ]
-
-#         model = self.model.create_model(**self.model_options)
-
-#         model.invoke()
-#         parser = JsonOutputParser(pydantic_object=schema)
-
-#         conversation = Conversation(
-#             model=self.model,
-#             response_factory=lambda text: SchemaResponse(text, parser),
-#             **self.model_options,
-#         )
-#         response = conversation.query(prompt)
-#         result = response.parse_response()
-
-#         if return_artifacts:
-#             return result, visualizations
-
-#         return result
-
-
-# class BasicDesignDocumentInferencer(BaseDesignDocumentInferencer):
-#     @abc.abs
-#     def build_prompt_for_shape(self, shape_visualization: ShapeVisualization) -> str:
-#         pass
-
-#     def build_prompt(
-#         self, root_shape: PenpotShapeElement, visualizations: list[ShapeVisualization]
-#     ) -> str:
-#         return super().build_prompt(root_shape, visualizations)
-
-
 class HierarchyInferencer:
     parser = JsonOutputParser(pydantic_object=InferencedHierarchySchema)
 
@@ -172,7 +98,7 @@ class HierarchyInferencer:
 
     def __init__(
         self,
-        shape_visualizer: ShapeVisualizer,
+        shape_visualizer: DesignElementVisualizer,
         model: RegisteredLLM = RegisteredLLM.GPT4O,
         validate_hierarchy: bool = True,
         max_shapes: int = 200,
@@ -241,78 +167,3 @@ class HierarchyInferencer:
             return hierarchy, visualizations
 
         return hierarchy
-
-
-class DescriptionGenerator:
-    def __init__(
-        self,
-        shape_visualizer: ShapeVisualizer,
-        model: RegisteredLLM = RegisteredLLM.GPT4O,
-        validate_result: bool = True,
-        **model_options: RegisteredLLMParams,
-    ) -> None:
-        self.shape_visualizer = shape_visualizer
-        self.model = model
-        self.model_options = model_options
-        self.validate_result = validate_result
-
-    def add_shape_to_message(
-        self, message_builder: MessageBuilder, shape_vis: ShapeVisualization
-    ) -> None:
-        message_builder.with_text_message(
-            f"Element ID: {shape_vis.label} (type: {shape_vis.shape.type.value})"
-        )
-        message_builder.with_image(shape_vis.image)
-        message_builder.with_text_message("\n\n")
-
-    def generate_descriptions(self, shape: PenpotShapeElement) -> dict[str, str]:
-        system_message = (
-            MessageBuilder()
-            .with_text_message(
-                "The users of our design software need help naming the design elements in their design document. You will be provided with an image for each design element in the document that depicts its bounding box and ID. Provide a short description for each design element in JSON format wrapped in Markdown with the following schema per element: {\"<ID>\": \"<Description>\"}. This description will appear in the document hierarchy and should help in understanding and editing the document. Take the spatial and semantic relationships between the elements into account when providing the descriptions. Use nominalizations and avoid verb forms, i.e. \"Car button icon\" instead of \"Button icon displaying a car\". Do not include the element type or category in the description."
-            )
-            .build_system_message()
-        )
-
-        human_message_builder = MessageBuilder()
-
-        visualizations = self.shape_visualizer.visualize_bboxes_in_shape(shape)
-
-        for shape_vis in visualizations:
-            self.add_shape_to_message(human_message_builder, shape_vis)
-
-        human_message = human_message_builder.build_human_message()
-
-        model = self.model.create_model(**self.model_options)
-
-        response = Response(model.invoke([system_message, human_message]).content)
-
-        code_snippets = response.get_code_snippets()
-
-        assert (
-            len(code_snippets) == 1
-        ), f"Expected exactly one code snippet in the response but got {len(code_snippets)}."
-
-        result = json.loads(code_snippets[0].code)
-
-        label_shape_mapping = {vis.label: vis.shape.shape_id for vis in visualizations}
-
-        mapped_result = {}
-
-        for label, description in result.items():
-            if label not in label_shape_mapping:
-                raise KeyError(
-                    f'Model generated response which includes label "{label}". '
-                    "However this label does not correspond to any known shape. "
-                    "The model likely hallucinated a label which may indicate a bad prompt or inproper inputs."
-                )
-
-            mapped_result[label_shape_mapping[label]] = description
-
-        if self.validate_result:
-            diff = set(mapped_result.keys()) - set(label_shape_mapping.values())
-            assert (
-                not diff
-            ), f"The following shape ids are missing from the generated output: {diff}"
-
-        return mapped_result
