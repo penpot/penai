@@ -2,13 +2,15 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>$$title</title>
+    <title>{{ title }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
     <style>
         body {
             font-family: Calibri, Helvetica, sans-serif;
+            min-width: 1024px;
+            min-height: 768px;
         }
 
         .visible { opacity: 100% !important; }
@@ -18,6 +20,7 @@
             height: 100%;
             overflow-x: scroll;
             overflow-y: scroll;
+            box-sizing: border-box;
         }
 
         #svg {
@@ -50,21 +53,20 @@
 
             const resizeElements = function() {
                 console.log("resize");
+                const scrollbarWidth = 17;
                 const hierarchyWidth = 380;
                 var windowWidth = $(window).width();
                 $hierarchy.width(hierarchyWidth);
-                $svg.width(windowWidth-hierarchyWidth);
+                $svg.width(windowWidth-hierarchyWidth-scrollbarWidth);
             };
-
-            resizeElements();
-            $(window).on('resize', resizeElements);
 
             // create hierarchy tree
             // data: list of objects
+            var treeData = {{ hierarchyData|safe }};
             var $tree = $('#jstree');
             $tree.jstree({
                 'core': {
-                    'data': $$hierarchyData
+                    'data': treeData
                 }
             }).on('loaded.jstree', function() {
                 $tree.jstree('open_all');
@@ -79,11 +81,19 @@
                     $("#" + node.data["id"]).addClass("visible");
                 });
             });
+
+            resizeElements();
+            $(window).on('resize', resizeElements);
         });
     </script>
 
     <div id="svg">
-        <object id="svg-img" type="image/svg+xml" data="$$svgFile" width="100%" height="100%" onload="inlineSVG();" />
+        {% if svgFile %}
+            <object id="svg-img" type="image/svg+xml" data="{{ svgFile }}" width="100%" height="100%" onload="inlineSVG();" />
+        {% endif %}
+        {% if svgContent %}
+            {{ svgContent|safe }}
+        {% endif %}
     </div>
 </body>
 </html>

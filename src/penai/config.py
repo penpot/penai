@@ -82,6 +82,12 @@ class __Configuration(DefaultDataConfiguration):
     def results_dir(self) -> str:
         return self._get_existing_path("results", create=True)
 
+    def example_svgs_dir(self) -> str:
+        return self._get_existing_path("example_svgs", create=False)
+
+    def get_example_svg_path(self, name: str) -> str:
+        return os.path.join(self.example_svgs_dir(), name)
+
 
 class ConfigProvider(ConfigProviderBase[__Configuration]):
     pass

@@ -2,8 +2,8 @@
 FROM python:3.11-slim
 
 # Set environment variables to make Python print directly to the terminal and avoid .pyc files.
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Install system dependencies required for the project.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -52,4 +52,4 @@ RUN poetry install --with dev
 
 # Entrypoint should be a shell in the workdir with poetry shell activated
 # Before that, the project should be installed with poetry install
-ENTRYPOINT ["/bin/bash", "-c", "poetry install --with dev && poetry shell && $0 $@"]
+ENTRYPOINT ["/bin/bash", "-c", "poetry install --with dev && poetry run jupyter trust notebooks/*.ipynb docs/02_notebooks/*.ipynb && poetry shell && $0 $@"]
