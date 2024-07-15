@@ -28,7 +28,7 @@ class RenderArtifacts:
 class RenderResult:
     def __init__(self, image: Image.Image, **artifacts: dict[str, Any]):
         self.image = image
-        self.artefacts = RenderArtifacts(**artifacts)
+        self.artifacts = RenderArtifacts(**artifacts)
 
     image: Image.Image
     artifacts: RenderArtifacts
