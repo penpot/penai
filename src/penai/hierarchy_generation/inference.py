@@ -56,9 +56,21 @@ class HierarchyElement:
         )
 
         for child in source_element.children or []:
-            element.children.append(cls.from_hierarchy_schema(label_shape_mapping, child, element))
+            element.children.append(
+                cls.from_hierarchy_schema(label_shape_mapping, child, element)
+            )
 
         return element
+
+    @classmethod
+    def from_penpot_shape(cls, shape: PenpotShapeElement) -> Self:
+        element = cls(
+            shape=shape,
+            description=shape.name,
+        )
+
+        for child in shape.get_direct_children_shapes():
+            element.children.append(cls.from_penpot_shape(child))
 
     def flatten(self) -> Iterable[Self]:
         yield self
@@ -68,7 +80,9 @@ class HierarchyElement:
 
     @cached_property
     def bbox(self) -> BoundingBox:
-        return BoundingBox.from_view_box_string(self.shape._lxml_element.attrib["viewBox"])
+        return BoundingBox.from_view_box_string(
+            self.shape._lxml_element.attrib["viewBox"]
+        )
 
 
 SchemaType = TypeVar("SchemaType", bound=BaseModel)
@@ -137,7 +151,9 @@ class HierarchyInferencer:
                 f"Too many shapes to infer hierarchy: {num_shapes} > {self.max_shapes}"
             )
 
-        visualizations = list(tqdm(self.shape_visualizer.visualize_bboxes_in_shape(shape)))
+        visualizations = list(
+            tqdm(self.shape_visualizer.visualize_bboxes_in_shape(shape))
+        )
 
         prompt = self.build_prompt(visualizations)
 
@@ -149,9 +165,13 @@ class HierarchyInferencer:
         response = conversation.query(prompt)
         queried_hierarchy = response.parse_response()
 
-        label_shape_mapping = {vis.label.replace("#", ""): vis.shape for vis in visualizations}
+        label_shape_mapping = {
+            vis.label.replace("#", ""): vis.shape for vis in visualizations
+        }
 
-        hierarchy = HierarchyElement.from_hierarchy_schema(label_shape_mapping, queried_hierarchy)
+        hierarchy = HierarchyElement.from_hierarchy_schema(
+            label_shape_mapping, queried_hierarchy
+        )
 
         if return_visualizations:
             return hierarchy, visualizations

@@ -261,7 +261,7 @@ class DesignElementVisualizer:
         self,
         shape_visualizer: BaseShapeVisualizer,
         web_driver_type: RegisteredWebDriver = RegisteredWebDriver.CHROME,
-        only_primitives: bool = True,
+        only_primitives: bool = False,
         dpi: float = 100,
         scale: float = 4,
         ax_margin: float = 200,
