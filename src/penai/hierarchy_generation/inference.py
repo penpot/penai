@@ -1,18 +1,17 @@
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Self
+from typing import Generic, Self, TypeVar
 
 from langchain_core.output_parsers import BaseOutputParser, JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.pydantic_v1 import BaseModel
 from tqdm import tqdm
 
-from penai.llm.conversation import Conversation, HumanMessageBuilder, Response
-from penai.llm.llm_model import RegisteredLLM
-from penai.registries.web_drivers import RegisteredWebDriver
+from penai.llm.conversation import Conversation, MessageBuilder, Response
+from penai.llm.llm_model import RegisteredLLM, RegisteredLLMParams
 from penai.svg import BoundingBox, PenpotShapeElement
-from penai.utils.vis import ShapeVisualization, ShapeVisualizer
+from penai.utils.vis import DesignElementVisualizer, ShapeVisualization
 
 
 class InferencedHierarchySchema(BaseModel):
@@ -57,9 +56,21 @@ class HierarchyElement:
         )
 
         for child in source_element.children or []:
-            element.children.append(cls.from_hierarchy_schema(label_shape_mapping, child, element))
+            element.children.append(
+                cls.from_hierarchy_schema(label_shape_mapping, child, element)
+            )
 
         return element
+
+    @classmethod
+    def from_penpot_shape(cls, shape: PenpotShapeElement) -> Self:
+        element = cls(
+            shape=shape,
+            description=shape.name,
+        )
+
+        for child in shape.get_direct_children_shapes():
+            element.children.append(cls.from_penpot_shape(child))
 
     def flatten(self) -> Iterable[Self]:
         yield self
@@ -69,18 +80,21 @@ class HierarchyElement:
 
     @cached_property
     def bbox(self) -> BoundingBox:
-        return BoundingBox.from_view_box_string(self.shape._lxml_element.attrib["viewBox"])
+        return BoundingBox.from_view_box_string(
+            self.shape._lxml_element.attrib["viewBox"]
+        )
 
 
-class SchemaResponse(Response):
+SchemaType = TypeVar("SchemaType", bound=BaseModel)
+
+
+class SchemaResponse(Response, Generic[SchemaType]):
     def __init__(self, response_text: str, parser: BaseOutputParser) -> None:
         super().__init__(response_text)
         self.parser = parser
 
-    def parse_response(self) -> InferencedHierarchySchema:
-        return InferencedHierarchySchema.parse_obj(
-            self.parser.invoke(self.text),
-        )
+    def parse_response(self) -> SchemaType:
+        return self.parser.invoke(self.text)
 
 
 class HierarchyInferencer:
@@ -94,11 +108,15 @@ class HierarchyInferencer:
 
     def __init__(
         self,
+        shape_visualizer: DesignElementVisualizer,
         model: RegisteredLLM = RegisteredLLM.GPT4O,
         validate_hierarchy: bool = True,
         max_shapes: int = 200,
+        **model_options: RegisteredLLMParams,
     ) -> None:
+        self.shape_visualizer = shape_visualizer
         self.model = model
+        self.model_options = model_options
         self.validate_hierarchy = validate_hierarchy
         self.max_shapes = max_shapes
 
@@ -111,11 +129,13 @@ class HierarchyInferencer:
             # "The hierarchy and description should be precise enough so that a blind person can figure out the design.\n"
         )
 
-        message = HumanMessageBuilder()
+        message = MessageBuilder()
         message.with_text_message(self.prompt_template.format(query=query))
 
         for visualization in visualizations:
+            # message.with_text_message("Element ID: " + visualization.label + "\n")
             message.with_image(visualization.image)
+            # message.with_text_message("\n\n")
 
         return message.build()
 
@@ -131,20 +151,27 @@ class HierarchyInferencer:
                 f"Too many shapes to infer hierarchy: {num_shapes} > {self.max_shapes}"
             )
 
-        visualizer = ShapeVisualizer(RegisteredWebDriver.CHROME)
-        visualizations = list(tqdm(visualizer.visualize_bboxes_in_shape(shape)))
+        visualizations = list(
+            tqdm(self.shape_visualizer.visualize_bboxes_in_shape(shape))
+        )
 
         prompt = self.build_prompt(visualizations)
 
         conversation = Conversation(
-            model=self.model, response_factory=lambda text: SchemaResponse(text, self.parser)
+            model=self.model,
+            response_factory=lambda text: SchemaResponse(text, self.parser),
+            **self.model_options,
         )
         response = conversation.query(prompt)
         queried_hierarchy = response.parse_response()
 
-        label_shape_mapping = {vis.label.replace("#", ""): vis.shape for vis in visualizations}
+        label_shape_mapping = {
+            vis.label.replace("#", ""): vis.shape for vis in visualizations
+        }
 
-        hierarchy = HierarchyElement.from_hierarchy_schema(label_shape_mapping, queried_hierarchy)
+        hierarchy = HierarchyElement.from_hierarchy_schema(
+            label_shape_mapping, queried_hierarchy
+        )
 
         if return_visualizations:
             return hierarchy, visualizations

@@ -4,7 +4,7 @@ from collections.abc import Callable
 from copy import copy, deepcopy
 from functools import cached_property
 from io import BytesIO
-from typing import Any, Generic, Self, TypeAlias, TypeVar
+from typing import Any, Generic, Self, TypeAlias, TypeVar, cast
 
 import bs4
 import httpx
@@ -13,11 +13,11 @@ from bs4 import BeautifulSoup
 from langchain.globals import set_llm_cache
 from langchain.memory import ConversationBufferMemory
 from langchain_community.cache import SQLiteCache
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from PIL.Image import Image
 
 from penai.config import get_config, pull_from_remote
-from penai.llm.llm_model import RegisteredLLM
+from penai.llm.llm_model import RegisteredLLM, RegisteredLLMParams
 
 USE_LLM_CACHE_DEFAULT = True
 cfg = get_config()
@@ -116,6 +116,7 @@ class Conversation(Generic[TResponse]):
         system_prompt: str | None = None,
         require_json: bool = False,
         use_cache: bool = USE_LLM_CACHE_DEFAULT,
+        **model_options: RegisteredLLMParams,
     ):
         global _is_cache_enabled
         if use_cache:
@@ -130,7 +131,7 @@ class Conversation(Generic[TResponse]):
                     "Caching is already enabled. Since caching is enabled globally, it cannot be disabled for this conversation."
                 )
         self.memory = ConversationBufferMemory()
-        self.llm = model.create_model(require_json=require_json)
+        self.llm = model.create_model(**model_options)
         self.verbose = verbose
         self.response_factory = response_factory
         if system_prompt is not None:
@@ -169,7 +170,7 @@ class Conversation(Generic[TResponse]):
         return clone
 
 
-class HumanMessageBuilder:
+class MessageBuilder:
     def __init__(self, text_message: str | None = None):
         self._content: list[dict[str, Any]] = []
         if text_message is not None:
@@ -203,8 +204,20 @@ class HumanMessageBuilder:
         self._add_image_from_bytes(image_bytes)
         return self
 
-    def build(self) -> HumanMessage:
-        return HumanMessage(content=self._content)  # type: ignore
+    # NOTE: It would be _cleaner_ to use a generic type for the argument and return type here but the typing
+    # system in Python does currently not seem to support TypeVars that are bound to a type that is a subclass
+    # of a specific class.
+    def build(self, message_type: type[BaseMessage] = HumanMessage) -> BaseMessage:
+        return message_type(content=self._content)  # type: ignore
+
+    def build_system_message(self) -> SystemMessage:
+        return cast(SystemMessage, self.build(SystemMessage))
+
+    def build_human_message(self) -> HumanMessage:
+        return cast(HumanMessage, self.build(HumanMessage))
+
+    def build_ai_message(self) -> AIMessage:
+        return cast(AIMessage, self.build(AIMessage))
 
 
 class PromptBuilder:

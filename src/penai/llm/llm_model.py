@@ -2,15 +2,23 @@
 # Langchain uses pydantic validators to turn args into kwargs, this confuses mypy
 
 from enum import Enum
+from typing import Unpack
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseLanguageModel
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
+from typing_extensions import TypedDict
 
 from penai.config import get_config
 
 cfg = get_config()
+
+
+class RegisteredLLMParams(TypedDict):
+    max_tokens: int | None
+    temperature: float
+    require_json: bool
 
 
 class RegisteredLLM(Enum):
@@ -28,9 +36,7 @@ class RegisteredLLM(Enum):
 
     def create_model(
         self,
-        max_tokens: int | None = None,
-        temperature: float = 0,
-        require_json: bool = False,
+        **options: Unpack[RegisteredLLMParams],
     ) -> BaseLanguageModel:
         """:param max_tokens: the maximum number of tokens to generate in the response; set to None for no limit.
         :param temperature: the generation temperature which controls the randomness of the output. 0 is typically deterministic
@@ -40,6 +46,9 @@ class RegisteredLLM(Enum):
             For other models, it is currently unsupported.
         :return:
         """
+        max_tokens = options.get("max_tokens")
+        temperature = options.get("temperature", 0)
+        require_json = options.get("require_json", False)
 
         def require_json_unsupported() -> None:
             if require_json:

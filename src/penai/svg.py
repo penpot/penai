@@ -1,15 +1,18 @@
 import abc
 import logging
 import re
+import webbrowser
 from collections import defaultdict
 from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
 from functools import cache
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
 import matplotlib.transforms as mpl_transforms
+import randomname
 import shortuuid
 from lxml import etree
 from pptree import print_tree
@@ -133,6 +136,17 @@ class BoundingBox:
         if self.y + self.height < other.y or other.y + other.height < self.y:
             return False
         return True
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, BoundingBox):
+            return False
+
+        return (
+            self.x == other.x
+            and self.y == other.y
+            and self.width == other.width
+            and self.height == other.height
+        )
 
     @classmethod
     def from_corner_points(
@@ -459,6 +473,11 @@ class SVG:
 
         return result
 
+    def open_in_browser(self) -> None:
+        with NamedTemporaryFile(suffix=".html", delete=False) as f:
+            self.to_file(f.name)
+            webbrowser.open("file://" + f.name)
+
     def with_shortened_ids(self) -> Self:
         return self.from_string(self.to_string(replace_ids_by_short_ids=True, unique_ids=False))
 
@@ -671,7 +690,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         svg_root_attribs.pop("width", None)
         svg_root_attribs.pop("height", None)
 
-        if view_box == "default":
+        if isinstance(view_box, str) and view_box == "default":
             view_box = self.get_default_view_box()
         if view_box is not None:
             svg_root_attribs["viewBox"] = view_box.to_view_box_string()
@@ -820,9 +839,17 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         key = key.value if isinstance(key, PenpotShapeAttr) else key
         return self.attrib[self.get_namespaced_key("penpot", key)]
 
+    def set_penpot_attr(self, key: str | PenpotShapeAttr, value: str) -> None:
+        key = key.value if isinstance(key, PenpotShapeAttr) else key
+        self.attrib[self.get_namespaced_key("penpot", key)] = value
+
     @property
     def name(self) -> str:
         return self.get_penpot_attr(PenpotShapeAttr.NAME)
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self.set_penpot_attr(PenpotShapeAttr.NAME, value)
 
     @property
     def type(self) -> PenpotShapeType:
@@ -867,6 +894,20 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
         if parent_shape is None:
             return []
         return [parent_shape, *parent_shape.get_all_parent_shapes()]
+
+    def get_containing_frame_element(self) -> Self | None:
+        parent_shape = self.get_parent_shape()
+        if parent_shape is None:
+            return None
+        if parent_shape.type == PenpotShapeType.FRAME:
+            return parent_shape
+        return parent_shape.get_containing_frame_element()
+
+    def get_containing_frame_elements(self) -> list[Self]:
+        parent_frame = self.get_containing_frame_element()
+        if parent_frame is None:
+            return []
+        return [parent_frame, *parent_frame.get_containing_frame_elements()]
 
     def get_containing_g_element(self) -> BetterElement:
         """Get the parent <g> element to which this shape corresponds; child shapes will be children of it.
@@ -1160,3 +1201,19 @@ def ensure_unique_ids_in_svg_code(svg_code: str) -> str:
         svg_code = svg_code.replace(f"url('#{identifier}')", f"url('#{new_id})'")
         svg_code = svg_code.replace(f'href="#{identifier}"', f'href="#{new_id}"')
     return svg_code
+
+
+def randomize_penpot_shape_names(element: PenpotShapeElement | PenpotPageSVG) -> None:
+    """Randomize the names of all shapes in the given PenpotShapeElement or PenpotPageSVG."""
+    if isinstance(element, PenpotShapeElement):
+        shapes = [element]
+    elif isinstance(element, PenpotPageSVG):
+        shapes = element.get_shape_elements_at_depth(0)
+    else:
+        raise TypeError(f"Unsupported element type: {type(element)}")
+
+    for shape in shapes:
+        shape.name = randomname.get_name()
+
+        for child in shape.get_direct_children_shapes():
+            randomize_penpot_shape_names(child)
