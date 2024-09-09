@@ -64,10 +64,10 @@ jobs:
           GOOGLE_STORAGE_SECRET: ${{ secrets.GOOGLE_STORAGE_SECRET }}
           PP_BACKEND_PASSWORD: ${{ secrets.PP_BACKEND_PASSWORD }}
         run: poetry run poe doc-build
-#      - name: Upload artifact
-#        uses: actions/upload-pages-artifact@v2
-#        with:
-#          path: "docs/_build"
-#      - name: Deploy to GitHub Pages
-#        id: deployment
-#        uses: actions/deploy-pages@v2
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: "docs/_build"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

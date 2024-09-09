@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:penpot="https://penpot.app/xmlns" viewBox="2081.1328125 1122.0 49.97314453125 54.796875" version="1.1" style="width:100%;height:100%;background:#E8E9EA" fill="none" preserveAspectRatio="xMinYMin meet">
+  <g id="4" style="opacity:0.5" rx="0" ry="0">
+    <defs/>
+    <g id="5">
+      <defs/>
+      <g transform="matrix(1.000000, 0.000000, 0.000000, 1.000000, 0.000000, 0.000000)" class="text-container" x="2047" y="1162" width="112" height="16" rx="0" ry="0">
+        <defs>
+          <pattern patternUnits="userSpaceOnUse" x="2047" y="1162" width="43.7265625" height="14" id="0">
+            <g>
+              <rect width="43.7265625" height="14" style="fill:#1d3744;fill-opacity:1"/>
+            </g>
+          </pattern>
+        </defs>
+        <g class="fills" id="1">
+          <text x="2081.1328125" y="1176.796875" dominant-baseline="ideographic" textLength="43.7265625" lengthAdjust="spacingAndGlyphs" style="text-transform:none;font-family:Rubik;letter-spacing:normal;font-style:normal;font-weight:500;white-space:pre;font-size:12px;text-decoration:none solid rgb(29, 55, 68);direction:ltr;fill:#1d3744;fill-opacity:1">Explore</text>
+        </g>
+      </g>
+    </g>
+    <g id="6" style="fill:#1d3744;fill-opacity:1" width="48" height="48" rx="0" ry="0">
+      <defs/>
+      <g id="7">
+        <defs/>
+        <g class="fills" id="2">
+          <path d="M2102.754,1136.533C2101.948,1136.533,2101.288,1137.193,2101.288,1138.000C2101.288,1138.807,2101.948,1139.467,2102.754,1139.467C2103.568,1139.467,2104.221,1138.807,2104.221,1138.000C2104.221,1137.193,2103.568,1136.533,2102.754,1136.533ZZZZM2102.754,1124.667C2095.388,1124.667,2089.421,1130.633,2089.421,1138.000C2089.421,1145.360,2095.388,1151.333,2102.754,1151.333C2110.121,1151.333,2116.088,1145.360,2116.088,1138.000C2116.088,1130.633,2110.121,1124.667,2102.754,1124.667ZZZZM2105.674,1140.920L2094.754,1146.000L2099.834,1135.080L2110.754,1130.000L2105.674,1140.920ZZZZ"/>
+        </g>
+      </g>
+      <g id="8">
+        <defs/>
+        <g class="fills" id="3">
+          <path d="M2086.754,1122.000L2118.754,1122.000L2118.754,1154.000L2086.754,1154.000Z" fill="none" style="fill:none"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

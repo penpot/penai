@@ -5,6 +5,7 @@
   "data_ground_truth": "./data/ground_truth",
   "visualizations": "./data/visualizations",
   "artifacts": "./data/artifacts",
+  "example_svgs": "./resources/example_svgs",
   "temp": "./temp",
   "cache": "./data/cache",
   "temp_cache": "./temp/cache",

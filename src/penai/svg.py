@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
 from functools import cache
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, Self, Union, cast, overload
 
 import matplotlib.transforms as mpl_transforms
@@ -202,13 +203,43 @@ class SVG:
                 if element.attrib.get(attr_qual_name, None) == value:
                     del element.attrib[attr_qual_name]
 
-    def to_html_string(self) -> str:
-        return f"<html><body>{self.to_string()}</body></html>"
+    def to_html_string(
+        self, width_override: str | None = None, height_override: str | None = None
+    ) -> str:
+        try:
+            view_box = self.get_view_box()
+            w, h = f"{int(view_box.width)}px", f"{int(view_box.height)}px"
+        except AttributeError as e:
+            log.debug(str(e))
+            w = ""
+            h = ""
 
-    def retrieve_default_view_box(
+        # handle user-provided scaling infosw
+        # note that if the user provides only one, we should set the other value to
+        # auto even if it's set previously from the viewBox
+        # Note: width_override=None is not the same as width_override=""
+        if width_override is not None:
+            w = width_override
+            if height_override is not None:
+                h = "auto"
+        if height_override is not None:
+            h = height_override
+            if width_override is not None:
+                w = "auto"
+
+        style_tag = f'style="width: {w}; height: {h};"'
+        return f"<html><body><div {style_tag}>{self.to_string()}</div></body></html>"
+
+    def compute_view_box_with_web_driver(
         self,
         web_driver: WebDriver | RegisteredWebDriver,
     ) -> "BoundingBox":
+        """Computes the view box of the SVG by rendering it in a browser and querying the BBox.
+
+        Should only be used if the viewBox attribute of the SVG is not yet set. Otherwise, the
+        method `get_view_box` should be preferred, since rendering is slow. Recommended to use
+        this method only if you know what you are doing.
+        """
         with get_web_driver_for_html(web_driver, self.to_html_string()) as driver:
             retrieved_bbox_dom_rect = driver.execute_script(
                 'return document.querySelector("svg").getBBox()',
@@ -256,25 +287,29 @@ class SVG:
         return cls(etree.ElementTree(root))
 
     def set_view_box(self, view_box: BoundingBox) -> None:
+        """Sets the viewBox attribute of the SVG."""
         self.dom.getroot().attrib["viewBox"] = view_box.to_view_box_string()
 
-    def set_default_view_box_from_web_driver(self, web_driver: WebDriver) -> None:
-        self.set_view_box(self.retrieve_default_view_box(web_driver))
-
     def get_view_box(self) -> BoundingBox:
-        view_box_str = self.dom.getroot().attrib.get("viewBox")
+        """Retrieves the SVG's view box by either using the viewBox attribute or by using width and height as fallback.
+
+        If neither viewBox nor width and height are present will raise an `AttributeError`
+        """
+        root = self.dom.getroot()
+        view_box_str = root.attrib.get("viewBox")
         if view_box_str is None:
             # If a view box is not explicitly set, we can try to derive it from the width and height attributes.
             # This seems to the default behavior of Chrome.
-            root = self.dom.getroot()
-
             width = root.get("width")
             height = root.get("height")
 
             if width and height:
                 return BoundingBox(0, 0, float(width), float(height))
 
-            raise ValueError("No view box set.")
+            raise AttributeError(
+                f"No viewBox and no width and height attributes set in SVG:\n"
+                f"{self.to_string(pretty=True)[:200]}..."
+            )
         return BoundingBox(*map(float, view_box_str.split()))
 
     def set_dimensions(
@@ -282,6 +317,10 @@ class SVG:
         width: int | None = None,
         height: int | None = None,
     ) -> None:
+        """Sets the width and height attributes in the SVG.
+
+        Some renderers may make use of them, especially if the viewBox attribute is not set.
+        """
         if not width and not height:
             raise ValueError("At least one of width or height must be provided.")
 
@@ -316,6 +355,14 @@ class SVG:
         """
         trim_namespace_from_tree(self.dom.getroot(), "penpot")
 
+    def strip_foreign_tags(self) -> None:
+        """Removes all non-native SVG tags from the SVG tree.
+
+        Currently only implemented for SVGs extracted from penpot and thus incomplete.
+        Will be completed as needed.
+        """
+        self.strip_penpot_tags()
+
     def inline_images(self, elem: etree.ElementBase | None = None) -> None:
         # TODO: We currently don't make use of any concurrent fetching or caching
         # which could drastically speed up the inlining process.
@@ -349,6 +396,8 @@ class SVG:
         self.dom.getroot().insert(0, style_el)
 
     def to_file(self, path: PathLike, pretty: bool = False) -> None:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
         self.dom.write(path, pretty_print=pretty)
 
     def to_string(
@@ -370,6 +419,9 @@ class SVG:
             to the given width.
         :return: string representation of the entire <svg> element
         """
+        if unique_ids and replace_ids_by_short_ids:
+            raise ValueError("Cannot set both unique_ids and replace_ids_by_short_ids to True.")
+
         dom = self.dom
 
         if add_width_height:
@@ -650,7 +702,7 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 "since bbox was not provided, a web_driver must be provided to derive the default view box "
                 "from the dom.",
             )
-        self._default_view_box = self.to_svg(view_box=None).retrieve_default_view_box(
+        self._default_view_box = self.to_svg(view_box=None).compute_view_box_with_web_driver(
             web_driver,
         )
 
@@ -1102,7 +1154,7 @@ def ensure_unique_ids_in_svg_code(svg_code: str) -> str:
     """
     ids = re.findall(r'id="(.*?)"', svg_code)
     for identifier in ids:
-        new_id = shortuuid.uuid()
+        new_id = f"{identifier}_{shortuuid.uuid()}"
         svg_code = svg_code.replace(f'id="{identifier}"', f'id="{new_id}"')
         svg_code = svg_code.replace(f"url(#{identifier})", f"url(#{new_id})")
         svg_code = svg_code.replace(f"url('#{identifier}')", f"url('#{new_id})'")
