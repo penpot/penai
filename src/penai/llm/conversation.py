@@ -122,7 +122,7 @@ class Conversation(Generic[TResponse]):
         global _is_cache_enabled
         if use_cache:
             if not _is_cache_enabled:
-                pull_from_remote(cfg.llm_responses_cache_path, force=False)
+                pull_from_remote(cfg.llm_responses_cache_path, force=True)
                 cache = SQLiteCache(database_path=cfg.llm_responses_cache_path)
                 set_llm_cache(cache)
                 _is_cache_enabled = True
