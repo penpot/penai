@@ -20,7 +20,6 @@ from penai.config import get_config, pull_from_remote
 from penai.llm.llm_model import RegisteredLLM
 from PIL.Image import Image
 
-from penai.config import default_remote_storage
 
 USE_LLM_CACHE_DEFAULT = True
 cfg = get_config()
