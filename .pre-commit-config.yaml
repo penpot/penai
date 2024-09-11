@@ -16,7 +16,7 @@ repos:
         types: [python]
       - id: ruff-nb
         name: ruff-nb
-        entry: poetry run nbqa ruff .
+        entry: poetry run nbqa ruff . --nbqa-exclude scratch/
         require_serial: true
         language: system
         pass_filenames: false

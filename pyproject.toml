@@ -38,15 +38,15 @@ pptree = "^3.1"
 requests = "^2.32.2"
 requests-cache = "^1.2.1"
 resvg-py = "^0.1.5"
-selenium = "^4.21.0"
+selenium = "^4.24.0"
 sensai = "^1.2.0"
 shortuuid = "^1.0.13"
 termcolor = "^2.4.0"
 tqdm = "^4.66.4"
 transit-python2 = "^0.8.321"
 types-markdown = "^3.6.0.20240316"
-webdriver-manager = "^4.0.1"
 randomname = "^0.2.1"
+webdriver-manager = "^4.0.2"
 
 [tool.poetry.group.dev]
 optional = true

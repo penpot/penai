@@ -159,3 +159,5 @@ google-fonts.sqlite
 
 # Google Fonts cache
 ./**/google-fonts.sqlite
+
+scratch/
