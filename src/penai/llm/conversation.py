@@ -4,7 +4,7 @@ from collections.abc import Callable
 from copy import copy, deepcopy
 from functools import cached_property
 from io import BytesIO
-from typing import Any, Generic, Self, TypeAlias, TypeVar
+from typing import Any, Generic, Self, TypeAlias, TypeVar, cast
 
 import bs4
 import httpx
@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from langchain.globals import set_llm_cache
 from langchain.memory import ConversationBufferMemory
 from langchain_community.cache import SQLiteCache
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from PIL.Image import Image
 
 from penai.config import get_config, pull_from_remote
@@ -120,7 +120,7 @@ class Conversation(Generic[TResponse]):
         global _is_cache_enabled
         if use_cache:
             if not _is_cache_enabled:
-                pull_from_remote(cfg.llm_responses_cache_path, force=False)
+                pull_from_remote(cfg.llm_responses_cache_path, force=True)
                 cache = SQLiteCache(database_path=cfg.llm_responses_cache_path)
                 set_llm_cache(cache)
                 _is_cache_enabled = True
@@ -169,7 +169,7 @@ class Conversation(Generic[TResponse]):
         return clone
 
 
-class HumanMessageBuilder:
+class MessageBuilder:
     def __init__(self, text_message: str | None = None):
         self._content: list[dict[str, Any]] = []
         if text_message is not None:
@@ -203,8 +203,20 @@ class HumanMessageBuilder:
         self._add_image_from_bytes(image_bytes)
         return self
 
-    def build(self) -> HumanMessage:
-        return HumanMessage(content=self._content)  # type: ignore
+    # NOTE: It would be _cleaner_ to use a generic type for the argument and return type here but the typing
+    # system in Python does currently not seem to support TypeVars that are bound to a type that is a subclass
+    # of a specific class.
+    def build(self, message_type: type[BaseMessage] = HumanMessage) -> BaseMessage:
+        return message_type(content=self._content)  # type: ignore
+
+    def build_system_message(self) -> SystemMessage:
+        return cast(SystemMessage, self.build(SystemMessage))
+
+    def build_human_message(self) -> HumanMessage:
+        return cast(HumanMessage, self.build(HumanMessage))
+
+    def build_ai_message(self) -> AIMessage:
+        return cast(AIMessage, self.build(AIMessage))
 
 
 class PromptBuilder:

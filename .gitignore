@@ -156,3 +156,5 @@ google-fonts.sqlite
 
 # user-specific scripts
 /deploy-penai.sh
+
+scratch/

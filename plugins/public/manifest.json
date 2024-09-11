@@ -1,0 +1,10 @@
+{
+  "name": "Penpot starter plugin",
+  "host": "http://localhost:4400",
+  "code": "plugin.js",
+  "description": "This is a starter plugin for Penpot",
+  "permissions": [
+    "content:read",
+    "content:write"
+  ]
+}
