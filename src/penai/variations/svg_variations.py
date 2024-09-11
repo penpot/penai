@@ -729,9 +729,7 @@ class SVGVariationsGenerator:
             conversations.append(conversation)
 
         variations = SVGVariations(
-            original_svg=self.svg,
-            variations_dict=variations_dict,
-            conversation=conversations
+            original_svg=self.svg, variations_dict=variations_dict, conversation=conversations
         )
         variations.write_results(self.result_writer)
         self.result_writer.write_text_file("example_presented.html", example_variations.to_html())

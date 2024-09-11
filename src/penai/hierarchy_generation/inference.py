@@ -8,7 +8,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.pydantic_v1 import BaseModel
 from tqdm import tqdm
 
-from penai.llm.conversation import Conversation, HumanMessageBuilder, Response
+from penai.llm.conversation import Conversation, MessageBuilder, Response
 from penai.llm.llm_model import RegisteredLLM
 from penai.registries.web_drivers import RegisteredWebDriver
 from penai.svg import BoundingBox, PenpotShapeElement
@@ -137,7 +137,8 @@ class HierarchyInferencer:
         prompt = self.build_prompt(visualizations)
 
         conversation = Conversation(
-            model=self.model, response_factory=lambda text: SchemaResponse(text, self.parser)
+            model=self.model,
+            response_factory=lambda text: SchemaResponse(text, self.parser),
         )
         response = conversation.query(prompt)
         queried_hierarchy = response.parse_response()
