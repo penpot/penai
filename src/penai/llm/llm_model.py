@@ -24,6 +24,7 @@ class RegisteredLLMParams(TypedDict):
 class RegisteredLLM(Enum):
     # keep value as the model name required by the langchain constructor
     GPT4O = "gpt-4o"
+    GPT4O_MINI = "gpt-4o-mini"
     GPT4 = "gpt-4"
     GEMINI_1_5_PRO = "gemini-1.5-pro"
     GEMINI_1_5_FLASH = "gemini-1.5-flash"
@@ -55,7 +56,7 @@ class RegisteredLLM(Enum):
                 raise ValueError(f"Constraining output to JSON is not supported for {self}.")
 
         match self:
-            case RegisteredLLM.GPT4O | RegisteredLLM.GPT4:
+            case RegisteredLLM.GPT4O | RegisteredLLM.GPT4O_MINI | RegisteredLLM.GPT4:
                 model_kwargs = {}
                 if require_json:
                     model_kwargs["response_format"] = {"type": "json_object"}
