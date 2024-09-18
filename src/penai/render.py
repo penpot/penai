@@ -42,6 +42,7 @@ class BaseSVGRenderer(abc.ABC):
     """
 
     SUPPORTS_ALPHA: bool
+    SUPPORTS_BOUNDING_BOX_INFERENCE: bool
 
     @abc.abstractmethod
     def render_svg_string(
@@ -85,6 +86,7 @@ class WebDriverSVGRendererParams(TypedDict, total=False):
 
 class WebDriverSVGRenderer(BaseSVGRenderer):
     SUPPORTS_ALPHA = False
+    SUPPORTS_BOUNDING_BOX_INFERENCE = True
 
     def __init__(
         self,
@@ -116,11 +118,18 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
 
         self.web_driver.get(url)
 
-    def _dim_to_css(self, dim: int | None) -> str:
+    def _dim_to_css(self, dim: int | float | None) -> str:
         # Note that contrary to common believe, a "px" does not necessarily correspond to a physical pixel
         # but is defined to correspond to 1/96th of an inch. However, under normal circumstances, this will
         # correspond to a physical pixel in typical desktop environments.
-        return f"{dim}px" if dim is not None else "auto"
+        if isinstance(dim, float):
+            return f"{dim * 100:.2f}%"
+        elif isinstance(dim, int):
+            return f"{dim}px"
+        elif dim is None:
+            return "auto"
+        else:
+            raise ValueError(f"Invalid dimension: {dim}")
 
     def _infer_bounding_boxes(self) -> dict[str, BoundingBox]:
         bboxes_result = self.web_driver.execute_script(
@@ -157,14 +166,11 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         # If `width` or/and `height` are provided, we first set the element dimensions to the provided values
         # and then resize the window to the actual size of the SVG element.
         # Otherwise we will try to infer a default size from the SVG's view box.
-        if width or height:
-            style = f"width: {self._dim_to_css(width)}; height: {self._dim_to_css(height)};"
-            self.web_driver.execute_script(
-                f"document.querySelector('svg').setAttribute('style', '{style}');",
-            )
-        else:
-            view_box = SVG.from_file(svg_path).get_view_box()
-            self.web_driver.set_window_size(view_box.width, view_box.height)
+        # if width or height:
+        style = f"width: {self._dim_to_css(width)}; height: {self._dim_to_css(height)};"
+        self.web_driver.execute_script(
+            f"document.querySelector('svg').setAttribute('style', '{style}');",
+        )
 
         bbox = BoundingBox.from_dom_rect(
             self.web_driver.execute_script(
@@ -174,7 +180,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
 
         # Set the window size to the size of the SVG element, assuming that it is placed at the origin.
         # We add a small buffer to the window size to account for margins, scrollbars, etc.
-        self.web_driver.set_window_size(bbox.width + 32, bbox.height + 32)
+        self.web_driver.set_window_size(bbox.width + 32, bbox.height + 128)
 
         svg_el = self.web_driver.find_element(By.CSS_SELECTOR, "svg")
 
@@ -183,10 +189,16 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         if self.infer_bounding_boxes:
             artifacts["bounding_boxes"] = self._infer_bounding_boxes()
 
-        buffer = io.BytesIO(svg_el.screenshot_as_png)
+        buffer = io.BytesIO(self.web_driver.get_screenshot_as_png())
         buffer.seek(0)
 
         image = Image.open(buffer).convert("RGB")
+        image = image.crop((
+            svg_el.location["x"],
+            svg_el.location["y"],
+            svg_el.size["width"],
+            svg_el.size["height"]
+        ))
 
         return RenderResult(image=image, **artifacts)
 
@@ -229,8 +241,8 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         :param width: The width of the rendered image. Currently not supported.
         :param height: The height of the rendered image. Currently not supported.
         """
-        return self.render_svg_string(
-            Path(svg_path).read_text(),
+        return self._render_svg(
+            Path(svg_path).absolute().as_uri(),
             width=width,
             height=height,
         )
@@ -238,6 +250,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
 
 class ResvgRenderer(BaseSVGRenderer):
     SUPPORTS_ALPHA = True
+    SUPPORTS_BOUNDING_BOX_INFERENCE = False
 
     def __init__(self, inline_linked_images: bool = True, dpi: int | None = None):
         self.inline_linked_images = inline_linked_images
