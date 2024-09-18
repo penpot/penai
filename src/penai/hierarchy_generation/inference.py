@@ -72,6 +72,8 @@ class HierarchyElement:
         for child in shape.get_direct_children_shapes():
             element.children.append(cls.from_penpot_shape(child))
 
+        return element
+
     def flatten(self) -> Iterable[Self]:
         yield self
 
