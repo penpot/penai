@@ -77,16 +77,20 @@ class BoundingBox:
         return BoundingBox(
             x=min(self.x + self.width, other.x + other.width) - max(self.x, other.x),
             y=min(self.y + self.height, other.y + other.height) - max(self.y, other.y),
-            width=min(self.x + self.width, other.x + other.width) - max(self.x, other.x),
-            height=min(self.y + self.height, other.y + other.height) - max(self.y, other.y),
+            width=min(self.x + self.width, other.x + other.width)
+            - max(self.x, other.x),
+            height=min(self.y + self.height, other.y + other.height)
+            - max(self.y, other.y),
         )
 
     def union(self, other: Self) -> "BoundingBox":
         return BoundingBox(
             x=min(self.x, other.x),
             y=min(self.y, other.y),
-            width=max(self.x + self.width, other.x + other.width) - min(self.x, other.x),
-            height=max(self.y + self.height, other.y + other.height) - min(self.y, other.y),
+            width=max(self.x + self.width, other.x + other.width)
+            - min(self.x, other.x),
+            height=max(self.y + self.height, other.y + other.height)
+            - min(self.y, other.y),
         )
 
     @property
@@ -99,6 +103,9 @@ class BoundingBox:
 
     def to_view_box_string(self) -> str:
         return f"{self.x} {self.y} {self.width} {self.height}"
+
+    def to_view_box_tuple(self) -> tuple[float, float, float, float]:
+        return (self.x, self.y, self.x + self.width, self.y + self.height)
 
     def to_svg_attribs(self) -> dict[str, str]:
         return {
@@ -434,7 +441,9 @@ class SVG:
         :return: string representation of the entire <svg> element
         """
         if unique_ids and replace_ids_by_short_ids:
-            raise ValueError("Cannot set both unique_ids and replace_ids_by_short_ids to True.")
+            raise ValueError(
+                "Cannot set both unique_ids and replace_ids_by_short_ids to True."
+            )
 
         dom = self.dom
 
@@ -479,7 +488,9 @@ class SVG:
             webbrowser.open("file://" + f.name)
 
     def with_shortened_ids(self) -> Self:
-        return self.from_string(self.to_string(replace_ids_by_short_ids=True, unique_ids=False))
+        return self.from_string(
+            self.to_string(replace_ids_by_short_ids=True, unique_ids=False)
+        )
 
 
 def get_node_depth(el: etree.ElementBase, root: etree.ElementBase | None = None) -> int:
@@ -552,7 +563,8 @@ def _el_has_visible_content(el: Element) -> bool:
             return False
 
         if not path.getchildren() and (
-            path.get("fill") == "none" or path_style.getPropertyValue("fill") in ["none"]
+            path.get("fill") == "none"
+            or path_style.getPropertyValue("fill") in ["none"]
         ):
             return False
 
@@ -721,7 +733,9 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 "since bbox was not provided, a web_driver must be provided to derive the default view box "
                 "from the dom.",
             )
-        self._default_view_box = self.to_svg(view_box=None).compute_view_box_with_web_driver(
+        self._default_view_box = self.to_svg(
+            view_box=None
+        ).compute_view_box_with_web_driver(
             web_driver,
         )
 
@@ -762,12 +776,15 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 if clip_el is None:
                     continue
 
-                assert set(clip_el.keys()) >= {
-                    "x",
-                    "y",
-                    "width",
-                    "height",
-                }, f"Expected clip element to have attributes 'x', 'y', 'width', 'height', but got {clip_el.keys()}"
+                assert (
+                    set(clip_el.keys())
+                    >= {
+                        "x",
+                        "y",
+                        "width",
+                        "height",
+                    }
+                ), f"Expected clip element to have attributes 'x', 'y', 'width', 'height', but got {clip_el.keys()}"
 
                 return BoundingBox.from_clip_rect(clip_el)
 
@@ -863,6 +880,10 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
     def is_primitive_type(self) -> bool:
         return self._shape_type.value.category == PenpotShapeTypeCategory.PRIMITIVE
 
+    @property
+    def is_visible(self) -> bool:
+        return self.get_containing_g_element().attrib.get("visibility") != "hidden"
+
     def check_for_visible_content(self) -> bool:
         if self.type == PenpotShapeType.GROUP:
             return any(child.check_for_visible_content() for child in self.child_shapes)
@@ -879,6 +900,17 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
 
         return any(_el_has_visible_content(group) for group in inner_groups)
 
+    def get_top_level_frame(self) -> Self:
+        parent_frames = self.get_containing_frame_elements()
+
+        if parent_frames:
+            top_level_frame = parent_frames[-1]
+        else:
+            parents = self.get_all_parent_shapes()
+            top_level_frame = parents[-1] if parents else self
+
+        return top_level_frame
+
     def get_parent_shape(self) -> Self | None:
         g_containing_par_shape_candidate = self.get_containing_g_element().getparent()
         while g_containing_par_shape_candidate is not None:
@@ -886,7 +918,9 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
                 for child in g_containing_par_shape_candidate:
                     if _el_is_penpot_shape(child):
                         return self.__class__(child)
-            g_containing_par_shape_candidate = g_containing_par_shape_candidate.getparent()
+            g_containing_par_shape_candidate = (
+                g_containing_par_shape_candidate.getparent()
+            )
         return None
 
     def get_all_parent_shapes(self) -> list[Self]:
@@ -959,6 +993,19 @@ class PenpotShapeElement(_CustomElementBaseAnnotationClass):
             horizontal=horizontal,
         )
 
+    def set_visibility(self, visibility: bool) -> None:
+        g_elem = self.get_containing_g_element()
+
+        if visibility:
+            g_elem.attrib.pop("visibility", None)
+        else:
+            g_elem.attrib["visibility"] = "hidden"
+
+    def remove(self) -> None:
+        """Removes the shape from the SVG tree."""
+        container_g = self.get_containing_g_element()
+        container_g.getparent().remove(container_g)
+
 
 def find_all_penpot_shapes(
     root: Element | PenpotShapeElement,
@@ -1021,8 +1068,7 @@ class PenpotPageSVG(SVG):
         attr_name: str,
         attr_value: Any,
         should_be_unique: Literal[True],
-    ) -> PenpotShapeElement:
-        ...
+    ) -> PenpotShapeElement: ...
 
     @overload
     def _get_shapes_by_attr(
@@ -1030,8 +1076,7 @@ class PenpotPageSVG(SVG):
         attr_name: str,
         attr_value: Any,
         should_be_unique: Literal[False] = False,
-    ) -> list[PenpotShapeElement]:
-        ...
+    ) -> list[PenpotShapeElement]: ...
 
     def _get_shapes_by_attr(
         self,
@@ -1040,7 +1085,9 @@ class PenpotPageSVG(SVG):
         should_be_unique: bool = False,
     ) -> PenpotShapeElement | list[PenpotShapeElement]:
         matched_shapes = [
-            shape for shape in self.penpot_shape_elements if getattr(shape, attr_name) == attr_value
+            shape
+            for shape in self.penpot_shape_elements
+            if getattr(shape, attr_name) == attr_value
         ]
         if not should_be_unique:
             return matched_shapes
@@ -1158,7 +1205,9 @@ class PenpotPageSVG(SVG):
         if selected_shape_elements is None:
             selected_shape_elements = self.penpot_shape_elements
         else:
-            if non_contained_shape_ids := {s.shape_id for s in selected_shape_elements}.difference(
+            if non_contained_shape_ids := {
+                s.shape_id for s in selected_shape_elements
+            }.difference(
                 {s.shape_id for s in self.penpot_shape_elements},
             ):
                 raise ValueError(

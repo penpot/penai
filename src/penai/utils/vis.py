@@ -49,7 +49,9 @@ DEFAULT_BBOX_FACE_COLOR = "gray"
 AX_LIMITS = (-10000, 10000)
 
 
-def _add_label_to_axis(ax: Axis, label: str, bbox: BoundingBox, bottom_margin: float) -> None:
+def _add_label_to_axis(
+    ax: Axis, label: str, bbox: BoundingBox, bottom_margin: float
+) -> None:
     ax.text(
         bbox.x + bbox.width / 2,
         bbox.y - bottom_margin,
@@ -216,7 +218,9 @@ class ShapeHierarchyVisualizer(BaseShapeVisualizer):
         edge_scale = 1.0
 
         if self.edge_width_rel_to_size:
-            ax_bbox = ax.get_window_extent().transformed(ax.get_figure().dpi_scale_trans.inverted())
+            ax_bbox = ax.get_window_extent().transformed(
+                ax.get_figure().dpi_scale_trans.inverted()
+            )
             ax_width, ax_height = ax_bbox.width, ax_bbox.height
 
             shortest_edge = min(ax_width, ax_height)
@@ -277,7 +281,9 @@ class DesignElementVisualizer:
             label_factory if label_factory is not None else _default_shape_label_factory
         )
 
-    def _get_relevant_children(self, shape: PenpotShapeElement) -> list[PenpotShapeElement]:
+    def _get_relevant_children(
+        self, shape: PenpotShapeElement
+    ) -> list[PenpotShapeElement]:
         return [
             child
             for child in shape.get_all_children_shapes()
@@ -292,10 +298,10 @@ class DesignElementVisualizer:
             renderer = WebDriverSVGRenderer(web_driver, infer_bounding_boxes=True)
 
             view_box = shape.get_default_view_box()
-            result = renderer.render_svg(shape.to_svg(view_box))
+            result = renderer.render_svg(shape.to_svg(view_box), height=2000)
 
             shape_bboxes = {
-                shape.shape_id: result.artefacts.bounding_boxes[shape.shape_id]
+                shape.shape_id: result.artifacts.bounding_boxes[shape.shape_id]
                 for shape in [shape, *shape.get_all_children_shapes()]
             }
 
@@ -303,7 +309,9 @@ class DesignElementVisualizer:
 
         return shape_image, shape_bboxes
 
-    def _prepare_plt_context(self, img: Image.Image, bbox: BoundingBox) -> tuple[plt.Figure, Axis]:
+    def _prepare_plt_context(
+        self, img: Image.Image, bbox: BoundingBox
+    ) -> tuple[plt.Figure, Axis]:
         fig, ax = plt.subplots(
             dpi=self.dpi,
             figsize=(
@@ -328,13 +336,20 @@ class DesignElementVisualizer:
             return Image.open(f.name).copy()
 
     def _visualize_single_shape(
-        self, super_image, shape, bbox, label, all_shape_bboxes
+        self,
+        super_image: Image.Image,
+        shape: PenpotShapeElement,
+        bbox: BoundingBox,
+        label: str,
+        all_shape_bboxes: dict[str, BoundingBox],
     ) -> ShapeVisualization:
         ax_bbox = bbox.with_margin(self.ax_margin)
 
         fig, ax = self._prepare_plt_context(super_image, ax_bbox)
 
-        self.shape_visualizer.visualize_shape(ax, shape, label, all_shape_bboxes, clip_bbox=ax_bbox)
+        self.shape_visualizer.visualize_shape(
+            ax, shape, label, all_shape_bboxes, clip_bbox=ax_bbox
+        )
 
         image = self._figure_to_image(fig)
 
