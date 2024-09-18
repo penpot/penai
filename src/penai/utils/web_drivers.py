@@ -36,6 +36,11 @@ def create_chrome_web_driver(headless: bool = True) -> Generator[WebDriver, Any,
         # Allows to start Chrome in a container as root
         chrome_options.add_argument("--no-sandbox")
 
+        # Disable "chrome is being controlled by automated test software"-info bar as this might influence the
+        # inner rendering frame unexpectedly
+        chrome_options.add_experimental_option("useAutomationExtension", False)
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+
         try:
             driver = webdriver.Chrome(
                 service=ChromeService(ChromeDriverManager().install()),
