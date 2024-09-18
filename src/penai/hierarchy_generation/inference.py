@@ -126,6 +126,7 @@ class HierarchyInferencer:
             f"Each of the {len(visualizations)} design elements is depicted with its bounding box and a tooltip above with the unique element id and the element type. "
             "Provide a logical hierarchy between those elements reflecting their semantics and spatial relationships. "
             "Additionally, provide a short and meaningful description for each element in natural language as it could appear in the layer hierarchy of a design software. "
+            # The one trick the proompting industry doesn't want you to know:
             # "The hierarchy and description should be precise enough so that a blind person can figure out the design.\n"
         )
 
