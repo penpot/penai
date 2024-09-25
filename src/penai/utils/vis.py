@@ -50,7 +50,7 @@ AX_LIMITS = (-10000, 10000)
 
 
 def _add_label_to_axis(
-    ax: Axis, label: str, bbox: BoundingBox, bottom_margin: float
+    ax: Axis, label: str, bbox: BoundingBox, bottom_margin: float, font_size: int = 8
 ) -> None:
     ax.text(
         bbox.x + bbox.width / 2,
@@ -58,7 +58,7 @@ def _add_label_to_axis(
         label,
         horizontalalignment="center",
         verticalalignment="bottom",
-        fontsize=8,
+        fontsize=font_size,
         bbox=dict(
             boxstyle="round",
             facecolor="#feffc2",
@@ -134,7 +134,7 @@ class ShapeHighlighter(BaseShapeVisualizer):
         show_label: bool = True,
         show_bounds: bool = True,
         show_focus_outlines: bool = True,
-        annotation_font_size: int = 8,
+        annotation_font_size: int = 14,
         annotation_alpha: float = 0.8,
         annotation_pad: float = 0.3,
         annotation_bottom_margin: float = 20,
@@ -169,7 +169,7 @@ class ShapeHighlighter(BaseShapeVisualizer):
             _add_bbox_outlines_to_axis(ax, bbox)
 
         if self.show_label:
-            _add_label_to_axis(ax, label, bbox, self.annotation_bottom_margin)
+            _add_label_to_axis(ax, label, bbox, self.annotation_bottom_margin, font_size=self.annotation_font_size)
 
         if self.show_bounds:
             _add_bbox_to_axis(
