@@ -273,9 +273,6 @@ class InteractiveHTMLHierarchyVisualizer:
         svg_path: str | None = None,
         title: str = "Hierarchy Inspection",
     ):
-        with open(os.path.join(top_level_directory, "resources", "hierarchy.html")) as f:
-            html_content = f.read()
-
         assert count_not_none(svg, svg_path) == 1
 
         jstree_data_dict = self._create_jstree_data_dict(hierarchy_element)
