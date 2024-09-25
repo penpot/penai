@@ -15,6 +15,7 @@ import matplotlib.transforms as mpl_transforms
 import randomname
 import shortuuid
 from lxml import etree
+from PIL.Image import Image
 from pptree import print_tree
 from pydantic import NonNegativeFloat
 from pydantic.dataclasses import dataclass
@@ -134,6 +135,14 @@ class BoundingBox:
         return cls(
             *[float(clip_rect_el.get(attr)) for attr in ("x", "y", "width", "height")],
         )
+
+    def crop_image(self, image: Image) -> Image:
+        """Utility method to crop an PIL image to the bounding box."""
+        box = cast(
+            tuple[int, int, int, int],
+            tuple(map(round, (self.x, self.y, self.x + self.width, self.y + self.height)))
+        )
+        return image.crop(box)
 
     def intersects(self, other: Self) -> bool:
         # Check if one rectangle is to the left of the other

@@ -4,11 +4,11 @@ import random
 from functools import cache
 from pathlib import Path
 
-from penai.svg import BoundingBox
 import requests
 import requests_cache
 from cssutils import CSSParser
 
+from penai.svg import BoundingBox
 from penai.types import PathLike, RGBColor
 
 

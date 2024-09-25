@@ -193,12 +193,14 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         buffer.seek(0)
 
         image = Image.open(buffer).convert("RGB")
-        image = image.crop((
-            svg_el.location["x"],
-            svg_el.location["y"],
-            svg_el.size["width"],
-            svg_el.size["height"]
-        ))
+        image = image.crop(
+            (
+                svg_el.location["x"],
+                svg_el.location["y"],
+                svg_el.size["width"],
+                svg_el.size["height"],
+            )
+        )
 
         return RenderResult(image=image, **artifacts)
 
