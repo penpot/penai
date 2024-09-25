@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Generic, Self, TypeVar
+from typing import Generic, NamedTuple, Self, TypeVar
 
 from langchain_core.output_parsers import BaseOutputParser, JsonOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -99,6 +99,12 @@ class SchemaResponse(Response, Generic[SchemaType]):
         return self.parser.invoke(self.text)
 
 
+class HierarchyInferencerOutput(NamedTuple):
+    hierarchy: HierarchyElement
+    visualizations: list[ShapeVisualization]
+    conversation: Conversation
+
+
 class HierarchyInferencer:
     parser = JsonOutputParser(pydantic_object=InferencedHierarchySchema)
 
@@ -113,6 +119,7 @@ class HierarchyInferencer:
         shape_visualizer: DesignElementVisualizer,
         model: RegisteredLLM = RegisteredLLM.GPT4O,
         validate_hierarchy: bool = True,
+        include_element_ids: bool = True,
         max_shapes: int = 200,
         **model_options: RegisteredLLMParams,
     ) -> None:
@@ -120,6 +127,7 @@ class HierarchyInferencer:
         self.model = model
         self.model_options = model_options
         self.validate_hierarchy = validate_hierarchy
+        self.include_element_ids = include_element_ids
         self.max_shapes = max_shapes
 
     def build_prompt(self, visualizations: list[ShapeVisualization]) -> str:
@@ -136,17 +144,19 @@ class HierarchyInferencer:
         message.with_text_message(self.prompt_template.format(query=query))
 
         for visualization in visualizations:
-            # message.with_text_message("Element ID: " + visualization.label + "\n")
+            if self.include_element_ids:
+                message.with_text_message("Element ID: " + visualization.label + "\n")
+
             message.with_image(visualization.image)
-            # message.with_text_message("\n\n")
+
+            if self.include_element_ids:
+                message.with_text_message("\n\n")
 
         return message.build()
 
-    def infer_shape_hierarchy(
-        self,
-        shape: PenpotShapeElement,
-        return_visualizations: bool = False,
-    ) -> HierarchyElement | tuple[HierarchyElement, list[ShapeVisualization]]:
+    def infer_shape_hierarchy_impl(
+        self, shape: PenpotShapeElement
+    ) -> HierarchyInferencerOutput:
         num_shapes = len(list(shape.get_all_children_shapes())) + 1
 
         if num_shapes > self.max_shapes:
@@ -178,7 +188,7 @@ class HierarchyInferencer:
             label_shape_mapping, queried_hierarchy
         )
 
-        if return_visualizations:
-            return hierarchy, visualizations
+        return HierarchyInferencerOutput(hierarchy, visualizations, conversation)
 
-        return hierarchy
+    def infer_shape_hierarchy(self, shape: PenpotShapeElement) -> HierarchyElement:
+        return self.infer_shape_hierarchy_impl(shape).hierarchy
