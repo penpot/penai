@@ -13,6 +13,8 @@ from accsr.config import ConfigProviderBase, DefaultDataConfiguration
 from accsr.remote_storage import RemoteStorage, RemoteStorageConfig, TransactionSummary
 from openai import OpenAI
 
+from penai.errors import ConfigError
+
 file_dir = os.path.dirname(__file__) if "__file__" in locals() else os.getcwd()
 
 top_level_directory: str = os.path.abspath(os.path.join(file_dir, os.pardir, os.pardir))
@@ -122,14 +124,19 @@ def pull_from_remote(
     dryrun: bool = False,
 ) -> TransactionSummary:
     """Pulls from the remote storage using the default storage config."""
-    return _default_remote_storage().pull(
-        remote_path=remote_path,
-        local_base_dir=top_level_directory,
-        force=force,
-        include_regex=include_regex,
-        exclude_regex=exclude_regex,
-        dryrun=dryrun,
-    )
+    try:
+        return _default_remote_storage().pull(
+            remote_path=remote_path,
+            local_base_dir=top_level_directory,
+            force=force,
+            include_regex=include_regex,
+            exclude_regex=exclude_regex,
+            dryrun=dryrun,
+        )
+    except TypeError as e:
+        raise ConfigError(
+            "Pulling from remote storage failed. This might be due to missing configuration keys."
+        ) from e
 
 
 def push_to_remote(

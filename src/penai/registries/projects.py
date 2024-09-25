@@ -3,7 +3,7 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from functools import cache
-from typing import Literal
+from typing import Literal, Self
 
 from sensai.util.cache import pickle_cached
 
@@ -92,6 +92,13 @@ class SavedPenpotProject(Enum):
     UX_NOTES = "UX Notes"
     WIREFRAMING_KIT = "Wireframing kit"
     GENERATIVE_VARIATIONS = "Generative variations"
+
+    @classmethod
+    def get_by_name(cls, name: str) -> Self:
+        for project in cls:
+            if project.value == name:
+                return project
+        raise ValueError(f"Project with name '{name}' not found.")
 
     def get_project_name(self) -> str:
         return self.value
