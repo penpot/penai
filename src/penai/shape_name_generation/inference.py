@@ -201,8 +201,8 @@ class SimplifiedShapeNameGenerator(BaseShapeNameGenerator):
             frame_bbox = result.artifacts.bounding_boxes[top_frame.shape_id]
 
             message_builder.with_text_message(
-                f"The bounding box (x1, y1, x2, y2) of the design document is {format_bbox(frame_bbox)} while the "
-                f"design element is located at {format_bbox(bbox)}."
+                f"The bounding box (x1, y1, x2, y2) of the design document is {frame_bbox.format_as_string()} while the "
+                f"design element is located at {bbox.format_as_string()}."
             )
 
         message_builder.with_text_message(

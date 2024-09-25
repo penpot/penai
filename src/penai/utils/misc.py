@@ -8,7 +8,6 @@ import requests
 import requests_cache
 from cssutils import CSSParser
 
-from penai.svg import BoundingBox
 from penai.types import PathLike, RGBColor
 
 
@@ -33,14 +32,6 @@ def random_rgb_color() -> RGBColor:
     """Generates a random RGB color in hex."""
     rgb = tuple(random.randint(0, 255) for _ in range(3))
     return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
-
-
-def format_bbox(bbox: BoundingBox) -> str:
-    """Format a bounding box as a string."""
-    bbox_tuple = bbox.to_view_box_tuple()
-    bbox_values = [str(round(value)) for value in bbox_tuple]
-    bbox_str = "[" + ", ".join(bbox_values) + "]"
-    return bbox_str
 
 
 def get_project_root() -> Path:

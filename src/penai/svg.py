@@ -153,6 +153,13 @@ class BoundingBox:
             return False
         return True
 
+    def format_as_string(self) -> str:
+        """Format a bounding box as a string."""
+        bbox_tuple = self.to_view_box_tuple()
+        bbox_values = [str(round(value)) for value in bbox_tuple]
+        bbox_str = "[" + ", ".join(bbox_values) + "]"
+        return bbox_str
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, BoundingBox):
             return False
