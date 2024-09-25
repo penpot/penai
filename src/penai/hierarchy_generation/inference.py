@@ -172,6 +172,8 @@ class HierarchyInferencer:
             vis.label.replace("#", ""): vis.shape for vis in visualizations
         }
 
+        queried_hierarchy = InferencedHierarchySchema(**queried_hierarchy)
+
         hierarchy = HierarchyElement.from_hierarchy_schema(
             label_shape_mapping, queried_hierarchy
         )
