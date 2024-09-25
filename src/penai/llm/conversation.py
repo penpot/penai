@@ -193,7 +193,8 @@ class MessageBuilder:
         )
 
     def with_image_from_url(self, image_url: str) -> Self:
-        image_bytes = httpx.get(image_url).content
+        image_bytes = httpx.get(image_url, follow_redirects=True).content
+        assert len(image_bytes), f"Failed to download image from URL: {image_url}"
         self._add_image_from_bytes(image_bytes)
         return self
 
