@@ -28,5 +28,6 @@
     "user": "mischa.panch@gmail.com",
     "password": "env:PP_BACKEND_PASSWORD"
   },
-  "llm_responses_cache_filename": "llm_responses_cache.sqlite"
+  "llm_responses_cache_filename": "llm_responses_cache.sqlite",
+  "prompt_stylesheet": "./resources/styles/prompt_visualizer.css"
 }

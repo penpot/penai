@@ -41,3 +41,13 @@ def format_bbox(bbox: BoundingBox) -> str:
     bbox_values = [str(round(value)) for value in bbox_tuple]
     bbox_str = "[" + ", ".join(bbox_values) + "]"
     return bbox_str
+
+
+def get_project_root() -> Path:
+    """Get the root directory of the project."""
+    return Path(__file__).parent.parent.parent.parent.resolve()
+
+
+def get_resource_dir() -> Path:
+    """Get the directory containing the project's resources."""
+    return (get_project_root() / "resources").resolve()

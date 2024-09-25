@@ -1,0 +1,17 @@
+html {
+    font-family: Arial, sans-serif;
+    font-size: 32px;
+}
+
+h2 {
+    font-size: 2em;
+}
+
+p {
+    font-size: 1.2em;
+}
+
+img {
+    max-width: 30%;
+}
+

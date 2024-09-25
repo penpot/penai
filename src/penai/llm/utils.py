@@ -5,6 +5,8 @@ from textwrap import dedent
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
+from penai.utils.misc import get_resource_dir
+
 label_by_message_type: dict[type[BaseMessage], str] = defaultdict(lambda: "📝 Message")
 label_by_message_type.update(
     {
@@ -14,9 +16,7 @@ label_by_message_type.update(
     }
 )
 
-default_stylesheet_path = (
-    (Path(__file__) / "../../../../data/style.css").resolve().absolute()
-)
+default_stylesheet_path = get_resource_dir() / "styles/prompt_visualizer.css"
 
 
 class PromptVisualizer:
