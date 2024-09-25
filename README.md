@@ -126,6 +126,20 @@ git submodule update --init --recursive
 
 to also pull the git submodules.
 
+### Secrets, Configuration and Credentials
+
+For pulling data or interacting with VLM providers, you will need secrets that
+are to be
+stored in the git-ignored file `config_local.json`. Please contact the project
+maintainers
+for the file's contents.
+
+After adding the secrets and installing the dependencies, every script and
+notebook
+can be executed on any machine. The first execution will pull missing data from
+the
+remote storage, and hence might take a while, depending on what data is missing.
+
 ### Python Virtual Environment
 
 Create a Python 3.11 environment and install the dependencies with
@@ -184,17 +198,3 @@ paste your `config_local.json` file there or pass the secrets as env vars
 when the codespace is created by using the `New with options` button:
 
 <img src="images/codespaces.png" align="center" width="70%" style="margin: auto">
-
-### Secrets, Configuration and Credentials
-
-For pulling data or interacting with VLM providers, you will need secrets that
-are to be
-stored in the git-ignored file `config_local.json`. Please contact the project
-maintainers
-for the file's contents.
-
-After adding the secrets and installing the dependencies, every script and
-notebook
-can be executed on any machine. The first execution will pull missing data from
-the
-remote storage, and hence might take a while, depending on what data is missing.
