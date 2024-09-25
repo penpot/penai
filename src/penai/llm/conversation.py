@@ -18,6 +18,7 @@ from PIL.Image import Image
 
 from penai.config import get_config, pull_from_remote
 from penai.llm.llm_model import RegisteredLLM, RegisteredLLMParams
+from penai.llm.utils import PromptVisualizer
 
 USE_LLM_CACHE_DEFAULT = True
 cfg = get_config()
@@ -138,6 +139,18 @@ class Conversation(Generic[TResponse]):
             self.memory.chat_memory.add_message(
                 SystemMessage(content=system_prompt),
             )
+
+    def to_html(self, prompt_visualizer: PromptVisualizer | None = None) -> str:
+        if prompt_visualizer is None:
+            prompt_visualizer = PromptVisualizer()
+
+        return prompt_visualizer.messages_to_html(self.memory.chat_memory.messages)
+
+    def display_html(self, prompt_visualizer: PromptVisualizer | None = None) -> None:
+        if prompt_visualizer is None:
+            prompt_visualizer = PromptVisualizer()
+
+        prompt_visualizer.display_messages(self.memory.chat_memory.messages)
 
     def get_full_conversation_string(
         self,
