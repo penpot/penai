@@ -1,0 +1,55 @@
+{
+    "Material Design 3": {
+        "Cover": {
+            "shapes": [
+                "shape-3c46b0c9-0a64-80b8-8004-7546b14924b8",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b149a54c",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b14d6f66",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b1554e60",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b154478e",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b1550308",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b14c6acb",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b14c6acd",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b154affa",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b154cf16",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b158d44e"
+            ]
+        },
+        "How it Works": {
+            "shapes": [
+                "shape-3c46b0c9-0a64-80b8-8004-7546b164e40a",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b1655fc0",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b1653449",
+                "shape-3c46b0c9-0a64-80b8-8004-7546b162900b"
+            ]
+        }
+    },
+    "Plants app": {
+        "Cover": {
+            "shapes": [
+                "shape-3c46b0c9-0a64-80b8-8004-75463064cb6a",
+                "shape-3c46b0c9-0a64-80b8-8004-754630634677",
+                "shape-3c46b0c9-0a64-80b8-8004-75463064cb68"
+            ]
+        },
+        "Design": {
+            "shapes": [
+                "shape-3c46b0c9-0a64-80b8-8004-754640552fc8",
+                "shape-3c46b0c9-0a64-80b8-8004-754640534a44",
+                "shape-3c46b0c9-0a64-80b8-8004-7546405623fb",
+                "shape-3c46b0c9-0a64-80b8-8004-754640524e4b"
+            ]
+        }
+    },
+    "Avataaars by Pablo Stanley": {
+        "Cover": {
+            "shapes": [
+                "shape-3c46b0c9-0a64-80b8-8004-7543b5bf2c9b",
+                "shape-3c46b0c9-0a64-80b8-8004-7543b5cefba8",
+                "shape-3c46b0c9-0a64-80b8-8004-7543b5d03be1",
+                "shape-3c46b0c9-0a64-80b8-8004-7543b5e3f5b1",
+                "shape-3c46b0c9-0a64-80b8-8004-7543b6a474f5"
+            ]
+        }
+    }
+}
