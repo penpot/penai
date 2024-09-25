@@ -413,10 +413,11 @@ class SVGVariationsGenerator:
 
         # create simplified SVG (without the bloat)
         if isinstance(shape, PenpotShapeElement):
-            self.svg = shape.to_svg().with_shortened_ids()
+            self.svg = shape.to_svg()
+            self.svg.strip_foreign_tags()
+            self.svg = self.svg.with_shortened_ids()
         else:
             self.svg = deepcopy(shape)
-        self.svg.strip_foreign_tags()
         self.verbose = verbose
         self.refactoring_model = svg_refactoring_model
         self.variations_model = svg_variations_model
