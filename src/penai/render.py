@@ -16,7 +16,7 @@ from penai.svg import SVG, BoundingBox
 from penai.types import PathLike
 from penai.utils.io import temp_file_for_content
 from penai.utils.svg import image_from_bytes
-from penai.utils.web_drivers import create_chrome_web_driver
+from penai.utils.web_drivers import create_chrome_web_driver_cm
 
 
 @dataclass
@@ -105,7 +105,7 @@ class WebDriverSVGRenderer(BaseSVGRenderer):
         **kwargs: Unpack[WebDriverSVGRendererParams],
     ) -> Iterator[Self]:
         """Instantiate an SVG renderer using a headless Chrome instance."""
-        with create_chrome_web_driver() as driver:
+        with create_chrome_web_driver_cm() as driver:
             yield cls(driver, **kwargs)
 
     def _get(self, url: str) -> None:

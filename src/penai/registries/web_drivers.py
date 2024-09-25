@@ -5,7 +5,7 @@ from enum import Enum
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from penai.utils.io import temp_file_for_content
-from penai.utils.web_drivers import create_chrome_web_driver
+from penai.utils.web_drivers import create_chrome_web_driver_cm
 
 
 class RegisteredWebDriver(Enum):
@@ -15,7 +15,7 @@ class RegisteredWebDriver(Enum):
     def create_web_driver(self) -> Generator[WebDriver, None, None]:
         match self:
             case RegisteredWebDriver.CHROME:
-                with create_chrome_web_driver() as web_driver:
+                with create_chrome_web_driver_cm() as web_driver:
                     yield web_driver
             case _:
                 raise ValueError(f"Unsupported driver {self}")

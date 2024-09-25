@@ -11,7 +11,7 @@ from penai.config import top_level_directory
 from penai.registries.projects import SavedPenpotProject
 from penai.render import BaseSVGRenderer, ResvgRenderer, WebDriverSVGRenderer
 from penai.types import PathLike
-from penai.utils.web_drivers import create_chrome_web_driver
+from penai.utils.web_drivers import create_chrome_web_driver_cm
 
 
 @pytest.fixture(autouse=True)
@@ -57,7 +57,7 @@ def log_dir() -> Path:
 
 @pytest.fixture(scope="session")
 def chrom_web_driver() -> Generator[WebDriver, Any, Any]:
-    with create_chrome_web_driver() as driver:
+    with create_chrome_web_driver_cm() as driver:
         yield driver
 
 
