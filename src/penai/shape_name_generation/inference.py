@@ -186,15 +186,14 @@ class SimplifiedShapeNameGenerator(BaseShapeNameGenerator):
             )
             .with_image(cropped_shape)
             .with_text_message(
-                "Examples are:"
+                "Examples are:\n"
+                "\n"
+                "- Car Button Icon\n"
+                "- User Profile Picture\n"
+                "- Navigation Bar Container\n"
                 "\n"
                 "\n"
-                "- Car Button Icon"
-                "- User Profile Picture"
-                "- Navigation Bar Container"
-                "\n"
-                "\n"
-                f'The type of the element is "{shape_type_literal}".'
+                f'The type of the element is "{shape_type_literal}".\n'
             )
         )
 
@@ -207,9 +206,9 @@ class SimplifiedShapeNameGenerator(BaseShapeNameGenerator):
             )
 
         message_builder.with_text_message(
-            "Use the following design document into context in which the design element is contained:\n"
+            "Use the following design document as context in which the design element is contained:\n"
         ).with_image(result.image).with_text_message(
-            'Provide the name as JSON object in the format `{"name": "<element-name>"}`. Do not provide any other output or explanation except for the JSON.'
+            '\nProvide the name as JSON object in the format `{"name": "<element-name>"}`. Do not provide any other output or explanation except for the JSON.'
         )
 
         messages = [message_builder.build_human_message()]
