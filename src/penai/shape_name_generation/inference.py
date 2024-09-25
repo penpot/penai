@@ -10,7 +10,6 @@ from penai.llm.conversation import MessageBuilder, Response
 from penai.llm.llm_model import RegisteredLLM, RegisteredLLMParams
 from penai.render import BaseSVGRenderer
 from penai.svg import PenpotShapeElement
-from penai.utils.misc import format_bbox
 from penai.utils.vis import DesignElementVisualizer, ShapeVisualization
 
 
