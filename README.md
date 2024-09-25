@@ -198,3 +198,19 @@ paste your `config_local.json` file there or pass the secrets as env vars
 when the codespace is created by using the `New with options` button:
 
 <img src="images/codespaces.png" align="center" width="70%" style="margin: auto">
+
+
+## Troubleshooting
+
+### "No module named 'pysqlite2'"
+
+This may occur if Python hasn't been compiled with sqlite support in a Linux environment.
+
+To fix this problem, use the following instructions. While Ubuntu-specific, they should be easy to adjust for other distros.
+
+* If not done yet, install [pyenv](https://github.com/pyenv/pyenv) for installing/compiling Python versions
+* `apt install libsqlite3-dev` (install missing lib)
+* `pyenv install 3.11.10` (will compile and install 3.10.11)
+* `pyenv local 3.11.10` (run within the penai repository; will set the local Python version)
+
+Now proceed with the normal installation and usage instructions as provided above.
