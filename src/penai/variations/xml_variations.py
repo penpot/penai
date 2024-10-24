@@ -3,8 +3,8 @@ from pathlib import Path
 
 from sensai.util.logging import datetime_tag
 
-from penai.llm.conversation import Conversation, Response
 from penai.llm.llm_model import RegisteredLLM
+from penai.llm.prompting import Conversation, Response
 from penai.models import PenpotMinimalShapeXML
 from penai.svg import PenpotShapeElement
 from penai.types import PathLike

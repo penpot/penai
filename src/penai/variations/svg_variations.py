@@ -8,8 +8,8 @@ from typing import Literal, Self
 from sensai.util.logging import datetime_tag
 
 from penai.config import get_config
-from penai.llm.conversation import CodeSnippet, Conversation, PromptBuilder, Response
 from penai.llm.llm_model import RegisteredLLM
+from penai.llm.prompting import CodeSnippet, Conversation, PromptBuilder, Response
 from penai.models import PenpotColors
 from penai.svg import SVG, PenpotShapeElement
 from penai.types import PathLike

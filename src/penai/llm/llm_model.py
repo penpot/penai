@@ -33,7 +33,7 @@ class RegisteredLLM(Enum):
     GEMINI_PRO = "gemini-pro"
     """Exists but I'm not sure which model it refers to. Gives different (better?) results than GEMINI_1_5_PRO."""
     CLAUDE_3_OPUS = "claude-3-opus-20240229"
-    CLAUDE_3_5_SONNET = "claude-3-5-sonnet-20240620"
+    CLAUDE_3_5_SONNET = "claude-3-5-sonnet-20241022"
 
     def create_model(
         self,

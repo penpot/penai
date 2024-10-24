@@ -13,8 +13,10 @@ from bs4 import BeautifulSoup
 from langchain.globals import set_llm_cache
 from langchain.memory import ConversationBufferMemory
 from langchain_community.cache import SQLiteCache
+from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from PIL.Image import Image
+from pydantic import BaseModel
 
 from penai.config import get_config, pull_from_remote
 from penai.llm.llm_model import RegisteredLLM, RegisteredLLMParams
@@ -250,3 +252,24 @@ class PromptBuilder:
 
     def build(self) -> str:
         return self._content
+
+
+class LLMBaseModel(BaseModel):
+    @classmethod
+    def from_llm(cls, model: BaseLanguageModel, messages: list[BaseMessage]) -> Self:
+        """Try to invoke the model with structured output and fall back to non-structured output if it is not available."""
+        try:
+            model = model.with_structured_output(cls, method="json_mode")  # type: ignore
+            response_dict = model.invoke(messages)
+            response = cls.model_validate(response_dict)
+        except ValueError:
+            conversation_response = Response(model.invoke(messages).content)
+
+            try:
+                response_json = conversation_response.get_code_snippets()[0].code
+            except IndexError:
+                response_json = conversation_response.text
+
+            response = cls.model_validate_json(response_json)
+
+        return response

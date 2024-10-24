@@ -4,10 +4,10 @@ from typing import NamedTuple
 
 from langchain_core.messages import BaseMessage
 from PIL.Image import Image
-from pydantic import BaseModel
+from pydantic import ConfigDict
 
-from penai.llm.conversation import MessageBuilder, Response
 from penai.llm.llm_model import RegisteredLLM, RegisteredLLMParams
+from penai.llm.prompting import LLMBaseModel, MessageBuilder, Response
 from penai.render import BaseSVGRenderer
 from penai.svg import PenpotShapeElement
 from penai.utils.vis import DesignElementVisualizer, ShapeVisualization
@@ -132,7 +132,10 @@ class SimplifiedShapeNameGeneratorOutput(NamedTuple):
     messages: list[BaseMessage]
 
 
-class SimplifiedShapeNameGeneratorResponseSchema(BaseModel):
+class SimplifiedShapeNameGeneratorResponseSchema(LLMBaseModel):
+    # Fix for https://github.com/pydantic/pydantic/discussions/7763
+    model_config = ConfigDict(protected_namespaces=())
+
     name: str
 
 
@@ -207,24 +210,8 @@ class SimplifiedShapeNameGenerator(BaseShapeNameGenerator):
         )
 
         messages = [message_builder.build_human_message()]
-
         model = self.model.create_model(**self.model_options)
-
-        if self.use_json_mode:
-            model = model.with_structured_output(
-                SimplifiedShapeNameGeneratorResponseSchema, method="json_mode"
-            )
-            response_dict = model.invoke(messages)
-            response = SimplifiedShapeNameGeneratorResponseSchema.model_validate(response_dict)
-        else:
-            conversation_response = Response(model.invoke(messages).content)
-
-            try:
-                response_json = conversation_response.get_code_snippets()[0].code
-            except IndexError:
-                response_json = conversation_response.text
-
-            response = SimplifiedShapeNameGeneratorResponseSchema.model_validate_json(response_json)
+        response = SimplifiedShapeNameGeneratorResponseSchema.from_llm(model, messages)
 
         return SimplifiedShapeNameGeneratorOutput(
             name=response.name,

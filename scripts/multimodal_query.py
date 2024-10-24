@@ -2,8 +2,8 @@ from typing import cast
 
 from sensai.util import logging
 
-from penai.llm.conversation import Conversation, MessageBuilder
 from penai.llm.llm_model import RegisteredLLM
+from penai.llm.prompting import Conversation, MessageBuilder
 from penai.registries.projects import SavedPenpotProject
 from penai.render import WebDriverSVGRenderer
 
