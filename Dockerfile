@@ -1,5 +1,6 @@
 # Use the official Python image for the base image.
-FROM python:3.11-slim
+# Note: The platform is explicitly set to linux/amd64 as Google Chrome won't work on ARM.
+FROM --platform=linux/amd64 python:3.11-slim
 
 # Set environment variables to make Python print directly to the terminal and avoid .pyc files.
 ENV PYTHONUNBUFFERED=1
