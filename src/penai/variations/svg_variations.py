@@ -303,18 +303,24 @@ class SVGVariations:
         html += f'<div style="width:{width_style}">'
         html += "<h1>Original</h1>"
         html += self.original_svg.to_string(
-            unique_ids=True, add_width_height=add_width_height, scale_to_width=scale_to_width
+            unique_ids=True,
+            add_width_height=add_width_height,
+            scale_to_width=scale_to_width,
         )
         for i, refactored_svg_snippet in enumerate(self.refactored_svg_snippets, 1):
             html += f"<h1>Refactored: {i}</h1>"
             html += SVG.from_string(refactored_svg_snippet.code).to_string(
-                unique_ids=True, add_width_height=add_width_height, scale_to_width=scale_to_width
+                unique_ids=True,
+                add_width_height=add_width_height,
+                scale_to_width=scale_to_width,
             )
         html += "<h1>Variations</h1>"
         for name, svg in self.iter_variations_name_svg():
             html += f"<h2>{name}</h2>"
             html += svg.to_string(
-                unique_ids=True, add_width_height=add_width_height, scale_to_width=scale_to_width
+                unique_ids=True,
+                add_width_height=add_width_height,
+                scale_to_width=scale_to_width,
             )
         html += "</div>"
         html += "</body></html>"
@@ -440,14 +446,18 @@ class SVGVariationsGenerator:
         self, system_prompt: str | None = None
     ) -> SVGVariationsConversation:
         return SVGVariationsConversation(
-            verbose=self.verbose, model=self.refactoring_model, system_prompt=system_prompt
+            verbose=self.verbose,
+            model=self.refactoring_model,
+            system_prompt=system_prompt,
         )
 
     def _create_variations_conversation(
         self, system_prompt: str | None = None
     ) -> SVGVariationsConversation:
         return SVGVariationsConversation(
-            verbose=self.verbose, model=self.variations_model, system_prompt=system_prompt
+            verbose=self.verbose,
+            model=self.variations_model,
+            system_prompt=system_prompt,
         )
 
     def get_refactoring_conversation_and_code_snippets(
@@ -565,7 +575,9 @@ class SVGVariationsGenerator:
 
     @classmethod
     def _create_variation_scope_prompt(
-        cls, variation_scope: VariationInstructionSnippet | str, colors: PenpotColors | None = None
+        cls,
+        variation_scope: VariationInstructionSnippet | str,
+        colors: PenpotColors | None = None,
     ) -> str:
         return DesignPromptBuilder(str(variation_scope)).with_colors(colors).build()
 
@@ -680,7 +692,8 @@ class SVGVariationsGenerator:
         variations = SVGVariations(self.svg, variations_dict, conversation=conversation)
         variations.write_results(self.result_writer)
         self.result_writer.write_text_file(
-            self.FILENAME_VARIATION_TRANSFER_EXAMPLE_PRESENTED, example_variations.to_html()
+            self.FILENAME_VARIATION_TRANSFER_EXAMPLE_PRESENTED,
+            example_variations.to_html(),
         )
         return variations
 
@@ -730,7 +743,9 @@ class SVGVariationsGenerator:
             conversations.append(conversation)
 
         variations = SVGVariations(
-            original_svg=self.svg, variations_dict=variations_dict, conversation=conversations
+            original_svg=self.svg,
+            variations_dict=variations_dict,
+            conversation=conversations,
         )
         variations.write_results(self.result_writer)
         self.result_writer.write_text_file("example_presented.html", example_variations.to_html())

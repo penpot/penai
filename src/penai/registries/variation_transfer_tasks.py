@@ -17,7 +17,9 @@ class ShapeVariationTemplate:
     """
 
     def __init__(
-        self, shape_ref: ShapeReference, variations: dict[str, ShapeReference] | None = None
+        self,
+        shape_ref: ShapeReference,
+        variations: dict[str, ShapeReference] | None = None,
     ) -> None:
         self.shape_ref = shape_ref
         if variations is None:

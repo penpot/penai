@@ -26,16 +26,20 @@ class HandleFlagsArgumentParser(ArgumentParser):
             args_with_boolean_flags = []
             for arg in args:
                 args_with_boolean_flags.append(arg)
-                if arg.startswith("--") and "=" not in arg and namespace[arg[2:]] is False:  # type: ignore[index]
+                if arg.startswith("--") and "=" not in arg and vars(namespace)[arg[2:]] is False:
                     # We encountered a boolean flag that was False by default. Interpreted as user setting it to True
                     args_with_boolean_flags.append("True")
             args = args_with_boolean_flags
 
         try:
-            with patch_namespace(), parser_context(
-                parent_parser=self,
-                lenient_check=True,
-            ), ActionTypeHint.subclass_arg_context(self):
+            with (
+                patch_namespace(),
+                parser_context(
+                    parent_parser=self,
+                    lenient_check=True,
+                ),
+                ActionTypeHint.subclass_arg_context(self),
+            ):
                 namespace, args = self._parse_known_args(args, namespace)
         except argparse.ArgumentError as ex:
             self.error(str(ex), ex)

@@ -4,7 +4,9 @@ from penai.config import DataStage, get_config, pull_from_remote
 from penai.utils.argparse import HandleFlagsArgumentParser
 
 
-def pull_data(stage: DataStage = "raw", force: bool = False, include_llm_cache: bool = True) -> None:
+def pull_data(
+    stage: DataStage = "raw", force: bool = False, include_llm_cache: bool = True
+) -> None:
     """Pulls all data in the desired stage from the remote storage.
 
     :param stage: the stage for which the data should be pulled

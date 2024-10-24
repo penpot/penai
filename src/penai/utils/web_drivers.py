@@ -55,7 +55,9 @@ def create_chrome_web_driver(headless: bool = True) -> WebDriver:
 
 
 @contextmanager
-def create_chrome_web_driver_cm(headless: bool = True) -> Generator[WebDriver, Any, Any]:
+def create_chrome_web_driver_cm(
+    headless: bool = True,
+) -> Generator[WebDriver, Any, Any]:
     """Context manager to create and clean up a Chrome WebDriver instance."""
     driver = None
     log.info("Starting Chrome WebDriver")

@@ -29,7 +29,13 @@ LOCAL_FONTS = [
                 "style": "italic",
                 "suffix": "extralightitalic",
             },
-            {"id": "300", "name": "300", "weight": "300", "style": "normal", "suffix": "light"},
+            {
+                "id": "300",
+                "name": "300",
+                "weight": "300",
+                "style": "normal",
+                "suffix": "light",
+            },
             {
                 "id": "300italic",
                 "name": "300 (italic)",
@@ -40,9 +46,19 @@ LOCAL_FONTS = [
             {"id": "regular", "name": "regular", "weight": "400", "style": "normal"},
             {"id": "italic", "name": "italic", "weight": "400", "style": "italic"},
             {"id": "bold", "name": "bold", "weight": "bold", "style": "normal"},
-            {"id": "bolditalic", "name": "bold (italic)", "weight": "bold", "style": "italic"},
+            {
+                "id": "bolditalic",
+                "name": "bold (italic)",
+                "weight": "bold",
+                "style": "italic",
+            },
             {"id": "black", "name": "black", "weight": "900", "style": "normal"},
-            {"id": "blackitalic", "name": "black (italic)", "weight": "900", "style": "italic"},
+            {
+                "id": "blackitalic",
+                "name": "black (italic)",
+                "weight": "900",
+                "style": "italic",
+            },
         ],
     },
 ]

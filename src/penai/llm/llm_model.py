@@ -67,7 +67,13 @@ class RegisteredLLM(Enum):
                     api_key=cfg.openai_api_key,
                     model_kwargs=model_kwargs,
                 )
-            case RegisteredLLM.GEMINI_1_5_PRO | RegisteredLLM.GEMINI_1_5_FLASH | RegisteredLLM.GEMINI_1_0_PRO | RegisteredLLM.GEMINI_1_0_FLASH | RegisteredLLM.GEMINI_PRO:
+            case (
+                RegisteredLLM.GEMINI_1_5_PRO
+                | RegisteredLLM.GEMINI_1_5_FLASH
+                | RegisteredLLM.GEMINI_1_0_PRO
+                | RegisteredLLM.GEMINI_1_0_FLASH
+                | RegisteredLLM.GEMINI_PRO
+            ):
                 # NOTE: In langchain-google, the changes necessary to support require_json were merged on June 10, 2024.
                 # https://github.com/langchain-ai/langchain-google/pull/228
                 # TODO This code should be updated to use the require_json parameter once the changes are released.

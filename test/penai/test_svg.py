@@ -118,7 +118,9 @@ class TestPenpotPage:
 
                 yield img_before_arr, img_after_arr
 
-    def _save_diff_fig(self, img_before: np.ndarray, img_after: np.ndarray, save_path: Path) -> None:
+    def _save_diff_fig(
+        self, img_before: np.ndarray, img_after: np.ndarray, save_path: Path
+    ) -> None:
         fig, (before_ax, after_ax, diff_ax) = plt.subplots(1, 3, figsize=(40, 10))
 
         before_ax.imshow(img_before)

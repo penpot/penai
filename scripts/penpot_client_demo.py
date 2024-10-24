@@ -1,9 +1,9 @@
 from pprint import pprint
 
-from penai.client import PenpotClient, transit_to_py
+from penai.client import PenpotClient
 from penai.registries.projects import SavedPenpotProject
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     saved_penpot_project = SavedPenpotProject.INTERACTIVE_MUSIC_APP
     penpot_project = saved_penpot_project.load(pull=True)
     main_file = penpot_project.get_main_file()
@@ -15,6 +15,6 @@ if __name__ == '__main__':
         project_id=saved_penpot_project.get_project_id(),
         file_id=main_file.id,
         page_id=page.id,
-        shape_id=shape.id
+        shape_id=shape.id,
     )
     pprint(result)

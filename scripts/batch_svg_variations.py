@@ -13,7 +13,7 @@ from penai.variations.svg_variations import SVGVariationsGenerator
 
 
 def generate_html_content(
-    shape_name_to_persistence_dir_and_semantics: dict[str, tuple[Path, str]]
+    shape_name_to_persistence_dir_and_semantics: dict[str, tuple[Path, str]],
 ) -> str:
     """Generate HTML content from the list of directories and file paths."""
     html_template = """
@@ -48,7 +48,10 @@ def generate_html_content(
     """
 
     def get_variations_template(
-        shape_name: str, semantics: str, variations_path: str, revised_variations_path: str
+        shape_name: str,
+        semantics: str,
+        variations_path: str,
+        revised_variations_path: str,
     ) -> str:
         return f"""
         <div>
@@ -128,8 +131,11 @@ def main(
         revision_prompt = metadata.revision_prompt
 
         var_gen = SVGVariationsGenerator(
-            shape=shape, semantics=semantics, svg_refactoring_model=refactoring_llm,
-            svg_variations_model=variations_llm, num_refactoring_steps=num_refactoring_steps
+            shape=shape,
+            semantics=semantics,
+            svg_refactoring_model=refactoring_llm,
+            svg_variations_model=variations_llm,
+            num_refactoring_steps=num_refactoring_steps,
         )
         shape_name_to_persistence_dir_and_semantics[shape.name] = (
             var_gen.persistence_dir,
@@ -139,7 +145,9 @@ def main(
         print_green(
             f"Creating {num_variations} variations for shape {shape.name} with metadata semantics: {semantics}",
         )
-        variations = var_gen.create_variations(num_variations=num_variations, variation_logic=variation_logic)
+        variations = var_gen.create_variations(
+            num_variations=num_variations, variation_logic=variation_logic
+        )
         if include_revisions:
             print_green(
                 f"Revising the {num_variations} variations for shape {shape.name} with metadata semantics: {semantics}"
@@ -158,6 +166,7 @@ def main(
 
 if __name__ == "__main__":
     main(
-        num_variations=5, num_refactoring_steps=3,
+        num_variations=5,
+        num_refactoring_steps=3,
         include_revisions=False,
     )

@@ -4,7 +4,9 @@ from penai.config import DataStage, get_config, push_to_remote
 from penai.utils.argparse import HandleFlagsArgumentParser
 
 
-def push_all_data(stage: DataStage = "raw", force: bool = False, include_llm_cache: bool = True) -> None:
+def push_all_data(
+    stage: DataStage = "raw", force: bool = False, include_llm_cache: bool = True
+) -> None:
     """Pushes all data in the desired stage to the remote storage.
 
     :param stage: the stage for which the data should be pushed

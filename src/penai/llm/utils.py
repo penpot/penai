@@ -2,6 +2,7 @@ from collections import defaultdict
 from html import escape
 from pathlib import Path
 from textwrap import dedent
+from typing import Any, cast
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
@@ -22,13 +23,11 @@ default_stylesheet_path = get_resource_dir() / "styles/prompt_visualizer.css"
 class PromptVisualizer:
     def __init__(self, stylesheet_path: str | Path | None = default_stylesheet_path):
         if stylesheet_path is not None:
-            self.stylesheet = (
-                "<style>\n" + Path(stylesheet_path).read_text() + "\n</style>"
-            )
+            self.stylesheet = "<style>\n" + Path(stylesheet_path).read_text() + "\n</style>"
         else:
             self.stylesheet = ""
 
-    def _handle_human_section(self, section: dict[str, any]) -> str:
+    def _handle_human_section(self, section: dict[str, Any]) -> str:
         assert isinstance(section, dict) and "type" in section
 
         match section["type"]:
@@ -49,13 +48,14 @@ class PromptVisualizer:
         sections = []
 
         if isinstance(message, AIMessage):
-            sections = [self._handle_ai_section(message.content)]
+            sections = [self._handle_ai_section(cast(str, message.content))]
         elif isinstance(message, HumanMessage):
             sections = [
-                self._handle_human_section(section) for section in message.content
+                self._handle_human_section(cast(dict[str, Any], section))
+                for section in message.content
             ]
         elif isinstance(message, SystemMessage):
-            sections = [self._handle_human_section(message.content)]
+            sections = [self._handle_human_section(cast(dict[str, Any], message.content))]
         else:
             raise ValueError(f"Unsupported message type: {type(message)}")
 
@@ -64,7 +64,8 @@ class PromptVisualizer:
         return f"<h2>{label}</h2>\n\n" + "\n".join(paragraphs)
 
     def _build_html(self, content: str) -> str:
-        return dedent(f"""
+        return dedent(
+            f"""
             <!DOCTYPE html>
             <html>
                 <head>
@@ -74,7 +75,8 @@ class PromptVisualizer:
                     {content}
                 </body>
             </html>
-        """)
+        """
+        )
 
     def message_to_html(self, message: BaseMessage) -> str:
         return self._build_html(self._visualize_message(message))

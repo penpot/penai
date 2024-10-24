@@ -67,9 +67,7 @@ class AnnotationBasedShapeNameGenerator(BaseShapeNameGenerator):
 
             top_level_frame = shape.get_top_level_frame()
 
-            visualizations = list(
-                self.visualizer.visualize_bboxes_in_shape(top_level_frame)
-            )
+            visualizations = list(self.visualizer.visualize_bboxes_in_shape(top_level_frame))
 
             for vis in visualizations:
                 self.shape_visualizations[vis.shape] = vis
@@ -160,9 +158,7 @@ class SimplifiedShapeNameGenerator(BaseShapeNameGenerator):
         self.include_coordinates = include_coordinates
         self.model_options = model_options
 
-    def generate_name_impl(
-        self, shape: PenpotShapeElement
-    ) -> SimplifiedShapeNameGeneratorOutput:
+    def generate_name_impl(self, shape: PenpotShapeElement) -> SimplifiedShapeNameGeneratorOutput:
         assert shape.is_visible, "Shape must be visible to generate a name."
 
         top_frame = shape.get_top_level_frame()
@@ -219,20 +215,16 @@ class SimplifiedShapeNameGenerator(BaseShapeNameGenerator):
                 SimplifiedShapeNameGeneratorResponseSchema, method="json_mode"
             )
             response_dict = model.invoke(messages)
-            response = SimplifiedShapeNameGeneratorResponseSchema.model_validate(
-                response_dict
-            )
+            response = SimplifiedShapeNameGeneratorResponseSchema.model_validate(response_dict)
         else:
-            response = Response(model.invoke(messages).content)
+            conversation_response = Response(model.invoke(messages).content)
 
             try:
-                response_json = response.get_code_snippets()[0].code
+                response_json = conversation_response.get_code_snippets()[0].code
             except IndexError:
-                response_json = response.text
+                response_json = conversation_response.text
 
-            response = SimplifiedShapeNameGeneratorResponseSchema.model_validate_json(
-                response_json
-            )
+            response = SimplifiedShapeNameGeneratorResponseSchema.model_validate_json(response_json)
 
         return SimplifiedShapeNameGeneratorOutput(
             name=response.name,

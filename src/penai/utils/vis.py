@@ -6,7 +6,7 @@ from tempfile import NamedTemporaryFile
 
 import matplotlib.pyplot as plt
 from matplotlib import patches
-from matplotlib.axis import Axis
+from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 from PIL import Image
 from tqdm import tqdm
@@ -34,7 +34,7 @@ class BaseShapeVisualizer(abc.ABC):
     @abc.abstractmethod
     def visualize_shape(
         self,
-        ax: Axis,
+        ax: Axes,
         shape: PenpotShapeElement,
         label: str,
         bboxes: dict[str, BoundingBox],
@@ -49,8 +49,8 @@ DEFAULT_BBOX_FACE_COLOR = "gray"
 AX_LIMITS = (-10000, 10000)
 
 
-def _add_label_to_axis(
-    ax: Axis, label: str, bbox: BoundingBox, bottom_margin: float, font_size: int = 8
+def _add_label_to_Axes(
+    ax: Axes, label: str, bbox: BoundingBox, bottom_margin: float, font_size: int = 8
 ) -> None:
     ax.text(
         bbox.x + bbox.width / 2,
@@ -69,12 +69,18 @@ def _add_label_to_axis(
     )
 
 
-def _add_bbox_outlines_to_axis(
-    ax: Axis, bbox: BoundingBox, color: str = "red", linewidth: float = 1
+def _add_bbox_outlines_to_Axes(
+    ax: Axes, bbox: BoundingBox, color: str = "red", linewidth: float = 1
 ) -> None:
     line_kwargs = dict(color=color, linewidth=linewidth, zorder=1)
 
-    ax.add_line(Line2D(AX_LIMITS, (bbox.y, bbox.y), **line_kwargs))  # type: ignore
+    ax.add_line(
+        Line2D(
+            AX_LIMITS,
+            (bbox.y, bbox.y),
+            **line_kwargs,  # type: ignore
+        )
+    )
     ax.add_line(
         Line2D(
             AX_LIMITS,
@@ -83,7 +89,13 @@ def _add_bbox_outlines_to_axis(
         )
     )
 
-    ax.add_line(Line2D((bbox.x, bbox.x), AX_LIMITS, **line_kwargs))  # type: ignore
+    ax.add_line(
+        Line2D(
+            (bbox.x, bbox.x),
+            AX_LIMITS,
+            **line_kwargs,  # type: ignore
+        )
+    )
     ax.add_line(
         Line2D(
             (bbox.x + bbox.width, bbox.x + bbox.width),
@@ -93,8 +105,8 @@ def _add_bbox_outlines_to_axis(
     )
 
 
-def _add_bbox_to_axis(
-    ax: Axis,
+def _add_bbox_to_Axes(
+    ax: Axes,
     bbox: BoundingBox,
     bbox_alpha: float = 0.2,
     bbox_face_color: str = "gray",
@@ -157,7 +169,7 @@ class ShapeHighlighter(BaseShapeVisualizer):
 
     def visualize_shape(
         self,
-        ax: Axis,
+        ax: Axes,
         shape: PenpotShapeElement,
         label: str,
         bboxes: dict[str, BoundingBox],
@@ -166,13 +178,19 @@ class ShapeHighlighter(BaseShapeVisualizer):
         bbox = bboxes[shape.shape_id]
 
         if self.show_focus_outlines:
-            _add_bbox_outlines_to_axis(ax, bbox)
+            _add_bbox_outlines_to_Axes(ax, bbox)
 
         if self.show_label:
-            _add_label_to_axis(ax, label, bbox, self.annotation_bottom_margin, font_size=self.annotation_font_size)
+            _add_label_to_Axes(
+                ax,
+                label,
+                bbox,
+                self.annotation_bottom_margin,
+                font_size=self.annotation_font_size,
+            )
 
         if self.show_bounds:
-            _add_bbox_to_axis(
+            _add_bbox_to_Axes(
                 ax,
                 bbox,
                 self.bbox_alpha,
@@ -204,7 +222,7 @@ class ShapeHierarchyVisualizer(BaseShapeVisualizer):
 
     def visualize_shape(
         self,
-        ax: Axis,
+        ax: Axes,
         shape: PenpotShapeElement,
         label: str,
         bboxes: dict[str, BoundingBox],
@@ -219,7 +237,7 @@ class ShapeHierarchyVisualizer(BaseShapeVisualizer):
 
         if self.edge_width_rel_to_size:
             ax_bbox = ax.get_window_extent().transformed(
-                ax.get_figure().dpi_scale_trans.inverted()
+                ax.get_figure().dpi_scale_trans.inverted()  # type: ignore
             )
             ax_width, ax_height = ax_bbox.width, ax_bbox.height
 
@@ -229,7 +247,7 @@ class ShapeHierarchyVisualizer(BaseShapeVisualizer):
         for parent_shape in shape.get_all_parent_shapes():
             parent_bbox = get_bbox(parent_shape.shape_id)
 
-            _add_bbox_to_axis(
+            _add_bbox_to_Axes(
                 ax,
                 parent_bbox,
                 bbox_edge_color=self.parents_bbox_edge_color,
@@ -243,7 +261,7 @@ class ShapeHierarchyVisualizer(BaseShapeVisualizer):
             if bbox == child_bbox:
                 continue
 
-            _add_bbox_to_axis(
+            _add_bbox_to_Axes(
                 ax,
                 child_bbox,
                 bbox_edge_color=self.children_bbox_edge_color,
@@ -251,7 +269,7 @@ class ShapeHierarchyVisualizer(BaseShapeVisualizer):
                 bbox_alpha=0,
             )
 
-        _add_bbox_to_axis(
+        _add_bbox_to_Axes(
             ax,
             bbox,
             bbox_edge_color=self.shape_bbox_edge_color,
@@ -281,9 +299,7 @@ class DesignElementVisualizer:
             label_factory if label_factory is not None else _default_shape_label_factory
         )
 
-    def _get_relevant_children(
-        self, shape: PenpotShapeElement
-    ) -> list[PenpotShapeElement]:
+    def _get_relevant_children(self, shape: PenpotShapeElement) -> list[PenpotShapeElement]:
         return [
             child
             for child in shape.get_all_children_shapes()
@@ -309,9 +325,7 @@ class DesignElementVisualizer:
 
         return shape_image, shape_bboxes
 
-    def _prepare_plt_context(
-        self, img: Image.Image, bbox: BoundingBox
-    ) -> tuple[plt.Figure, Axis]:
+    def _prepare_plt_context(self, img: Image.Image, bbox: BoundingBox) -> tuple[plt.Figure, Axes]:
         fig, ax = plt.subplots(
             dpi=self.dpi,
             figsize=(
@@ -347,9 +361,7 @@ class DesignElementVisualizer:
 
         fig, ax = self._prepare_plt_context(super_image, ax_bbox)
 
-        self.shape_visualizer.visualize_shape(
-            ax, shape, label, all_shape_bboxes, clip_bbox=ax_bbox
-        )
+        self.shape_visualizer.visualize_shape(ax, shape, label, all_shape_bboxes, clip_bbox=ax_bbox)
 
         image = self._figure_to_image(fig)
 

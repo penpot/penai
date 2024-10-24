@@ -1,7 +1,6 @@
 from sensai.util import logging
 
 from penai.registries.projects import SavedPenpotProject
-from penai.registries.web_drivers import RegisteredWebDriver
 from penai.variations.svg_variations import SVGVariationsGenerator
 
 if __name__ == "__main__":

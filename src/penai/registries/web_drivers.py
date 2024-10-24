@@ -48,9 +48,12 @@ def get_web_driver_for_html(
     html_string: str,
 ) -> Generator[WebDriver, None, None]:
     """Context manager that opens a web driver with a HTML string as content."""
-    with get_web_driver(web_driver) as driver, temp_file_for_content(
-        html_string,
-        extension=".html",
-    ) as path:
+    with (
+        get_web_driver(web_driver) as driver,
+        temp_file_for_content(
+            html_string,
+            extension=".html",
+        ) as path,
+    ):
         driver.get(path.absolute().as_uri())
         yield driver

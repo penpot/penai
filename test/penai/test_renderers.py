@@ -3,7 +3,8 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from PIL import Image
+from PIL import Image as ImageFactory
+from PIL.Image import Image
 from pytest import FixtureRequest
 
 from penai.render import BaseSVGRenderer, ResvgRenderer, WebDriverSVGRenderer
@@ -36,7 +37,7 @@ class TestSVGRenderers:
         example_png_path: Path,
         log_dir: Path,
     ) -> None:
-        ref_png = Image.open(example_png_path)
+        ref_png: Image = ImageFactory.open(example_png_path)
 
         cmp_png = renderer.render_svg_file(example_svg_path).image
 

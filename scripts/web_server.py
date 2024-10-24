@@ -1,7 +1,6 @@
 import collections
 import os
 from enum import Enum
-from typing import Dict
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
@@ -19,10 +18,16 @@ class WebServer:
         svg_variations_directory = os.path.join(cfg.results_dir(), "svg_variations")
         self.svg_variations_dir = svg_variations_directory
         self.app = FastAPI()
-        self.templates = Jinja2Templates(directory=os.path.join(top_level_directory, "resources", "jinja_templates"))
+        self.templates = Jinja2Templates(
+            directory=os.path.join(top_level_directory, "resources", "jinja_templates")
+        )
 
         self.app.mount("/results", StaticFiles(directory=cfg.results_dir()), name="results")
-        self.app.mount("/static", StaticFiles(directory=os.path.join(top_level_directory, "resources", "static_html")), name="results")
+        self.app.mount(
+            "/static",
+            StaticFiles(directory=os.path.join(top_level_directory, "resources", "static_html")),
+            name="results",
+        )
 
         self.app.get("/")(self.index)
         self.app.get("/svg_variations")(self.variations_index)
@@ -32,27 +37,32 @@ class WebServer:
         VARIATION_TRANSFER = "variation_transfer"
         VARIATIONS = "variation"
 
-    def _load_svg_variations(self, mode: VariationMode) -> Dict[str, Dict[str, list[str]]]:
-        html_files: Dict[str, Dict[str, list[str]]] = collections.defaultdict(lambda: collections.defaultdict(list))
+    def _load_svg_variations(self, mode: VariationMode) -> dict[str, dict[str, list[str]]]:
+        html_files: dict[str, dict[str, list[str]]] = collections.defaultdict(
+            lambda: collections.defaultdict(list)
+        )
 
-        for root, dirs, files in os.walk(self.svg_variations_dir):
-
-            is_variation_transfer = SVGVariationsGenerator.FILENAME_VARIATION_TRANSFER_EXAMPLE_PRESENTED in files
+        for root, _dirs, files in os.walk(self.svg_variations_dir):
+            is_variation_transfer = (
+                SVGVariationsGenerator.FILENAME_VARIATION_TRANSFER_EXAMPLE_PRESENTED in files
+            )
             match mode:
                 case self.VariationMode.VARIATION_TRANSFER:
                     is_relevant_folder = is_variation_transfer
                 case self.VariationMode.VARIATIONS:
                     is_relevant_folder = not is_variation_transfer
                 case _:
-                    raise ValueError()
+                    raise ValueError
             if not is_relevant_folder:
                 continue
 
             for file in files:
-                if file.endswith('.html') or file.endswith(".md"):
-                    rel_dir = os.path.relpath(root, self.svg_variations_dir).replace(os.path.sep, "/")
+                if file.endswith((".html", ".md")):
+                    rel_dir = os.path.relpath(root, self.svg_variations_dir).replace(
+                        os.path.sep, "/"
+                    )
                     shape_name = rel_dir.split("/")[0]
-                    sub_dir = rel_dir[len(shape_name) + 1:]
+                    sub_dir = rel_dir[len(shape_name) + 1 :]
                     html_files[shape_name][sub_dir].append(file)
 
         sorted_html_files = {}
@@ -65,16 +75,25 @@ class WebServer:
 
     async def variations_index(self, request: Request) -> HTMLResponse:
         html_files = self._load_svg_variations(self.VariationMode.VARIATIONS)
-        return self.templates.TemplateResponse("svg_variations_index.html",
-            {"request": request, "html_files": html_files, "title": "SVG Variations"})
+        return self.templates.TemplateResponse(
+            "svg_variations_index.html",
+            {"request": request, "html_files": html_files, "title": "SVG Variations"},
+        )
 
     async def variation_transfer_index(self, request: Request) -> HTMLResponse:
         html_files = self._load_svg_variations(self.VariationMode.VARIATION_TRANSFER)
-        return self.templates.TemplateResponse("svg_variations_index.html",
-            {"request": request, "html_files": html_files, "title": "SVG Variation Transfer"})
+        return self.templates.TemplateResponse(
+            "svg_variations_index.html",
+            {
+                "request": request,
+                "html_files": html_files,
+                "title": "SVG Variation Transfer",
+            },
+        )
 
     def run(self, port: int = 8000) -> None:
         import uvicorn
+
         uvicorn.run(self.app, host="0.0.0.0", port=port)
 
 
