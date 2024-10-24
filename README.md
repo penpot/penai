@@ -19,11 +19,15 @@ building on open standards such as SVG.
     * [Variation Style Transfer](#variation-style-transfer)
     * [Naming Shapes Semantically](#naming-shapes-semantically)
     * [Hierarchy Inference](#hierarchy-inference)
-- [Development Environment](#development-environment)
-    * [Python Virtual Environment](#python-virtual-environment)
-    * [Docker Setup](#docker-setup)
-    * [Codespaces](#codespaces)
-    * [Secrets, Configuration and Credentials](#secrets-configuration-and-credentials)
+- [Development Guide](#development-guide)
+    * [Environment Setup](#environment-setup)
+      * [Python Virtual Environment](#python-virtual-environment)
+      * [Docker Setup](#docker-setup)
+      * [Codespaces](#codespaces)
+      * [Secrets, Configuration and Credentials](#secrets-configuration-and-credentials)
+    * [Documentation](#documentation)
+    * [Working with PenAI](#working-with-penai)
+- [Troubleshooting](#troubleshooting)
 
 <!-- tocstop -->
 
@@ -116,7 +120,9 @@ shapes contained:
 Notebooks:
 * Hierarchy inference for an example frame: [notebooks/hierarchy_inference.ipynb](notebooks/hierarchy_inference.ipynb) 
 
-## Development Environment
+## Development Guide
+
+### Environment Setup
 
 Clone the repository and run
 
@@ -203,6 +209,27 @@ when the codespace is created by using the `New with options` button:
 
 <img src="images/codespaces.png" align="center" width="70%" style="margin: auto">
 
+### Documentation
+
+Run the following command to build the documentation:
+
+```
+poetry run poe doc-build
+```
+
+Note: This will require a prior setup of the local configuration (see [Secrets, Configuration and Credentials](#secrets-configuration-and-credentials)) to properly build some of the notebooks.
+
+The main page of the documentation will be located at `docs/_build/index.html`.
+
+### Working with PenAI
+
+While Penpot is implemented in Closure and uses several custom data formants and representations, most AI and data science libraries are targetted for Python. To allow fast and easy exploration of AI use cases in Python, we implemented a Python binding for the most important Penpot data formats and several helper classes and functions to manipulate and render objects from within Python. These features include:
+
+* Loading Penpot projects and representing Penpot data objects down to the level of shape elements
+* Deriving bounding boxes for arbitrary shape elements within a Penpot page
+* Rendering Penpot objects (pages or single shape elements) into raster graphics
+
+A few examples on how to work with the `penai` package are provided in the `docs/02_notebooks/01_working_with_penai.ipynb` notebook.
 
 ## Troubleshooting
 
@@ -214,7 +241,7 @@ To fix this problem, use the following instructions. While Ubuntu-specific, they
 
 * If not done yet, install [pyenv](https://github.com/pyenv/pyenv) for installing/compiling Python versions
 * `apt install libsqlite3-dev` (install missing lib)
-* `pyenv install 3.11.10` (will compile and install 3.10.11)
+* `pyenv install 3.11.10` (will compile and install 3.11.10)
 * `pyenv local 3.11.10` (run within the penai repository; will set the local Python version)
 
 Now proceed with the normal installation and usage instructions as provided above.
