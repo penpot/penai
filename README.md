@@ -162,7 +162,7 @@ docker build -t penai .
 and run it with the repository mounted as a volume:
 
 ```shell
-docker run -it --shm-size=1g --rm -v "$(pwd)":/workspaces/penai penai
+docker run -it --shm-size=1g -p 8888:8888 --rm -v "$(pwd)":/workspaces/penai penai
 ```
 
 (The `shm-size` option is necessary for google-webdriver to have enough space
@@ -184,6 +184,10 @@ jupyter notebook --ip 0.0.0.0 --port 8888 --allow-root --no-browser
 
 (the `--ip` option is needed to prevent jupyter from only listening to localhost
 and the `--allow-root` option is because the container user is root.)
+
+The Jupyter Notebook server can now be accessed via [localhost:8888](http://localhost:8888)
+in the host environment. The token required for authentication can be found in the console logging
+from the Jupyter instance within the container.
 
 Note: When using the Windows subsystem for Linux (WSL), you might need to adjust
 the path for the
