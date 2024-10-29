@@ -223,13 +223,13 @@ The main page of the documentation will be located at `docs/_build/index.html`.
 
 ### Working with PenAI
 
-While Penpot is implemented in Closure and uses several custom data formants and representations, most AI and data science libraries are targetted for Python. To allow fast and easy exploration of AI use cases in Python, we implemented a Python binding for the most important Penpot data formats and several helper classes and functions to manipulate and render objects from within Python. These features include:
+While Penpot is implemented in Clojure and uses several custom data formants and representations, most AI and data science libraries are targetted for Python. To allow fast and easy exploration of AI use cases in Python, we implemented a custom Python binding for the most important Penpot data formats and several helper classes and functions to manipulate and render objects from within Python code. These features include:
 
 * Loading Penpot projects and representing Penpot data objects down to the level of shape elements
 * Deriving bounding boxes for arbitrary shape elements within a Penpot page
 * Rendering Penpot objects (pages or single shape elements) into raster graphics
 
-A few examples on how to work with the `penai` package are provided in the `docs/02_notebooks/01_working_with_penai.ipynb` notebook.
+A few examples on how to work with the `penai` package are provided in the [docs/02_notebooks/01_working_with_penai.ipynb](docs/02_notebooks/01_working_with_penai.ipynb) notebook.
 
 ## Troubleshooting
 
